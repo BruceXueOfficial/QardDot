@@ -1,0 +1,88 @@
+{
+  "source": "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/KnowledgeCard/View-KnowledgeCard-DetailScreen.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "确认删除",
+        "location": {
+          "startingColumn": 16,
+          "startingLine": 137
+        }
+      },
+      {
+        "comment": "",
+        "key": "添加文字",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 73
+        }
+      },
+      {
+        "comment": "",
+        "key": "添加图片",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 76
+        }
+      },
+      {
+        "comment": "",
+        "key": "添加代码",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 79
+        }
+      },
+      {
+        "comment": "",
+        "key": "添加链接",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 82
+        }
+      },
+      {
+        "comment": "",
+        "key": "撤销",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 103
+        }
+      },
+      {
+        "comment": "",
+        "key": "取消",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 138
+        }
+      },
+      {
+        "comment": "",
+        "key": "删除",
+        "location": {
+          "startingColumn": 20,
+          "startingLine": 139
+        }
+      },
+      {
+        "comment": "",
+        "key": "删除「%@」后无法恢复，确认删除？",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 144
+        }
+      },
+      {
+        "comment": "",
+        "key": "卡片列表",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 286
+        }
+      }
+    ]
+  },
+  "version": 1
+}

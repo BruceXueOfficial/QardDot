@@ -1,0 +1,82 @@
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: linear-gradient(160deg, #f7fbff 0%, #eef5ff 45%, #e8f2ff 100%);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.graph-shell {
+  width: 100%;
+  height: 100%;
+}
+
+.rf-node-card {
+  min-width: 170px;
+  max-width: 240px;
+  border-radius: 14px;
+  border: 1.2px solid rgba(73, 136, 210, 0.36);
+  background: linear-gradient(145deg, #ffffff 0%, #f3f8ff 100%);
+  box-shadow: 0 8px 18px rgba(34, 62, 107, 0.11);
+  padding: 10px 12px;
+  color: #17233c;
+}
+
+.rf-node-card.selected {
+  border-color: rgba(44, 105, 190, 0.95);
+  box-shadow: 0 0 0 2px rgba(66, 142, 240, 0.25), 0 10px 22px rgba(34, 62, 107, 0.2);
+}
+
+.rf-node-title {
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  margin-bottom: 7px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rf-node-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.rf-node-chip {
+  border-radius: 999px;
+  background: rgba(89, 145, 230, 0.14);
+  color: #2863b0;
+  padding: 2px 7px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.rf-edge-label {
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #2b4b79;
+  border: 1px solid rgba(66, 114, 180, 0.3);
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.react-flow__controls {
+  border: 1px solid rgba(73, 136, 210, 0.3);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(30, 58, 102, 0.15);
+}
+
+.react-flow__controls-button {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid rgba(73, 136, 210, 0.18);
+}
+
+.react-flow__attribution {
+  display: none;
+}

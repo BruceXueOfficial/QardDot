@@ -1,0 +1,4 @@
+Target dependency graph (2 targets)
+Target '知点Tests' in project '知点'
+➜ Explicit dependency on target '知点' in project '知点'
+Target '知点' in project '知点' (no dependencies)

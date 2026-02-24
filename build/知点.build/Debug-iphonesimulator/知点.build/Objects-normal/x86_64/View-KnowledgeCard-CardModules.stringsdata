@@ -1,0 +1,160 @@
+{
+  "source": "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/KnowledgeCard/View-KnowledgeCard-CardModules.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "点击输入文字内容",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 167
+        }
+      },
+      {
+        "comment": "",
+        "key": "点击加号添加图片",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 188
+        }
+      },
+      {
+        "comment": "",
+        "key": "删除图片",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 244
+        }
+      },
+      {
+        "comment": "",
+        "key": "点击加号添加代码框",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 268
+        }
+      },
+      {
+        "comment": "",
+        "key": "自动换行",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 380
+        }
+      },
+      {
+        "comment": "",
+        "key": "输入代码内容",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 421
+        }
+      },
+      {
+        "comment": "",
+        "key": "点击右上角加号添加链接",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 478
+        }
+      },
+      {
+        "comment": "",
+        "key": "删除链接",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 541
+        }
+      },
+      {
+        "comment": "",
+        "key": "新增链接",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 1000
+        }
+      },
+      {
+        "comment": "",
+        "key": "链接名称",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 935
+        }
+      },
+      {
+        "comment": "",
+        "key": "链接名称（可选）",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 942
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 940
+        }
+      },
+      {
+        "comment": "",
+        "key": "链接内容",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 962
+        }
+      },
+      {
+        "comment": "",
+        "key": "点击输入链接内容",
+        "location": {
+          "startingColumn": 38,
+          "startingLine": 969
+        }
+      },
+      {
+        "comment": "",
+        "key": "",
+        "location": {
+          "startingColumn": 25,
+          "startingLine": 967
+        }
+      },
+      {
+        "comment": "",
+        "key": "取消",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1004
+        }
+      },
+      {
+        "comment": "",
+        "key": "添加",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 1007
+        }
+      },
+      {
+        "comment": "",
+        "key": "选择图片来源",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 1063
+        }
+      },
+      {
+        "comment": "",
+        "key": "模块名称",
+        "location": {
+          "startingColumn": 31,
+          "startingLine": 1180
+        }
+      }
+    ]
+  },
+  "version": 1
+}

@@ -1,0 +1,48 @@
+{
+  "source": "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/Profile/View-ProfileView.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "本地存储正常",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 56
+        }
+      },
+      {
+        "comment": "",
+        "key": "数据保存在设备本地。加入 Apple Developer Program 后可开启 iCloud 同步。",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 65
+        }
+      },
+      {
+        "comment": "",
+        "key": "知点 (QardDot) 是一款知识卡片管理工具，帮助你用卡片的方式整理和回顾知识。",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 80
+        }
+      },
+      {
+        "comment": "",
+        "key": "版本",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 85
+        }
+      },
+      {
+        "comment": "",
+        "key": "1.0.0",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 89
+        }
+      }
+    ]
+  },
+  "version": 1
+}

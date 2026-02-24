@@ -1,0 +1,232 @@
+{
+  "source": "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/AddCard/View-ImportCard.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "导入卡片",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 38
+        }
+      },
+      {
+        "comment": "",
+        "key": "取消",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 42
+        }
+      },
+      {
+        "comment": "",
+        "key": "导入说明",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 76
+        }
+      },
+      {
+        "comment": "",
+        "key": "将知识卡片的 JSON 粘贴到下方输入框，即可快速导入。支持从外部 AI 整理后的标准格式。",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 79
+        }
+      },
+      {
+        "comment": "",
+        "key": "获取 AI 整理 Prompt",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 103
+        }
+      },
+      {
+        "comment": "",
+        "key": "点击查看完整 Prompt 与外部 AI 使用指引",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 106
+        }
+      },
+      {
+        "comment": "",
+        "key": "粘贴 JSON",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 189
+        }
+      },
+      {
+        "comment": "",
+        "key": "清空",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 198
+        }
+      },
+      {
+        "comment": "",
+        "key": "Prompt 使用指引",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 501
+        }
+      },
+      {
+        "comment": "",
+        "key": "如何使用",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 507
+        }
+      },
+      {
+        "comment": "",
+        "key": "1. 复制下方 Prompt。",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 510
+        }
+      },
+      {
+        "comment": "",
+        "key": "2. 在外部 AI 里先正常提问，拿到一段初步回答。",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 513
+        }
+      },
+      {
+        "comment": "",
+        "key": "3. 把 Prompt 发给外部 AI，再贴入那段回答，请它只返回一个 JSON 代码块。",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 516
+        }
+      },
+      {
+        "comment": "",
+        "key": "4. 图片支持 data:image/...;base64 编码，直接放在 images 数组即可。",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 519
+        }
+      },
+      {
+        "comment": "",
+        "key": "5. 把返回的 JSON 粘贴回「导入卡片」页。",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 522
+        }
+      },
+      {
+        "comment": "",
+        "key": "Prompt 内容",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 533
+        }
+      },
+      {
+        "comment": "",
+        "key": "添加标签",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 629
+        }
+      },
+      {
+        "comment": "",
+        "key": "取消",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 633
+        }
+      },
+      {
+        "comment": "",
+        "key": "确认",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 639
+        }
+      },
+      {
+        "comment": "",
+        "key": "点击下方输入或从已有标签中添加",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 658
+        }
+      },
+      {
+        "comment": "",
+        "key": "添加标签",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 706
+        }
+      },
+      {
+        "comment": "",
+        "key": "已添加标签会展示在上方标题卡片中，可直接点击标签右上角的 x 删除。",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 731
+        }
+      },
+      {
+        "comment": "",
+        "key": "输入标签（支持逗号分隔）",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 711
+        }
+      },
+      {
+        "comment": "",
+        "key": "添加",
+        "location": {
+          "startingColumn": 24,
+          "startingLine": 720
+        }
+      },
+      {
+        "comment": "",
+        "key": "暂无已有标签",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 752
+        }
+      },
+      {
+        "comment": "",
+        "key": "已有标签",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 742
+        }
+      },
+      {
+        "comment": "",
+        "key": "点选可快速添加",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 746
+        }
+      },
+      {
+        "comment": "",
+        "key": "# %@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 767
+        }
+      }
+    ]
+  },
+  "version": 1
+}

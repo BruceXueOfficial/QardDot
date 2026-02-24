@@ -1,0 +1,14 @@
+# Local tooling/config
+.agent/
+.codex/
+.vscode/
+
+# Finder
+.DS_Store
+
+# Xcode user-specific files
+*.xcuserstate
+*.xcuserdatad/
+
+# Design source folder outside app bundle
+App Icon/

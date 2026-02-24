@@ -1,0 +1,72 @@
+{
+  "source": "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/KnowledgeCard/View-KnowledgeCard-CardDetail.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "点击加号新增标签",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 202
+        }
+      },
+      {
+        "comment": "",
+        "key": "# %@",
+        "location": {
+          "startingColumn": 42,
+          "startingLine": 209
+        }
+      },
+      {
+        "comment": "",
+        "key": "# %@",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 2755
+        }
+      },
+      {
+        "comment": "",
+        "key": "图片加载失败",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 2964
+        }
+      },
+      {
+        "comment": "",
+        "key": "无效的图片地址",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 2972
+        }
+      },
+      {
+        "comment": "",
+        "key": "代码块名称",
+        "location": {
+          "startingColumn": 35,
+          "startingLine": 3462
+        }
+      },
+      {
+        "comment": "",
+        "key": "关闭换行展示",
+        "location": {
+          "startingColumn": 48,
+          "startingLine": 3492
+        }
+      },
+      {
+        "comment": "",
+        "key": "开启换行展示",
+        "location": {
+          "startingColumn": 71,
+          "startingLine": 3492
+        }
+      }
+    ]
+  },
+  "version": 1
+}

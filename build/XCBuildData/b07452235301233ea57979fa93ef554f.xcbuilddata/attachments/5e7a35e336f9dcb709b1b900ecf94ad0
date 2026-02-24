@@ -1,0 +1,19 @@
+{
+  "" : {
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点Tests.build/Objects-normal/x86_64/知点Tests-primary.dia",
+    "emit-module-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点Tests.build/Objects-normal/x86_64/知点Tests-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点Tests.build/Objects-normal/x86_64/知点Tests-primary-emit-module.dia",
+    "pch" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点Tests.build/Objects-normal/x86_64/知点Tests-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点Tests.build/Objects-normal/x86_64/知点Tests-primary.swiftdeps"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点Tests/____Tests.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点Tests.build/Objects-normal/x86_64/____Tests.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点Tests.build/Objects-normal/x86_64/____Tests.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点Tests.build/Objects-normal/x86_64/____Tests.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点Tests.build/Objects-normal/x86_64/____Tests.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点Tests.build/Objects-normal/x86_64/____Tests.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点Tests.build/Objects-normal/x86_64/____Tests.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点Tests.build/Objects-normal/x86_64/____Tests.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点Tests.build/Objects-normal/x86_64/____Tests~partial.swiftmodule"
+  }
+}

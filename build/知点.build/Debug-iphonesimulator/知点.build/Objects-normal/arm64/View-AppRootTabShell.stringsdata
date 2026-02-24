@@ -1,0 +1,40 @@
+{
+  "source": "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/AppShell/View-AppRootTabShell.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "广场",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 12
+        }
+      },
+      {
+        "comment": "",
+        "key": "新增",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 19
+        }
+      },
+      {
+        "comment": "",
+        "key": "仓库",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 26
+        }
+      },
+      {
+        "comment": "",
+        "key": "个人",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 33
+        }
+      }
+    ]
+  },
+  "version": 1
+}

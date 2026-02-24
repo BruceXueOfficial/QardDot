@@ -1,0 +1,209 @@
+{
+  "" : {
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/知点-primary.dia",
+    "emit-module-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/知点-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/知点-primary-emit-module.dia",
+    "pch" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/知点-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/知点-primary.swiftdeps"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/GeneratedAssetSymbols~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/ContentView.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ContentView.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ContentView.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ContentView.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ContentView.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ContentView.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ContentView.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ContentView.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ContentView~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/AddCard/Import-ImageSourceResolver.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Import-ImageSourceResolver.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Import-ImageSourceResolver.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Import-ImageSourceResolver.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Import-ImageSourceResolver.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Import-ImageSourceResolver.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Import-ImageSourceResolver.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Import-ImageSourceResolver.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Import-ImageSourceResolver~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/AddCard/ImportPayloadNormalizer.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ImportPayloadNormalizer.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ImportPayloadNormalizer.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ImportPayloadNormalizer.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ImportPayloadNormalizer.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ImportPayloadNormalizer.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ImportPayloadNormalizer.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ImportPayloadNormalizer.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ImportPayloadNormalizer~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/AddCard/View-AddCardHub.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AddCardHub.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AddCardHub.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AddCardHub.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AddCardHub.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AddCardHub.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AddCardHub.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AddCardHub.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AddCardHub~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/AddCard/View-ImportCard.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ImportCard.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ImportCard.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ImportCard.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ImportCard.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ImportCard.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ImportCard.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ImportCard.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ImportCard~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/AddCard/View-ManualCardCreation.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ManualCardCreation.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ManualCardCreation.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ManualCardCreation.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ManualCardCreation.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ManualCardCreation.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ManualCardCreation.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ManualCardCreation.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ManualCardCreation~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/AddCard/View-SmartChatPlaceholder.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-SmartChatPlaceholder.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-SmartChatPlaceholder.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-SmartChatPlaceholder.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-SmartChatPlaceholder.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-SmartChatPlaceholder.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-SmartChatPlaceholder.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-SmartChatPlaceholder.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-SmartChatPlaceholder~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/AppShell/Model-AppTab.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-AppTab.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-AppTab.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-AppTab.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-AppTab.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-AppTab.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-AppTab.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-AppTab.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-AppTab~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/AppShell/View-AppRootTabShell.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AppRootTabShell.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AppRootTabShell.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AppRootTabShell.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AppRootTabShell.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AppRootTabShell.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AppRootTabShell.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AppRootTabShell.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-AppRootTabShell~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/CardManagement/View-CardManagement.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-CardManagement.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-CardManagement.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-CardManagement.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-CardManagement.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-CardManagement.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-CardManagement.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-CardManagement.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-CardManagement~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/KnowledgeCard/Model-KnowledgeCard.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-KnowledgeCard.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-KnowledgeCard.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-KnowledgeCard.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-KnowledgeCard.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-KnowledgeCard.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-KnowledgeCard.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-KnowledgeCard.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Model-KnowledgeCard~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/KnowledgeCard/Store-KnowledgeCardLibrary.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Store-KnowledgeCardLibrary.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Store-KnowledgeCardLibrary.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Store-KnowledgeCardLibrary.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Store-KnowledgeCardLibrary.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Store-KnowledgeCardLibrary.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Store-KnowledgeCardLibrary.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Store-KnowledgeCardLibrary.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/Store-KnowledgeCardLibrary~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/KnowledgeCard/View-KnowledgeCard-CardDetail.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardDetail.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardDetail.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardDetail.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardDetail.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardDetail.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardDetail.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardDetail.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardDetail~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/KnowledgeCard/View-KnowledgeCard-CardModules.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardModules.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardModules.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardModules.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardModules.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardModules.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardModules.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardModules.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-CardModules~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/KnowledgeCard/View-KnowledgeCard-ThemeColorPicker.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-ThemeColorPicker.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-ThemeColorPicker.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-ThemeColorPicker.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-ThemeColorPicker.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-ThemeColorPicker.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-ThemeColorPicker.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-ThemeColorPicker.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeCard-ThemeColorPicker~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/KnowledgeCard/ViewModel-KnowledgeCardEditor.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ViewModel-KnowledgeCardEditor.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ViewModel-KnowledgeCardEditor.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ViewModel-KnowledgeCardEditor.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ViewModel-KnowledgeCardEditor.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ViewModel-KnowledgeCardEditor.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ViewModel-KnowledgeCardEditor.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ViewModel-KnowledgeCardEditor.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/ViewModel-KnowledgeCardEditor~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/KnowledgeSquare/View-KnowledgeSquare.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeSquare.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeSquare.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeSquare.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeSquare.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeSquare.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeSquare.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeSquare.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-KnowledgeSquare~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/Profile/View-ProfileView.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ProfileView.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ProfileView.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ProfileView.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ProfileView.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ProfileView.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ProfileView.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ProfileView.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/View-ProfileView~partial.swiftmodule"
+  },
+  "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/QardDot App.swift" : {
+    "const-values" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/QardDot App.swiftconstvalues",
+    "dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/QardDot App.d",
+    "diagnostics" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/QardDot App.dia",
+    "index-unit-output-path" : "/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/QardDot App.o",
+    "llvm-bc" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/QardDot App.bc",
+    "object" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/QardDot App.o",
+    "swift-dependencies" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/QardDot App.swiftdeps",
+    "swiftmodule" : "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/build/知点.build/Debug-iphonesimulator/知点.build/Objects-normal/x86_64/QardDot App~partial.swiftmodule"
+  }
+}

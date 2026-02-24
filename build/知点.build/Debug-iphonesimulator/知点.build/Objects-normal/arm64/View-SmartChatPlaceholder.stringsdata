@@ -1,0 +1,40 @@
+{
+  "source": "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/AddCard/View-SmartChatPlaceholder.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "智能对话",
+        "location": {
+          "startingColumn": 30,
+          "startingLine": 64
+        }
+      },
+      {
+        "comment": "",
+        "key": "智能对话",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 43
+        }
+      },
+      {
+        "comment": "",
+        "key": "通过 AI 对话，自动提取要点并生成知识卡片",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 49
+        }
+      },
+      {
+        "comment": "",
+        "key": "关闭",
+        "location": {
+          "startingColumn": 28,
+          "startingLine": 68
+        }
+      }
+    ]
+  },
+  "version": 1
+}

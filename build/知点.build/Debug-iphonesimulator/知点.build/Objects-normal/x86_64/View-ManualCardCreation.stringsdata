@@ -1,0 +1,104 @@
+{
+  "source": "/Users/bruce_the_xue/Library/Mobile Documents/com~apple~CloudDocs/创业项目/知点/知点/Features/AddCard/View-ManualCardCreation.swift",
+  "tables": {
+    "Localizable": [
+      {
+        "comment": "",
+        "key": "手动新建",
+        "location": {
+          "startingColumn": 34,
+          "startingLine": 31
+        }
+      },
+      {
+        "comment": "",
+        "key": "取消",
+        "location": {
+          "startingColumn": 32,
+          "startingLine": 35
+        }
+      },
+      {
+        "comment": "",
+        "key": "双击正文可编辑",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 216
+        }
+      },
+      {
+        "comment": "",
+        "key": "请输入卡片标题",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 87
+        }
+      },
+      {
+        "comment": "",
+        "key": "输入卡片标题",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 75
+        }
+      },
+      {
+        "comment": "",
+        "key": "Markdown 实时渲染",
+        "location": {
+          "startingColumn": 22,
+          "startingLine": 100
+        }
+      },
+      {
+        "comment": "",
+        "key": "支持 Markdown：# 标题、> 引用、- 列表、`行内代码`",
+        "location": {
+          "startingColumn": 26,
+          "startingLine": 111
+        }
+      },
+      {
+        "comment": "",
+        "key": "用逗号分隔，如: SwiftUI, iOS, 架构",
+        "location": {
+          "startingColumn": 23,
+          "startingLine": 252
+        }
+      },
+      {
+        "comment": "",
+        "key": "*",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 280
+        }
+      },
+      {
+        "comment": "",
+        "key": "创建成功",
+        "location": {
+          "startingColumn": 18,
+          "startingLine": 383
+        }
+      },
+      {
+        "comment": "",
+        "key": "链接标题",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 425
+        }
+      },
+      {
+        "comment": "",
+        "key": "https://...",
+        "location": {
+          "startingColumn": 27,
+          "startingLine": 433
+        }
+      }
+    ]
+  },
+  "version": 1
+}
