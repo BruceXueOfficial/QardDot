@@ -73,4 +73,22 @@ final class KnowledgeCardUITests: XCTestCase {
         app.buttons["图谱仓库"].tap()
         XCTAssertTrue(app.staticTexts["图谱仓库"].waitForExistence(timeout: 2))
     }
+
+    @MainActor
+    func testKnowledgeSquareRecommendationSplitCardSmoke() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        app.tabBars.buttons["广场"].tap()
+        XCTAssertTrue(app.staticTexts["知识广场"].waitForExistence(timeout: 2))
+
+        let card = app.otherElements["knowledgeSquare.recommendation.card"].firstMatch
+        guard card.waitForExistence(timeout: 3) else {
+            throw XCTSkip("No recommendation card rendered in current test data.")
+        }
+
+        XCTAssertTrue(app.otherElements["knowledgeSquare.recommendation.top"].firstMatch.exists)
+        XCTAssertTrue(app.otherElements["knowledgeSquare.recommendation.body"].firstMatch.exists)
+        XCTAssertTrue(app.otherElements["knowledgeSquare.recommendation.footer"].firstMatch.exists)
+    }
 }

@@ -5,20 +5,7 @@ private func cardTheme(for card: KnowledgeCard) -> CardThemeColor {
     card.themeColor ?? .defaultTheme
 }
 
-private struct PunchedCardMetrics {
-    let cornerRadius: CGFloat
-    let holeSize: CGFloat
-    let holeInset: CGFloat
-
-    init(cornerRadius: CGFloat, holeScale: CGFloat = 1) {
-        self.cornerRadius = cornerRadius
-        self.holeSize = max(5.4, cornerRadius * 0.6875 * holeScale)
-        self.holeInset = max(4.4, cornerRadius * 0.5833 * holeScale)
-    }
-}
-
 private enum KnowledgeSquareLayoutTuning {
-    static let bannerCardWidth: CGFloat = 252
     static let bannerCardHeight: CGFloat = 248
     static let recentCardWidth: CGFloat = 164
     static let recentCardHeight: CGFloat = 146
@@ -31,19 +18,6 @@ private enum KnowledgeSquareLayoutTuning {
 }
 
 private enum KnowledgeSquareShadowTuning {
-    static let bannerBaseLightOpacity: Double = 0.09
-    static let bannerBaseDarkOpacity: Double = 0.24
-    static let bannerBaseLightRadius: CGFloat = 5
-    static let bannerBaseDarkRadius: CGFloat = 7
-    static let bannerBaseLightY: CGFloat = 4
-    static let bannerBaseDarkY: CGFloat = 5
-
-    static let bannerTintLightOpacity: Double = 0.10
-    static let bannerTintDarkOpacity: Double = 0.24
-    static let bannerTintLightRadius: CGFloat = 3
-    static let bannerTintDarkRadius: CGFloat = 4
-    static let bannerTintY: CGFloat = 2
-
     static let miniBaseLightOpacity: Double = 0.10
     static let miniBaseDarkOpacity: Double = 0.24
     static let miniBaseLightRadius: CGFloat = 5
@@ -56,58 +30,6 @@ private enum KnowledgeSquareShadowTuning {
     static let miniTintLightRadius: CGFloat = 2
     static let miniTintDarkRadius: CGFloat = 3
     static let miniTintY: CGFloat = 1
-}
-
-private struct KnowledgeSquarePunchedCardStyle: ViewModifier {
-    @Environment(\.colorScheme) private var colorScheme
-
-    let theme: CardThemeColor
-    let metrics: PunchedCardMetrics
-
-    func body(content: Content) -> some View {
-        content
-            .background(
-                TitleCardPunchedShape(
-                    cornerRadius: metrics.cornerRadius,
-                    holeSize: metrics.holeSize,
-                    holeInset: metrics.holeInset
-                )
-                .fill(theme.cardBackgroundGradient, style: FillStyle(eoFill: true))
-            )
-            .clipShape(RoundedRectangle(cornerRadius: metrics.cornerRadius, style: .continuous))
-            .overlay(
-                TitleCardPunchedShape(
-                    cornerRadius: metrics.cornerRadius,
-                    holeSize: metrics.holeSize,
-                    holeInset: metrics.holeInset
-                )
-                .stroke(theme.cardBorderGradient.opacity(0.58), lineWidth: 0.78)
-            )
-            .overlay(
-                TitleCardPunchedShape(
-                    cornerRadius: metrics.cornerRadius,
-                    holeSize: metrics.holeSize,
-                    holeInset: metrics.holeInset
-                )
-                .stroke(
-                    colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.2),
-                    lineWidth: 0.4
-                )
-                .padding(1)
-            )
-            .overlay(alignment: .topTrailing) {
-                KnowledgeCardPinHoleInnerShadow(size: metrics.holeSize)
-                    .padding(.top, metrics.holeInset)
-                    .padding(.trailing, metrics.holeInset)
-                    .allowsHitTesting(false)
-            }
-    }
-}
-
-private extension View {
-    func knowledgeSquarePunchedCard(theme: CardThemeColor, metrics: PunchedCardMetrics) -> some View {
-        modifier(KnowledgeSquarePunchedCardStyle(theme: theme, metrics: metrics))
-    }
 }
 
 struct KnowledgeSquareView: View {
@@ -156,7 +78,7 @@ struct KnowledgeSquareView: View {
                         Button {
                             openCard(card)
                         } label: {
-                            KnowledgeSquareBannerCard(
+                            KnowledgeSquareRecommendationCard(
                                 card: card,
                                 viewCount: library.viewCounts[card.id] ?? 0
                             )
@@ -359,7 +281,7 @@ struct KnowledgeSquareView: View {
                 ForEach(randomCards) { card in
                     let theme = cardTheme(for: card)
                     let useLightCardText = theme.prefersLightForeground(in: colorScheme)
-                    let metrics = PunchedCardMetrics(cornerRadius: 10, holeScale: 0.96)
+                    let metrics = ZDPunchedCardMetrics(cornerRadius: 10, holeScale: 0.96)
                     Button {
                         openCard(card)
                     } label: {
@@ -379,7 +301,11 @@ struct KnowledgeSquareView: View {
                         .padding(.leading, 10)
                         .padding(.trailing, 20)
                         .padding(.bottom, 10)
-                        .knowledgeSquarePunchedCard(theme: theme, metrics: metrics)
+                        .zdPunchedGlassBackground(
+                            theme.cardBackgroundGradient,
+                            metrics: metrics,
+                            borderGradient: theme.cardBorderGradient
+                        )
                     }
                     .buttonStyle(.plain)
                 }
@@ -651,212 +577,6 @@ private struct KnowledgeSquareImageCover: View {
     }
 }
 
-private struct AdaptiveTagChipRow: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    let tags: [String]
-    let chipTextColor: Color
-    let useLightForeground: Bool
-    let trailingReservedWidth: CGFloat
-
-    private let chipFont = UIFont.systemFont(ofSize: 10, weight: .medium)
-    private let overflowFont = UIFont.systemFont(ofSize: 9, weight: .semibold)
-    private let chipHorizontalPadding: CGFloat = 14
-    private let chipSpacing: CGFloat = 4
-
-    var body: some View {
-        GeometryReader { proxy in
-            let result = fittingResult(for: max(0, proxy.size.width - trailingReservedWidth))
-            HStack(spacing: chipSpacing) {
-                ForEach(result.visibleTags, id: \.self) { tag in
-                    Text(tag)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundStyle(chipTextColor)
-                        .lineLimit(1)
-                        .truncationMode(.tail)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 3)
-                        .background(
-                            Color.white.opacity(
-                                useLightForeground ? 0.18 : (colorScheme == .dark ? 0.1 : 0.46)
-                            )
-                        )
-                        .clipShape(Capsule())
-                }
-                if result.hiddenCount > 0 {
-                    Text("+\(result.hiddenCount)")
-                        .font(.system(size: 9, weight: .semibold))
-                        .foregroundStyle(useLightForeground ? Color.white.opacity(0.76) : .secondary)
-                }
-            }
-            .lineLimit(1)
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-        .frame(height: 22)
-    }
-
-    private func fittingResult(for availableWidth: CGFloat) -> (visibleTags: [String], hiddenCount: Int) {
-        guard !tags.isEmpty, availableWidth > 0 else {
-            return ([], tags.count)
-        }
-
-        let tagWidths = tags.map(measuredChipWidth(for:))
-        let totalWidth = rowWidth(tagWidths: tagWidths, hiddenCount: 0)
-        if totalWidth <= availableWidth {
-            return (tags, 0)
-        }
-
-        var bestVisibleCount = 0
-        for visibleCount in 0...tags.count {
-            let hiddenCount = tags.count - visibleCount
-            let visibleWidths = Array(tagWidths.prefix(visibleCount))
-            let candidateWidth = rowWidth(tagWidths: visibleWidths, hiddenCount: hiddenCount)
-            if candidateWidth <= availableWidth {
-                bestVisibleCount = visibleCount
-            } else {
-                break
-            }
-        }
-
-        let visible = Array(tags.prefix(bestVisibleCount))
-        return (visible, max(0, tags.count - bestVisibleCount))
-    }
-
-    private func rowWidth(tagWidths: [CGFloat], hiddenCount: Int) -> CGFloat {
-        guard !tagWidths.isEmpty || hiddenCount > 0 else { return 0 }
-
-        let tagsWidth = tagWidths.reduce(0, +)
-        let tagsSpacing = CGFloat(max(tagWidths.count - 1, 0)) * chipSpacing
-        if hiddenCount == 0 {
-            return tagsWidth + tagsSpacing
-        }
-
-        let overflowText = "+\(hiddenCount)" as NSString
-        let overflowSize = overflowText.size(withAttributes: [.font: overflowFont])
-        let overflowSpacing = tagWidths.isEmpty ? 0 : chipSpacing
-        return tagsWidth + tagsSpacing + overflowSpacing + ceil(overflowSize.width)
-    }
-
-    private func measuredChipWidth(for text: String) -> CGFloat {
-        let value = text as NSString
-        let textSize = value.size(withAttributes: [.font: chipFont])
-        return ceil(textSize.width) + chipHorizontalPadding
-    }
-}
-
-// MARK: - Banner Card
-
-private struct KnowledgeSquareBannerCard: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    let card: KnowledgeCard
-    let viewCount: Int
-
-    private var renderedContent: AttributedString {
-        (try? AttributedString(markdown: card.content)) ?? AttributedString(card.content)
-    }
-
-    private var theme: CardThemeColor {
-        cardTheme(for: card)
-    }
-
-    private var metrics: PunchedCardMetrics {
-        PunchedCardMetrics(cornerRadius: 18, holeScale: 1.02)
-    }
-
-    private var useLightCardText: Bool {
-        theme.prefersLightForeground(in: colorScheme)
-    }
-
-    private var chipTextColor: Color {
-        useLightCardText ? Color.white.opacity(0.9) : theme.primaryColor.opacity(0.9)
-    }
-
-    private var chipBackgroundColor: Color {
-        Color.white.opacity(useLightCardText ? 0.18 : (colorScheme == .dark ? 0.1 : 0.46))
-    }
-
-    private var tags: [String] {
-        (card.tags ?? []).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            if !tags.isEmpty {
-                AdaptiveTagChipRow(
-                    tags: tags,
-                    chipTextColor: chipTextColor,
-                    useLightForeground: useLightCardText,
-                    trailingReservedWidth: 34
-                )
-            } else {
-                Text("未添加标签")
-                    .font(.system(size: 10, weight: .medium))
-                    .foregroundStyle(chipTextColor)
-                    .padding(.horizontal, 7)
-                    .padding(.vertical, 3)
-                    .background(chipBackgroundColor)
-                    .clipShape(Capsule())
-            }
-
-            Text(card.title)
-                .font(.title3.weight(.bold))
-                .foregroundStyle(useLightCardText ? Color.white.opacity(0.94) : Color.black.opacity(0.84))
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
-
-            Text(renderedContent)
-                .font(.subheadline)
-                .foregroundStyle(useLightCardText ? Color.white.opacity(0.86) : Color.black.opacity(0.6))
-                .lineLimit(4)
-                .multilineTextAlignment(.leading)
-
-            Spacer(minLength: 0)
-
-            HStack(spacing: 10) {
-                Label("\(viewCount)", systemImage: "eye.fill")
-                Text(card.createdAt.formatted(date: .abbreviated, time: .omitted))
-            }
-            .font(.caption.weight(.semibold))
-            .foregroundStyle(useLightCardText ? Color.white.opacity(0.82) : Color.black.opacity(0.55))
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-        .padding(.top, 12)
-        .padding(.leading, 12)
-        .padding(.trailing, 14)
-        .padding(.bottom, 14)
-        .frame(width: KnowledgeSquareLayoutTuning.bannerCardWidth)
-        .frame(height: KnowledgeSquareLayoutTuning.bannerCardHeight, alignment: .topLeading)
-        .knowledgeSquarePunchedCard(theme: theme, metrics: metrics)
-        .shadow(
-            color: Color.black.opacity(
-                colorScheme == .dark
-                    ? KnowledgeSquareShadowTuning.bannerBaseDarkOpacity
-                    : KnowledgeSquareShadowTuning.bannerBaseLightOpacity
-            ),
-            radius: colorScheme == .dark
-                ? KnowledgeSquareShadowTuning.bannerBaseDarkRadius
-                : KnowledgeSquareShadowTuning.bannerBaseLightRadius,
-            x: 0,
-            y: colorScheme == .dark
-                ? KnowledgeSquareShadowTuning.bannerBaseDarkY
-                : KnowledgeSquareShadowTuning.bannerBaseLightY
-        )
-        .shadow(
-            color: theme.primaryColor.opacity(
-                colorScheme == .dark
-                    ? KnowledgeSquareShadowTuning.bannerTintDarkOpacity
-                    : KnowledgeSquareShadowTuning.bannerTintLightOpacity
-            ),
-            radius: colorScheme == .dark
-                ? KnowledgeSquareShadowTuning.bannerTintDarkRadius
-                : KnowledgeSquareShadowTuning.bannerTintLightRadius,
-            x: 0,
-            y: KnowledgeSquareShadowTuning.bannerTintY
-        )
-    }
-}
-
 // MARK: - Mini Card
 
 private struct KnowledgeSquareMiniCard: View {
@@ -868,8 +588,8 @@ private struct KnowledgeSquareMiniCard: View {
         cardTheme(for: card)
     }
 
-    private var metrics: PunchedCardMetrics {
-        PunchedCardMetrics(cornerRadius: 12, holeScale: 0.96)
+    private var metrics: ZDPunchedCardMetrics {
+        ZDPunchedCardMetrics(cornerRadius: 12, holeScale: 0.96)
     }
 
     private var useLightCardText: Bool {
@@ -919,7 +639,11 @@ private struct KnowledgeSquareMiniCard: View {
                 width: KnowledgeSquareLayoutTuning.recentCardWidth,
                 height: KnowledgeSquareLayoutTuning.recentCardHeight
             )
-            .knowledgeSquarePunchedCard(theme: theme, metrics: metrics)
+            .zdPunchedGlassBackground(
+                theme.cardBackgroundGradient,
+                metrics: metrics,
+                borderGradient: theme.cardBorderGradient
+            )
             .shadow(
                 color: Color.black.opacity(
                     colorScheme == .dark

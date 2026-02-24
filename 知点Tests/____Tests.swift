@@ -333,3 +333,47 @@ struct KnowledgeCardTests {
         }
     }
 }
+
+struct KnowledgeSquareRecommendationTests {
+    @Test
+    func firstTextBodyPrefersTextModuleContent() {
+        let card = KnowledgeCard(
+            title: "标题",
+            content: "Legacy Content",
+            modules: [
+                CardBlock(kind: .image, moduleTitle: "图片", imageURLs: ["https://example.com/a.png"]),
+                CardBlock(kind: .text, moduleTitle: "正文", text: "  模块正文优先  "),
+                CardBlock(kind: .text, moduleTitle: "补充", text: "次级正文")
+            ]
+        )
+
+        let resolved = KnowledgeSquareCardContentResolver.firstTextBody(for: card)
+        #expect(resolved == "模块正文优先")
+    }
+
+    @Test
+    func firstTextBodyFallsBackToLegacyContent() {
+        let card = KnowledgeCard(
+            title: "标题",
+            content: "  Legacy Fallback  ",
+            modules: [
+                CardBlock(kind: .text, moduleTitle: "正文", text: "   "),
+                CardBlock(kind: .image, moduleTitle: "图片", imageURLs: ["https://example.com/a.png"])
+            ]
+        )
+
+        let resolved = KnowledgeSquareCardContentResolver.firstTextBody(for: card)
+        #expect(resolved == "Legacy Fallback")
+    }
+
+    @Test
+    func punchedCardMetricsScaleAndMinimumFloor() {
+        let scaled = ZDPunchedCardMetrics(cornerRadius: 18, holeScale: 1.02)
+        #expect(abs(scaled.holeSize - (18 * 0.6875 * 1.02)) < 0.0001)
+        #expect(abs(scaled.holeInset - (18 * 0.5833 * 1.02)) < 0.0001)
+
+        let tiny = ZDPunchedCardMetrics(cornerRadius: 1, holeScale: 0.1)
+        #expect(tiny.holeSize == 5.4)
+        #expect(tiny.holeInset == 4.4)
+    }
+}
