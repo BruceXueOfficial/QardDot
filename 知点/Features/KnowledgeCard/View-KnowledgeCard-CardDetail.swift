@@ -12,6 +12,8 @@ struct KnowledgeCardView: View {
     @Binding var pendingImagePickerModuleID: UUID?
     let onDeleteModule: ((UUID) -> Void)?
     let onRegisterUndoAction: ((EditorUndoAction) -> Void)?
+    var hideTitle: Bool = false
+    var hideOuterPadding: Bool = false
     @EnvironmentObject private var library: KnowledgeCardLibraryStore
     @Environment(\.colorScheme) var colorScheme
 
@@ -43,12 +45,16 @@ struct KnowledgeCardView: View {
         viewModel: KnowledgeCardViewModel,
         selectedModuleID: Binding<UUID?> = .constant(nil),
         pendingImagePickerModuleID: Binding<UUID?> = .constant(nil),
+        hideTitle: Bool = false,
+        hideOuterPadding: Bool = false,
         onDeleteModule: ((UUID) -> Void)? = nil,
         onRegisterUndoAction: ((EditorUndoAction) -> Void)? = nil
     ) {
         self.viewModel = viewModel
         self._selectedModuleID = selectedModuleID
         self._pendingImagePickerModuleID = pendingImagePickerModuleID
+        self.hideTitle = hideTitle
+        self.hideOuterPadding = hideOuterPadding
         self.onDeleteModule = onDeleteModule
         self.onRegisterUndoAction = onRegisterUndoAction
     }
@@ -63,12 +69,14 @@ struct KnowledgeCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            titleModuleView
+            if !hideTitle {
+                titleModuleView
+            }
 
             moduleCardLayout
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, hideOuterPadding ? 0 : 16)
+        .padding(.vertical, hideOuterPadding ? 0 : 12)
         .frame(maxWidth: .infinity, alignment: .leading)
         .onAppear {
             titleDraft = card.title

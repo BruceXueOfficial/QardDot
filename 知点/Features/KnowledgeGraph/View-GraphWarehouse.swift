@@ -66,28 +66,16 @@ struct GraphWarehouseView: View {
         .onChange(of: library.cards.map(\.id)) { _, ids in
             graphStore.pruneInvalidCardReferences(validCardIDs: Set(ids))
         }
+        .onReceive(NotificationCenter.default.publisher(for: .init("ShowGraphCreateSheet"))) { _ in
+            showingCreateSheet = true
+        }
     }
 
     private var header: some View {
         HStack(spacing: 10) {
-            Text("图谱仓库")
-                .font(.system(size: 30, weight: .bold))
-                .foregroundStyle(.primary)
-
             Spacer(minLength: 10)
 
-            Button {
-                showingCreateSheet = true
-            } label: {
-                Label("新建", systemImage: "plus")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.zdAccentDeep)
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 8)
-                    .background(Color.zdAccentDeep.opacity(0.15))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            }
-            .buttonStyle(.plain)
+
         }
     }
 
@@ -159,12 +147,12 @@ struct GraphWarehouseView: View {
                 showingCreateSheet = true
             } label: {
                 Text("创建第一个图谱")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.zdAccentDeep)
-                    .frame(maxWidth: .infinity)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.horizontal, 12)
                     .padding(.vertical, 10)
-                    .background(Color.zdAccentDeep.opacity(0.14))
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .zdSurfaceCardStyle(.regular, cornerRadius: 12)
             }
             .buttonStyle(.plain)
         }
@@ -313,4 +301,10 @@ struct GraphCreationSheet: View {
         }
         .padding(.top, 4)
     }
+}
+
+#Preview("Graph Warehouse") {
+    GraphWarehouseView()
+        .environmentObject(KnowledgeGraphStore())
+        .environmentObject(KnowledgeCardLibraryStore())
 }

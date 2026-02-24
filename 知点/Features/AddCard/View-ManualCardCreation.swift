@@ -8,8 +8,24 @@ struct ManualCardCreationView: View {
     var onCreate: ((KnowledgeCard) -> Void)?
 
     @State private var title = ""
-    @State private var content = ""
     @FocusState private var focusedField: Field?
+    
+    @State private var keyboardIsVisible = false
+    @State private var selectedModuleID: UUID?
+    @State private var pendingImagePickerModuleID: UUID?
+    @State private var undoDeleteStack: [EditorUndoAction] = []
+
+    @StateObject private var editorViewModel: KnowledgeCardViewModel = {
+        let initialCard = KnowledgeCard(
+            title: "",
+            content: "",
+            type: .short,
+            tags: nil,
+            themeColor: .defaultTheme,
+            modules: [.text("")]
+        )
+        return KnowledgeCardViewModel(card: initialCard)
+    }()
 
     private var theme: CardThemeColor {
         .defaultTheme
@@ -24,12 +40,19 @@ struct ManualCardCreationView: View {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var trimmedContent: String {
-        content.trimmingCharacters(in: .whitespacesAndNewlines)
+    private var hasContent: Bool {
+        editorViewModel.modules.contains { block in
+            switch block.kind {
+            case .text: return !(block.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            case .image: return !(block.imageURLs ?? []).isEmpty
+            case .code: return block.codeSnippets?.first?.code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+            case .link: return !(block.linkItems ?? []).isEmpty
+            }
+        }
     }
 
     private var canCreate: Bool {
-        !trimmedTitle.isEmpty && !trimmedContent.isEmpty
+        !trimmedTitle.isEmpty && hasContent
     }
 
     private var useLightTitleCardText: Bool {
@@ -57,11 +80,13 @@ struct ManualCardCreationView: View {
             GeometryReader { proxy in
                 let safeLeading = proxy.safeAreaInsets.leading
                 let safeTrailing = proxy.safeAreaInsets.trailing
+                let safeBottom = proxy.safeAreaInsets.bottom
                 let viewportWidth = max(0, proxy.size.width - safeLeading - safeTrailing)
                 let controlHorizontalInset: CGFloat = 16
                 let topBarLeadingInset = controlHorizontalInset + safeLeading
                 let topBarTrailingInset = controlHorizontalInset + safeTrailing
                 let contentWidth = viewportWidth
+                let floatingBottomInset: CGFloat = keyboardIsVisible ? 12 : max(12, safeBottom - 24)
 
                 ScrollView {
                     VStack(alignment: .leading, spacing: 14) {
@@ -79,7 +104,64 @@ struct ManualCardCreationView: View {
                 .safeAreaInset(edge: .top, spacing: 0) {
                     topBar(leadingInset: topBarLeadingInset, trailingInset: topBarTrailingInset)
                 }
+                .overlay(alignment: .bottomLeading) {
+                    Menu {
+                        Button("添加文字", systemImage: "text.alignleft") {
+                            editorViewModel.addModule(.text)
+                        }
+                        Button("添加图片", systemImage: "photo") {
+                            editorViewModel.addModule(.image)
+                        }
+                        Button("添加代码", systemImage: "curlybraces") {
+                            editorViewModel.addModule(.code)
+                        }
+                        Button("添加链接", systemImage: "link") {
+                            editorViewModel.addModule(.link)
+                        }
+                    } label: {
+                        Image(systemName: "plus")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(Color.zdAccentDeep)
+                            .frame(width: 48, height: 48)
+                            .background(Color.clear)
+                            .clipShape(Circle())
+                            .zdGlassSurface(cornerRadius: 999, lineWidth: 1.2, isClear: true)
+                            .shadow(color: .black.opacity(0.12), radius: 6, x: 0, y: 3)
+                    }
+                    .padding(.leading, controlHorizontalInset + safeLeading)
+                    .padding(.bottom, floatingBottomInset)
+                }
+                .overlay(alignment: .bottom) {
+                    if !undoDeleteStack.isEmpty {
+                        Button {
+                            undoDeleteModule()
+                        } label: {
+                            Text("撤销")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.red.opacity(0.9))
+                                .frame(minWidth: 94, minHeight: 48)
+                                .background(
+                                    LiquidGlassChip(cornerRadius: 999)
+                                )
+                                .clipShape(Capsule())
+                                .overlay(
+                                    Capsule()
+                                        .strokeBorder(Color.red.opacity(0.84), lineWidth: 1.1)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .shadow(color: .black.opacity(0.08), radius: 5, x: 0, y: 2)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .padding(.bottom, floatingBottomInset)
+                    }
+                }
             }
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+            keyboardIsVisible = true
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardIsVisible = false
         }
     }
 
@@ -183,29 +265,15 @@ struct ManualCardCreationView: View {
     }
 
     private var contentModule: some View {
-        ManualCreationModuleContainer(title: "正文") {
-            ZStack(alignment: .topLeading) {
-                NotionLikeTextEditor(
-                    text: $content,
-                    isEditable: true,
-                    minimumHeight: 156
-                )
-                .frame(maxWidth: .infinity, minHeight: 156, alignment: .topLeading)
-
-                if trimmedContent.isEmpty {
-                    Text("请输入正文")
-                        .font(.footnote)
-                        .foregroundStyle(Color.secondary)
-                        .padding(.top, 8)
-                        .allowsHitTesting(false)
-                }
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .contentShape(Rectangle())
-            .onTapGesture {
-                focusedField = .content
-            }
-        }
+        KnowledgeCardView(
+            viewModel: editorViewModel,
+            selectedModuleID: $selectedModuleID,
+            pendingImagePickerModuleID: $pendingImagePickerModuleID,
+            hideTitle: true,
+            hideOuterPadding: true,
+            onDeleteModule: handleDeleteModule,
+            onRegisterUndoAction: handleRegisterUndoAction
+        )
     }
 
     private func topBar(leadingInset: CGFloat, trailingInset: CGFloat) -> some View {
@@ -308,22 +376,53 @@ struct ManualCardCreationView: View {
             return
         }
 
-        let modules: [CardBlock] = [
-            .text(trimmedContent)
-        ]
-
         let newCard = KnowledgeCard(
             title: trimmedTitle,
-            content: trimmedContent,
+            content: editorViewModel.modules.first(where: { $0.kind == .text })?.text ?? "",
             type: .short,
             tags: nil,
             themeColor: .defaultTheme,
-            modules: modules
+            modules: editorViewModel.modules
         )
 
         library.addCard(newCard)
         onCreate?(newCard)
         dismiss()
+    }
+    
+    private func handleDeleteModule(_ moduleID: UUID) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+            if let snapshot = editorViewModel.removeModule(id: moduleID) {
+                undoDeleteStack.append(.module(snapshot))
+            }
+            if selectedModuleID == moduleID {
+                selectedModuleID = nil
+            }
+        }
+    }
+
+    private func handleRegisterUndoAction(_ action: EditorUndoAction) {
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.82)) {
+            undoDeleteStack.append(action)
+        }
+    }
+
+    private func undoDeleteModule() {
+        guard let action = undoDeleteStack.popLast() else {
+            return
+        }
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.84)) {
+            switch action {
+            case .module(let snapshot):
+                selectedModuleID = editorViewModel.restoreModule(snapshot)
+            case .image(let snapshot):
+                _ = editorViewModel.restoreImageToModule(snapshot)
+                selectedModuleID = snapshot.moduleID
+            case .codeEntry(let snapshot):
+                _ = editorViewModel.restoreCodeEntry(snapshot)
+                selectedModuleID = snapshot.moduleID
+            }
+        }
     }
 }
 

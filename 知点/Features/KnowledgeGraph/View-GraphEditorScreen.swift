@@ -713,3 +713,9 @@ private struct GraphConnectNodesSheet: View {
         return sourceNodeID != targetNodeID
     }
 }
+
+#Preview("Graph Editor Component") {
+    GraphEditorScreen(graphID: UUID())
+        .environmentObject(KnowledgeGraphStore())
+        .environmentObject(KnowledgeCardLibraryStore())
+}
