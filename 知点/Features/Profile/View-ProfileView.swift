@@ -5,7 +5,7 @@ struct ProfileView: View {
 
     var body: some View {
         NavigationStack {
-            ZDPageScaffold(title: "个人", bottomPadding: 20, contentSpacing: 16) {
+            ZDPageScaffold(title: "个人页面", bottomPadding: 20, contentSpacing: 16) {
                 statsCard
                 storageCard
                 aboutCard
