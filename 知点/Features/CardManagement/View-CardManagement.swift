@@ -77,7 +77,6 @@ struct CardManagementView: View {
             bottomPadding: isSelectionMode ? 98 : 12,
             contentSpacing: 14
         ) {
-            warehouseSwitcher
             headerRow
             searchBar
 
@@ -106,48 +105,14 @@ struct CardManagementView: View {
             bottomPadding: 16,
             contentSpacing: 14
         ) {
-            warehouseSwitcher
+            headerRow
             GraphWarehouseView()
                 .environmentObject(graphStore)
                 .environmentObject(library)
         }
     }
 
-    private var warehouseSwitcher: some View {
-        HStack(spacing: 8) {
-            warehouseSwitchButton(
-                title: "知识卡片",
-                mode: .cards
-            )
-            warehouseSwitchButton(
-                title: "图谱仓库",
-                mode: .graphs
-            )
-        }
-        .padding(.top, 4)
-    }
 
-    private func warehouseSwitchButton(title: String, mode: WarehouseMode) -> some View {
-        let isActive = warehouseMode == mode
-        return Button {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.86)) {
-                warehouseMode = mode
-            }
-        } label: {
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(isActive ? Color.zdAccentDeep : .secondary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 9)
-                .background(
-                    isActive
-                        ? Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.13)
-                        : Color.secondary.opacity(colorScheme == .dark ? 0.14 : 0.1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
-        }
-        .buttonStyle(.plain)
-    }
 
     // MARK: - Delete Alert Binding
 
@@ -165,10 +130,52 @@ struct CardManagementView: View {
     // MARK: - Header
 
     private var headerRow: some View {
-        ZDSectionHeader("卡片管理") {
-            HStack(spacing: 10) {
-                sortMenuButton
-                selectionButton
+        HStack(alignment: .center, spacing: 6) {
+            Menu {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.86)) {
+                        warehouseMode = .cards
+                    }
+                } label: {
+                    Label("卡片管理", systemImage: warehouseMode == .cards ? "checkmark" : "")
+                }
+                
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.86)) {
+                        warehouseMode = .graphs
+                    }
+                } label: {
+                    Label("图谱管理", systemImage: warehouseMode == .graphs ? "checkmark" : "")
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(warehouseMode == .cards ? "卡片管理" : "图谱管理")
+                        .font(ZDTypographyScale.default.pageTitle)
+                        .foregroundStyle(.primary)
+                    
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 16, weight: .bold))
+                        .foregroundStyle(.secondary)
+                }
+            }
+            .buttonStyle(.plain)
+
+            Spacer(minLength: 16)
+
+            if warehouseMode == .cards {
+                HStack(spacing: 10) {
+                    sortMenuButton
+                    selectionButton
+                }
+            } else {
+                HStack(spacing: 10) {
+                    ZDIconButton(
+                        systemName: "plus",
+                        active: false
+                    ) {
+                        NotificationCenter.default.post(name: .init("ShowGraphCreateSheet"), object: nil)
+                    }
+                }
             }
         }
         .padding(.top, 4)
