@@ -1,5 +1,7 @@
 import SwiftUI
 
+// MARK: - Page And Surface Containers
+
 struct ZDPageScaffold<Content: View>: View {
     let title: String?
     let bottomPadding: CGFloat
@@ -73,6 +75,8 @@ struct ZDSurfaceCard<Content: View>: View {
         .zdSurfaceCardStyle(style, cornerRadius: cornerRadius)
     }
 }
+
+// MARK: - Buttons
 
 struct ZDPrimaryButton: View {
     let text: String
@@ -154,6 +158,8 @@ struct ZDIconButton: View {
     }
 }
 
+// MARK: - Inputs And Headers
+
 struct ZDSearchField: View {
     let title: String
     @Binding var text: String
@@ -218,6 +224,8 @@ extension ZDSectionHeader where Trailing == EmptyView {
     }
 }
 
+// MARK: - Chips And Bars
+
 struct ZDTagChip: View {
     let text: String
     var compact: Bool = false
@@ -254,6 +262,8 @@ struct ZDFloatingActionBar<Content: View>: View {
         .zdSurfaceCardStyle(.elevated, cornerRadius: 28, lineWidth: 1.05)
     }
 }
+
+// MARK: - Stats
 
 struct ZDStatTile: View {
     let title: String

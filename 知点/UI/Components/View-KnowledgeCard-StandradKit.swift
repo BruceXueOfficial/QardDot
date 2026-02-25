@@ -1,5 +1,36 @@
 import SwiftUI
 
+// MARK: - Split Card Tokens
+
+struct ZDFrostRecipe: Equatable {
+    let glassOpacity: Double
+    let materialOpacity: Double
+    let blurRadius: CGFloat
+}
+
+struct ZDSplitCardLayout: Equatable {
+    let cornerRadius: CGFloat
+    let topRatio: CGFloat
+    let contentPaddingTop: EdgeInsets
+    let contentPaddingBottom: EdgeInsets
+    let punchedMetrics: ZDPunchedCardMetrics
+}
+
+struct ZDSplitCardPalette {
+    let topFill: LinearGradient
+    let bottomFill: LinearGradient
+    let border: LinearGradient
+    let questionGradient: LinearGradient
+    let tagBackground: Color
+    let tagText: Color
+    let titleText: Color
+    let bodyText: Color
+    let metaText: Color
+    let divider: Color
+}
+
+// MARK: - Split Glass Card
+
 struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
@@ -40,7 +71,11 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
             let dividerHeight = max(0.5, 1.0 / max(displayScale, 1))
 
             ZStack(alignment: .topLeading) {
-                questionLayer(size: proxy.size)
+                ZDCardQuestionMarkLayer(
+                    symbol: questionSymbol,
+                    gradient: palette.questionGradient,
+                    canvasSize: proxy.size
+                )
 
                 VStack(spacing: 0) {
                     sectionLayer(
@@ -154,64 +189,83 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
             .blur(radius: blurRadius)
             .clipped()
     }
+}
 
-    private func questionLayer(size: CGSize) -> some View {
-        let symbolSize = min(size.width * 0.64, size.height * 0.92)
-        let baseOpacity = colorScheme == .dark ? 0.94 : 0.96
-        let echoOpacity = colorScheme == .dark ? 0.3 : 0.28
-        let blurRadius = colorScheme == .dark ? 0.10 : 0.06
+private enum ZDSplitGlassCardPreviewTokens {
+    static let bannerSize = CGSize(width: 252, height: 248)
 
-        return questionGlyph(size: symbolSize)
-            .foregroundStyle(palette.questionGradient)
-            .opacity(baseOpacity)
-            .blur(radius: blurRadius)
-            .overlay {
-                questionGlyph(size: symbolSize)
-                    .foregroundStyle(palette.questionGradient)
-                    .opacity(echoOpacity)
-                    .offset(x: 0.6, y: 0)
-            }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-            .offset(x: size.width * 0.025, y: size.height * 0.014)
-            .allowsHitTesting(false)
-    }
+    static let layout = ZDSplitCardLayout(
+        cornerRadius: 18,
+        topRatio: 0.34,
+        contentPaddingTop: EdgeInsets(top: 10, leading: 12, bottom: 8, trailing: 14),
+        contentPaddingBottom: EdgeInsets(top: 12, leading: 12, bottom: 14, trailing: 14),
+        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 18, holeScale: 1.02)
+    )
 
-    private func questionGlyph(size: CGFloat) -> some View {
-        Image(systemName: questionSymbol)
-            .font(.system(size: size, weight: .black, design: .rounded))
-    }
+    static let topFrost = ZDFrostRecipe(
+        glassOpacity: 0.025,
+        materialOpacity: 0.07,
+        blurRadius: 0.55
+    )
+
+    static let bottomFrost = ZDFrostRecipe(
+        glassOpacity: 0.13,
+        materialOpacity: 0.36,
+        blurRadius: 3.8
+    )
+
+    static let palette = ZDSplitCardPalette(
+        topFill: LinearGradient(
+            colors: [Color.blue.opacity(0.52), Color.cyan.opacity(0.42)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        ),
+        bottomFill: LinearGradient(
+            colors: [Color.blue.opacity(0.46), Color.cyan.opacity(0.34)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        ),
+        border: LinearGradient(
+            colors: [Color.white.opacity(0.72), Color.blue.opacity(0.42)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        ),
+        questionGradient: LinearGradient(
+            colors: [Color.white.opacity(0.94), Color.white.opacity(0.84), Color.cyan.opacity(0.72)],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        ),
+        tagBackground: Color.blue.opacity(0.72),
+        tagText: .white,
+        titleText: Color.black.opacity(0.90),
+        bodyText: Color.black.opacity(0.55),
+        metaText: Color.black.opacity(0.56),
+        divider: Color.white.opacity(0.66)
+    )
 }
 
 private struct ZDSplitGlassCardPreviewHost: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    private var palette: ZDSplitCardPalette {
-        CardThemeColor.blue.recommendationSplitPalette(in: colorScheme)
-    }
+    private let palette = ZDSplitGlassCardPreviewTokens.palette
 
     var body: some View {
         ZDSplitGlassCard(
-            layout: ZDCardStyleTokens.recommendationSplitLayout,
+            layout: ZDSplitGlassCardPreviewTokens.layout,
             palette: palette,
-            topFrost: ZDCardStyleTokens.recommendationTopFrost,
-            bottomFrost: ZDCardStyleTokens.recommendationBottomFrost
+            topFrost: ZDSplitGlassCardPreviewTokens.topFrost,
+            bottomFrost: ZDSplitGlassCardPreviewTokens.bottomFrost
         ) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {
-                    Text("Tag1")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(palette.tagBackground)
-                        .foregroundStyle(palette.tagText)
-                        .clipShape(Capsule())
-                    Text("Tag2")
-                        .font(.caption.weight(.semibold))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(palette.tagBackground)
-                        .foregroundStyle(palette.tagText)
-                        .clipShape(Capsule())
+                    ZDCardTagChip(
+                        text: "Tag1",
+                        textColor: palette.tagText,
+                        backgroundColor: palette.tagBackground
+                    )
+                    ZDCardTagChip(
+                        text: "Tag2",
+                        textColor: palette.tagText,
+                        backgroundColor: palette.tagBackground
+                    )
                 }
 
                 Text("Title of the QardCard")
@@ -235,8 +289,8 @@ private struct ZDSplitGlassCardPreviewHost: View {
             .foregroundStyle(palette.metaText)
         }
         .frame(
-            width: ZDCardStyleTokens.recommendationBannerSize.width,
-            height: ZDCardStyleTokens.recommendationBannerSize.height
+            width: ZDSplitGlassCardPreviewTokens.bannerSize.width,
+            height: ZDSplitGlassCardPreviewTokens.bannerSize.height
         )
         .padding()
         .background(Color.zdPageBase)

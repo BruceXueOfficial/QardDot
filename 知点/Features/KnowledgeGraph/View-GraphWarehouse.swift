@@ -120,8 +120,6 @@ struct GraphWarehouseView: View {
                 HStack(spacing: 6) {
                     Text("打开图谱")
                         .font(.subheadline.weight(.semibold))
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 12, weight: .bold))
                 }
                 .foregroundStyle(Color.zdAccentDeep)
                 .frame(maxWidth: .infinity)
