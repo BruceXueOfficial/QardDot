@@ -25,8 +25,9 @@ extension CardThemeColor {
 
         let questionGradient = LinearGradient(
             colors: [
-                primaryColor.opacity(isDark ? 0.98 : 0.96),
-                secondaryColor.opacity(isDark ? 0.96 : 0.90)
+                primaryColor.opacity(isDark ? 0.98 : 1.00),
+                primaryColor.opacity(isDark ? 0.92 : 0.90),
+                secondaryColor.opacity(isDark ? 0.86 : 0.80)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing

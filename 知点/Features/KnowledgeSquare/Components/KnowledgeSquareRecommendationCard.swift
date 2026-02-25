@@ -15,18 +15,57 @@ enum KnowledgeSquareCardContentResolver {
         return card.content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    static func recommendationExcerpt(for card: KnowledgeCard) -> AttributedString {
+    static func recommendationExcerpt(for card: KnowledgeCard) -> String {
         let primaryText = firstTextBody(for: card)
         guard !primaryText.isEmpty else {
-            return AttributedString("点击查看完整卡片内容")
+            return "点击查看完整卡片内容"
         }
 
-        let options = AttributedString.MarkdownParsingOptions(
-            interpretedSyntax: .inlineOnlyPreservingWhitespace,
-            failurePolicy: .returnPartiallyParsedIfPossible
+        return cleanMarkdownMarkers(primaryText)
+    }
+
+    private static func cleanMarkdownMarkers(_ text: String) -> String {
+        let normalized = text
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+
+        let lines = normalized.split(separator: "\n", omittingEmptySubsequences: false).map(String.init)
+        let cleanedLines = lines.map(stripMarkdownSyntax(in:))
+        let merged = cleanedLines.joined(separator: "\n")
+        let compactedNewlines = merged.replacingOccurrences(
+            of: #"\n{3,}"#,
+            with: "\n\n",
+            options: .regularExpression
         )
-        return (try? AttributedString(markdown: primaryText, options: options))
-            ?? AttributedString(primaryText)
+        let finalText = compactedNewlines.trimmingCharacters(in: .whitespacesAndNewlines)
+        return finalText.isEmpty ? "点击查看完整卡片内容" : finalText
+    }
+
+    private static func stripMarkdownSyntax(in rawLine: String) -> String {
+        var line = rawLine
+
+        line = line.replacingOccurrences(of: #"^\s{0,3}#{1,6}\s*"#, with: "", options: .regularExpression)
+        line = line.replacingOccurrences(of: #"^\s{0,3}>\s*"#, with: "", options: .regularExpression)
+        line = line.replacingOccurrences(of: #"^\s{0,3}(?:[-+*])\s+\[[ xX]\]\s+"#, with: "", options: .regularExpression)
+        line = line.replacingOccurrences(of: #"^\s{0,3}(?:[-+*])\s+"#, with: "", options: .regularExpression)
+        line = line.replacingOccurrences(of: #"^\s{0,3}\d+[.)]\s+"#, with: "", options: .regularExpression)
+        line = line.replacingOccurrences(of: #"^\s{0,3}```.*$"#, with: "", options: .regularExpression)
+
+        if line.range(of: #"^\s*([-*_]\s*){3,}$"#, options: .regularExpression) != nil {
+            return ""
+        }
+
+        line = line.replacingOccurrences(of: #"\!\[([^\]]*)\]\([^)]+\)"#, with: "$1", options: .regularExpression)
+        line = line.replacingOccurrences(of: #"\[([^\]]+)\]\([^)]+\)"#, with: "$1", options: .regularExpression)
+        line = line.replacingOccurrences(of: #"`([^`]*)`"#, with: "$1", options: .regularExpression)
+        line = line.replacingOccurrences(of: #"~~(.+?)~~"#, with: "$1", options: .regularExpression)
+        line = line.replacingOccurrences(of: #"(?:\*\*|__)(.+?)(?:\*\*|__)"#, with: "$1", options: .regularExpression)
+        line = line.replacingOccurrences(of: #"(?:\*|_)(.+?)(?:\*|_)"#, with: "$1", options: .regularExpression)
+        line = line.replacingOccurrences(of: #"</?[^>]+>"#, with: "", options: .regularExpression)
+        line = line.replacingOccurrences(of: #"\\([\\`*_{}\[\]()#+\-.!>])"#, with: "$1", options: .regularExpression)
+        line = line.replacingOccurrences(of: #"\s*\|\s*"#, with: " ", options: .regularExpression)
+
+        return line.trimmingCharacters(in: .whitespaces)
     }
 }
 
@@ -65,8 +104,12 @@ struct KnowledgeSquareRecommendationCard: View {
             .filter { !$0.isEmpty }
     }
 
-    private var renderedContent: AttributedString {
+    private var renderedContent: String {
         KnowledgeSquareCardContentResolver.recommendationExcerpt(for: card)
+    }
+
+    private var recommendationBodyTextColor: Color {
+        colorScheme == .dark ? Color.white.opacity(0.72) : Color.black.opacity(0.50)
     }
 
     var body: some View {
@@ -106,7 +149,7 @@ struct KnowledgeSquareRecommendationCard: View {
         } body: {
             Text(renderedContent)
                 .font(.subheadline)
-                .foregroundStyle(palette.bodyText)
+                .foregroundStyle(recommendationBodyTextColor)
                 .lineLimit(4)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .topLeading)

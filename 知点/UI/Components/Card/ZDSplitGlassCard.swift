@@ -157,13 +157,14 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
 
     private func questionLayer(size: CGSize) -> some View {
         let symbolSize = min(size.width * 0.64, size.height * 0.92)
-        let baseOpacity = colorScheme == .dark ? 0.90 : 0.82
-        let echoOpacity = colorScheme == .dark ? 0.24 : 0.18
+        let baseOpacity = colorScheme == .dark ? 0.94 : 0.96
+        let echoOpacity = colorScheme == .dark ? 0.3 : 0.28
+        let blurRadius = colorScheme == .dark ? 0.10 : 0.06
 
         return questionGlyph(size: symbolSize)
             .foregroundStyle(palette.questionGradient)
             .opacity(baseOpacity)
-            .blur(radius: colorScheme == .dark ? 0.14 : 0.12)
+            .blur(radius: blurRadius)
             .overlay {
                 questionGlyph(size: symbolSize)
                     .foregroundStyle(palette.questionGradient)
