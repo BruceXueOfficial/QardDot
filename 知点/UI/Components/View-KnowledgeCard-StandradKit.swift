@@ -14,6 +14,23 @@ struct ZDSplitCardLayout: Equatable {
     let contentPaddingTop: EdgeInsets
     let contentPaddingBottom: EdgeInsets
     let punchedMetrics: ZDPunchedCardMetrics
+    let footerTopSpacerMin: CGFloat
+
+    init(
+        cornerRadius: CGFloat,
+        topRatio: CGFloat,
+        contentPaddingTop: EdgeInsets,
+        contentPaddingBottom: EdgeInsets,
+        punchedMetrics: ZDPunchedCardMetrics,
+        footerTopSpacerMin: CGFloat = 10
+    ) {
+        self.cornerRadius = cornerRadius
+        self.topRatio = topRatio
+        self.contentPaddingTop = contentPaddingTop
+        self.contentPaddingBottom = contentPaddingBottom
+        self.punchedMetrics = punchedMetrics
+        self.footerTopSpacerMin = footerTopSpacerMin
+    }
 }
 
 struct ZDSplitCardPalette {
@@ -40,6 +57,7 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
     let topFrost: ZDFrostRecipe
     let bottomFrost: ZDFrostRecipe
     let questionSymbol: String
+    let questionAssetName: String?
     let header: () -> Header
     let bodyContent: () -> BodyContent
     let footer: () -> Footer
@@ -50,6 +68,7 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
         topFrost: ZDFrostRecipe,
         bottomFrost: ZDFrostRecipe,
         questionSymbol: String = "questionmark",
+        questionAssetName: String? = nil,
         @ViewBuilder header: @escaping () -> Header,
         @ViewBuilder body: @escaping () -> BodyContent,
         @ViewBuilder footer: @escaping () -> Footer
@@ -59,6 +78,7 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
         self.topFrost = topFrost
         self.bottomFrost = bottomFrost
         self.questionSymbol = questionSymbol
+        self.questionAssetName = questionAssetName
         self.header = header
         self.bodyContent = body
         self.footer = footer
@@ -74,7 +94,8 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
                 ZDCardQuestionMarkLayer(
                     symbol: questionSymbol,
                     gradient: palette.questionGradient,
-                    canvasSize: proxy.size
+                    canvasSize: proxy.size,
+                    localAssetName: questionAssetName
                 )
 
                 VStack(spacing: 0) {
@@ -96,7 +117,7 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
                     ) {
                         VStack(alignment: .leading, spacing: 0) {
                             bodyContent()
-                            Spacer(minLength: 10)
+                            Spacer(minLength: layout.footerTopSpacerMin)
                             footer()
                         }
                     }
@@ -252,7 +273,8 @@ private struct ZDSplitGlassCardPreviewHost: View {
             layout: ZDSplitGlassCardPreviewTokens.layout,
             palette: palette,
             topFrost: ZDSplitGlassCardPreviewTokens.topFrost,
-            bottomFrost: ZDSplitGlassCardPreviewTokens.bottomFrost
+            bottomFrost: ZDSplitGlassCardPreviewTokens.bottomFrost,
+            questionAssetName: "Questionmark-Blue"
         ) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(spacing: 6) {

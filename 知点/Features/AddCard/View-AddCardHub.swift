@@ -82,6 +82,13 @@ struct AddCardHubView: View {
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(30)
         }
+        .onReceive(NotificationCenter.default.publisher(for: .init("AddTabDoubleTapped"))) { _ in
+            // Double tapping 'Add' tab directly launches the AI import (smart chat) page
+            showManualCreation = false
+            showSmartChat = false
+            showCreateGraph = false
+            showImportCard = true
+        }
     }
 
     private func handleCreation(_ card: KnowledgeCard) {

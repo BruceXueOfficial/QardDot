@@ -2990,12 +2990,23 @@ struct FullscreenImageViewer: View {
 
 private func imageFromLocalPathOrDataURI(_ source: String) -> UIImage? {
     #if canImport(UIKit)
+    var path = source
     if source.hasPrefix("file://") {
-        let path = String(source.dropFirst("file://".count))
-        return UIImage(contentsOfFile: path)
+        path = String(source.dropFirst("file://".count))
     }
-    if source.hasPrefix("/") {
-        return UIImage(contentsOfFile: source)
+    
+    let filename = (path as NSString).lastPathComponent
+    if path.contains("ModuleImages/") || filename.hasPrefix("module-image-") {
+        if let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
+            let currentPath = docsDir.appendingPathComponent("ModuleImages").appendingPathComponent(filename).path
+            if let image = UIImage(contentsOfFile: currentPath) {
+                return image
+            }
+        }
+    }
+
+    if path.hasPrefix("/") {
+        return UIImage(contentsOfFile: path)
     }
     if let dataURIImage = imageFromDataURI(source) {
         return dataURIImage
@@ -3149,7 +3160,9 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
             let insets = uiView.textContainerInset.top + uiView.textContainerInset.bottom
             targetHeight = max(1, ceil(CGFloat(explicitLineCount) * font.lineHeight + insets))
         }
-        return CGSize(width: targetWidth, height: targetHeight)
+        
+        let finalHeight = proposal.height.map { min(targetHeight, $0) } ?? targetHeight
+        return CGSize(width: targetWidth, height: finalHeight)
     }
 
     final class Coordinator: NSObject, UITextViewDelegate {

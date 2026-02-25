@@ -10,7 +10,7 @@ final class KnowledgeCardLibraryStore: ObservableObject {
     private static let cardsFileName = "knowledge_cards.json"
     private static let viewCountsFileName = "view_counts.json"
     private static let bundledSeedVersionKey = "knowledge_card_bundled_seed_version"
-    private static let bundledSeedVersion = "2026-02-git-vitamin-v2-module-titles"
+    private static let bundledSeedVersion = "2026-02-git-vitamin-v3-prompt-titles"
 
     static func bundledSeedCardsForPreview() -> [KnowledgeCard] {
         KnowledgeCardLibrarySeed.makeCards()
@@ -520,7 +520,7 @@ private enum KnowledgeCardLibrarySeed {
             "image": "split"
         ]
         let promptModuleTitles: [String: Any] = [
-            "text": ["一句话总结", "详细说明"],
+            "text": ["总结", "详细说明"],
             "code": "代码示例",
             "link": "参考链接",
             "image": "相关图片"

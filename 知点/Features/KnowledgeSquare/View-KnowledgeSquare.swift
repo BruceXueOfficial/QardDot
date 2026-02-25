@@ -78,7 +78,7 @@ struct KnowledgeSquareView: View {
                         Button {
                             openCard(card)
                         } label: {
-                            KnowledgeSquareRecommendationCard(
+                            KnowledgeCardLView(
                                 card: card,
                                 viewCount: library.viewCounts[card.id] ?? 0
                             )
@@ -137,7 +137,10 @@ struct KnowledgeSquareView: View {
                         Button {
                             openCard(card)
                         } label: {
-                            KnowledgeSquareMiniCard(card: card)
+                            KnowledgeCardMView(
+                                card: card,
+                                viewCount: library.viewCounts[card.id] ?? 0
+                            )
                         }
                         .buttonStyle(.plain)
                     }
@@ -181,7 +184,7 @@ struct KnowledgeSquareView: View {
     private var imageTruthSection: some View {
         if !cardsWithImagesByCreatedAtAscending.isEmpty {
             VStack(alignment: .leading, spacing: 14) {
-                Text("有图有真相")
+                Text("图文并茂")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(.primary.opacity(0.9))
 
@@ -279,39 +282,14 @@ struct KnowledgeSquareView: View {
             VStack(alignment: .leading, spacing: 10) {
                 let randomCards = Array(library.cards.shuffled().prefix(3))
                 ForEach(randomCards) { card in
-                    let theme = cardTheme(for: card)
-                    let useLightCardText = theme.prefersLightForeground(in: colorScheme)
-                    let metrics = ZDPunchedCardMetrics(cornerRadius: 10, holeScale: 0.96)
                     Button {
                         openCard(card)
                     } label: {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(card.title)
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(useLightCardText ? Color.white.opacity(0.92) : Color.black.opacity(0.82))
-                                .lineLimit(1)
-
-                            Text(markdownExcerpt(of: card))
-                                .font(.footnote)
-                                .foregroundStyle(useLightCardText ? Color.white.opacity(0.82) : Color.black.opacity(0.56))
-                                .lineLimit(2)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.top, 12)
-                        .padding(.leading, 10)
-                        .padding(.trailing, 20)
-                        .padding(.bottom, 10)
-                        .zdPunchedGlassBackground(
-                            theme.cardBackgroundGradient,
-                            metrics: metrics,
-                            borderGradient: theme.cardBorderGradient
-                        )
+                        KnowledgeCardFView(card: card)
                     }
                     .buttonStyle(.plain)
                 }
             }
-            .padding(14)
-            .background(moduleSurface)
         }
     }
 
@@ -391,18 +369,6 @@ struct KnowledgeSquareView: View {
     private func openCard(_ card: KnowledgeCard) {
         library.recordView(for: card)
         selectedCard = card
-    }
-
-    private func markdownExcerpt(of card: KnowledgeCard) -> AttributedString {
-        let text = card.content.trimmingCharacters(in: .whitespacesAndNewlines)
-        if text.isEmpty {
-            return AttributedString("点击查看完整卡片内容")
-        }
-        let options = AttributedString.MarkdownParsingOptions(
-            interpretedSyntax: .inlineOnlyPreservingWhitespace,
-            failurePolicy: .returnPartiallyParsedIfPossible
-        )
-        return (try? AttributedString(markdown: text, options: options)) ?? AttributedString(text)
     }
 
     private func formattedDay(_ date: Date?) -> String {

@@ -306,3 +306,47 @@ struct GraphCreationSheet: View {
         .environmentObject(KnowledgeGraphStore())
         .environmentObject(KnowledgeCardLibraryStore())
 }
+
+#Preview("Graph Warehouse Buttons") {
+    VStack(spacing: 24) {
+        Text("图谱组件内按钮样式")
+            .font(.headline.weight(.bold))
+            .foregroundStyle(.secondary)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal)
+
+        // 样式 1： 卡片内部的强调色操作按钮（例如：打开图谱、选择卡片）
+        Button {} label: {
+            HStack(spacing: 6) {
+                Text("强调操作按钮 (打开图谱)")
+                    .font(.subheadline.weight(.semibold))
+            }
+            .foregroundStyle(Color.zdAccentDeep)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background(Color.zdAccentDeep.opacity(0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal)
+
+        // 样式 2：空状态引导按钮
+        Button {} label: {
+            Text("空状态引导按钮 (创建第一个图谱)")
+                .font(.subheadline)
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 10)
+                .zdSurfaceCardStyle(.regular, cornerRadius: 12)
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal)
+
+        // 样式 3：ZDPrimaryButton 高亮按钮
+        ZDPrimaryButton(text: "ZDPrimaryButton 标准主按钮") {}
+            .padding(.horizontal)
+    }
+    .padding(.vertical)
+    .zdPageBackground()
+}

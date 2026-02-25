@@ -2,9 +2,31 @@ import SwiftUI
 
 struct AppRootTabShell: View {
     @Binding var selectedTab: AppTab
+    
+    @State private var lastAddTabTapTime: Date = .distantPast
+
+    private var tabSelection: Binding<AppTab> {
+        Binding(
+            get: { selectedTab },
+            set: { newValue in
+                if newValue == .add {
+                    let now = Date()
+                    // Detect double tap: tap again on already selected tab within 500ms
+                    if selectedTab == .add && now.timeIntervalSince(lastAddTabTapTime) < 0.5 {
+                        NotificationCenter.default.post(name: .init("AddTabDoubleTapped"), object: nil)
+                        // Reset to avoid tripple-tap causing two events
+                        lastAddTabTapTime = .distantPast
+                    } else {
+                        lastAddTabTapTime = now
+                    }
+                }
+                selectedTab = newValue
+            }
+        )
+    }
 
     var body: some View {
-        TabView(selection: $selectedTab) {
+        TabView(selection: tabSelection) {
             KnowledgeSquareView()
                 .tag(AppTab.square)
                 .tabItem {
@@ -16,7 +38,7 @@ struct AppRootTabShell: View {
                 .tag(AppTab.add)
                 .tabItem {
                     Image(systemName: selectedTab == .add ? "plus.circle.fill" : "plus.circle")
-                    Text("新增")
+                    Text("新建")
                 }
 
             CardManagementView()

@@ -1167,9 +1167,7 @@ private struct UnifiedModuleContainer<Content: View>: View {
             content()
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .contentShape(Rectangle())
-                .onTapGesture {
-                    onTap()
-                }
+                .simultaneousGesture(TapGesture().onEnded { onTap() })
         }
     }
 

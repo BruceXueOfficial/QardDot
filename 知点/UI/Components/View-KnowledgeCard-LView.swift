@@ -127,6 +127,10 @@ struct KnowledgeCardLView: View {
         theme.recommendationSplitPalette(in: colorScheme)
     }
 
+    private var questionAssetName: String {
+        theme.recommendationQuestionAssetName
+    }
+
     private var tags: [String] {
         (card.tags ?? [])
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -146,7 +150,8 @@ struct KnowledgeCardLView: View {
             layout: KnowledgeCardLViewTokens.splitLayout,
             palette: palette,
             topFrost: KnowledgeCardLViewTokens.topFrost,
-            bottomFrost: KnowledgeCardLViewTokens.bottomFrost
+            bottomFrost: KnowledgeCardLViewTokens.bottomFrost,
+            questionAssetName: questionAssetName
         ) {
             VStack(alignment: .leading, spacing: 8) {
                 if tags.isEmpty {

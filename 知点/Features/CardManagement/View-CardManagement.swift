@@ -281,7 +281,7 @@ struct CardManagementView: View {
     private var defaultGridView: some View {
         LazyVGrid(columns: columns, spacing: 12) {
             ForEach(displayCards) { card in
-                CardTitleTile(
+                CardManagementSViewTile(
                     card: card,
                     isSelectionMode: isSelectionMode,
                     isSelected: selectedIDs.contains(card.id)
@@ -304,11 +304,7 @@ struct CardManagementView: View {
                     cards: group.cards,
                     isSelectionMode: isSelectionMode,
                     selectedIDs: $selectedIDs,
-                    onCardTap: handleCardTap,
-                    onOpenCard: { card in
-                        library.recordView(for: card)
-                        selectedCard = card
-                    }
+                    onCardTap: handleCardTap
                 )
             }
         }
@@ -325,11 +321,7 @@ struct CardManagementView: View {
                     cards: group.cards,
                     isSelectionMode: isSelectionMode,
                     selectedIDs: $selectedIDs,
-                    onCardTap: handleCardTap,
-                    onOpenCard: { card in
-                        library.recordView(for: card)
-                        selectedCard = card
-                    }
+                    onCardTap: handleCardTap
                 )
             }
         }
@@ -493,23 +485,64 @@ private struct DeleteRequest: Identifiable {
     let message: String
 }
 
+// MARK: - SView Tile Wrapper
+
+private struct CardManagementSViewTile: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let card: KnowledgeCard
+    let isSelectionMode: Bool
+    let isSelected: Bool
+
+    var body: some View {
+        ZStack(alignment: .bottomTrailing) {
+            KnowledgeCardSView(card: card)
+                .frame(maxWidth: .infinity, alignment: .leading)
+
+            if isSelectionMode {
+                Circle()
+                    .fill(
+                        isSelected
+                            ? Color.zdAccentDeep
+                            : Color.white.opacity(colorScheme == .dark ? 0.12 : 0.75)
+                    )
+                    .overlay {
+                        Circle()
+                            .stroke(Color.zdAccentDeep.opacity(0.8), lineWidth: 1.1)
+                    }
+                    .overlay {
+                        if isSelected {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(.white)
+                        }
+                    }
+                    .frame(width: 18, height: 18)
+                    .padding(.trailing, 8)
+                    .padding(.bottom, 8)
+            }
+        }
+        .opacity(isSelectionMode && !isSelected ? 0.92 : 1)
+    }
+}
+
 // MARK: - Card Group Section (shared between tag & date views)
 
 private struct CardGroupSection: View {
     @EnvironmentObject private var library: KnowledgeCardLibraryStore
-    @Environment(\.colorScheme) private var colorScheme
 
     let title: String
     let cards: [KnowledgeCard]
     let isSelectionMode: Bool
     @Binding var selectedIDs: Set<UUID>
     let onCardTap: (KnowledgeCard) -> Void
-    let onOpenCard: (KnowledgeCard) -> Void
 
     private let gridColumns = [
         GridItem(.flexible(), spacing: 10),
         GridItem(.flexible(), spacing: 10)
     ]
+    private let rowSpacing: CGFloat = 10
+    private let pageSpacing: CGFloat = 10
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -529,40 +562,37 @@ private struct CardGroupSection: View {
             }
             .buttonStyle(.plain)
 
-            if cards.count <= 4 {
-                // Static 2×2 grid
-                LazyVGrid(columns: gridColumns, spacing: 10) {
-                    ForEach(cards) { card in
-                        CardTitleTile(
-                            card: card,
-                            isSelectionMode: isSelectionMode,
-                            isSelected: selectedIDs.contains(card.id)
-                        )
-                        .onTapGesture { onCardTap(card) }
-                    }
-                }
-            } else {
-                // Horizontal scroll with 2-row layout
+            GeometryReader { proxy in
+                let pageWidth = proxy.size.width
+                let pages = cards.chunked(into: 4)
+
                 ScrollView(.horizontal, showsIndicators: false) {
-                    let chunked = cards.chunked(into: 2)
-                    HStack(alignment: .top, spacing: 10) {
-                        ForEach(Array(chunked.enumerated()), id: \.offset) { _, column in
-                            VStack(spacing: 10) {
-                                ForEach(column) { card in
-                                    CardTitleTile(
+                    HStack(alignment: .top, spacing: pageSpacing) {
+                        ForEach(Array(pages.enumerated()), id: \.offset) { _, pageCards in
+                            LazyVGrid(columns: gridColumns, spacing: rowSpacing) {
+                                ForEach(pageCards) { card in
+                                    CardManagementSViewTile(
                                         card: card,
                                         isSelectionMode: isSelectionMode,
                                         isSelected: selectedIDs.contains(card.id)
                                     )
-                                    .frame(width: 164)
                                     .onTapGesture { onCardTap(card) }
                                 }
+
+                                if pageCards.count < 4 {
+                                    ForEach(0..<(4 - pageCards.count), id: \.self) { _ in
+                                        Color.clear
+                                            .frame(height: KnowledgeCardSViewTokens.surfaceHeight)
+                                    }
+                                }
                             }
+                            .frame(width: pageWidth, alignment: .leading)
                         }
                     }
                 }
                 .scrollClipDisabled()
             }
+            .frame(height: KnowledgeCardSViewTokens.surfaceHeight * 2 + rowSpacing)
         }
     }
 }
@@ -596,7 +626,7 @@ struct FilteredCardsView: View {
             headerRow
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(cards) { card in
-                    CardTitleTile(
+                    CardManagementSViewTile(
                         card: card,
                         isSelectionMode: isSelectionMode,
                         isSelected: selectedIDs.contains(card.id)

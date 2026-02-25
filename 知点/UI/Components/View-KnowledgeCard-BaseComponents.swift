@@ -3,38 +3,97 @@ import UIKit
 
 // MARK: - Question Mark Style
 
+private enum ZDQuestionMarkStyleTokens {
+    static let widthScale: CGFloat = 0.54
+    static let heightScale: CGFloat = 0.78
+    static let xOffsetScale: CGFloat = 0.012
+    static let yOffsetScale: CGFloat = 0.05
+}
+
 struct ZDCardQuestionMarkLayer: View {
     @Environment(\.colorScheme) private var colorScheme
 
     let symbol: String
     let gradient: LinearGradient
     let canvasSize: CGSize
+    let localAssetName: String?
+
+    init(
+        symbol: String,
+        gradient: LinearGradient,
+        canvasSize: CGSize,
+        localAssetName: String? = nil
+    ) {
+        self.symbol = symbol
+        self.gradient = gradient
+        self.canvasSize = canvasSize
+        self.localAssetName = localAssetName
+    }
 
     var body: some View {
-        let symbolSize = min(canvasSize.width * 0.64, canvasSize.height * 0.92)
-        let baseOpacity = colorScheme == .dark ? 0.94 : 0.96
-        let echoOpacity = colorScheme == .dark ? 0.3 : 0.28
-        let blurRadius = colorScheme == .dark ? 0.10 : 0.06
+        let usesLocalAsset = localAssetName?.isEmpty == false
+        let symbolSize = min(
+            canvasSize.width * ZDQuestionMarkStyleTokens.widthScale,
+            canvasSize.height * ZDQuestionMarkStyleTokens.heightScale
+        )
+        let baseOpacity = usesLocalAsset ? 1.0 : (colorScheme == .dark ? 0.90 : 0.80)
+        let highlightOpacity = usesLocalAsset ? 0.0 : (colorScheme == .dark ? 0.22 : 0.18)
+        let shadowOpacity = usesLocalAsset ? 0.18 : (colorScheme == .dark ? 0.30 : 0.14)
 
-        return questionGlyph(size: symbolSize)
-            .foregroundStyle(gradient)
+        return baseGlyph(size: symbolSize)
             .opacity(baseOpacity)
-            .blur(radius: blurRadius)
+            .shadow(
+                color: Color.black.opacity(shadowOpacity),
+                radius: symbolSize * 0.08,
+                x: 0,
+                y: symbolSize * 0.045
+            )
             .overlay {
-                questionGlyph(size: symbolSize)
-                    .foregroundStyle(gradient)
-                    .opacity(echoOpacity)
-                    .offset(x: 0.6, y: 0)
+                if highlightOpacity > 0 {
+                    highlightGlyph(size: symbolSize, opacity: highlightOpacity)
+                        .offset(x: -symbolSize * 0.01, y: -symbolSize * 0.01)
+                        .blendMode(.screen)
+                }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-            .offset(x: canvasSize.width * 0.025, y: canvasSize.height * 0.014)
+            .offset(
+                x: canvasSize.width * ZDQuestionMarkStyleTokens.xOffsetScale,
+                y: canvasSize.height * ZDQuestionMarkStyleTokens.yOffsetScale
+            )
             .allowsHitTesting(false)
     }
 
-    private func questionGlyph(size: CGFloat) -> some View {
-        Image(systemName: symbol)
-            .font(.system(size: size, weight: .black, design: .rounded))
+    @ViewBuilder
+    private func baseGlyph(size: CGFloat) -> some View {
+        if let localAssetName, !localAssetName.isEmpty {
+            Image(localAssetName)
+                .resizable()
+                .renderingMode(.original)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
+        } else {
+            Image(systemName: symbol)
+                .foregroundStyle(gradient)
+                .font(.system(size: size, weight: .bold, design: .rounded))
+        }
     }
+
+    @ViewBuilder
+    private func highlightGlyph(size: CGFloat, opacity: Double) -> some View {
+        if let localAssetName, !localAssetName.isEmpty {
+            Image(localAssetName)
+                .resizable()
+                .renderingMode(.template)
+                .aspectRatio(contentMode: .fit)
+                .frame(width: size, height: size)
+                .foregroundStyle(.white.opacity(opacity))
+        } else {
+            Image(systemName: symbol)
+                .foregroundStyle(.white.opacity(opacity))
+                .font(.system(size: size, weight: .bold, design: .rounded))
+        }
+    }
+
 }
 
 // MARK: - Tag Style
@@ -479,6 +538,93 @@ private struct ZDPunchedGlassSurfacePreviewCard: View {
         .preferredColorScheme(.dark)
 }
 
+private struct ZDQuestionMarkStylePreviewPanel: View {
+    let localAssetName: String?
+
+    init(localAssetName: String? = nil) {
+        self.localAssetName = localAssetName
+    }
+
+    var body: some View {
+        ZStack {
+            Color.zdPageBase.ignoresSafeArea()
+
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
+                .fill(LinearGradient.zdCardStandardTLBR.opacity(0.28))
+                .frame(width: 240, height: 120)
+                .overlay {
+                    ZDCardQuestionMarkLayer(
+                        symbol: "questionmark",
+                        gradient: LinearGradient(
+                            colors: [
+                                Color.zdAccentDeep.opacity(0.95),
+                                Color.zdAccentSoft.opacity(0.9)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        canvasSize: CGSize(width: 240, height: 120),
+                        localAssetName: localAssetName
+                    )
+                }
+        }
+    }
+}
+
+#Preview("Question Mark Style") {
+    ZDQuestionMarkStylePreviewPanel()
+}
+
+#Preview("Question Mark SVG - Blue") {
+    ZDQuestionMarkStylePreviewPanel(localAssetName: "Questionmark-Blue")
+}
+
+#Preview("Question Mark SVG - Green") {
+    ZDQuestionMarkStylePreviewPanel(localAssetName: "Questionmark-Green")
+}
+
+#Preview("Question Mark SVG - Orange") {
+    ZDQuestionMarkStylePreviewPanel(localAssetName: "Questionmark-Orange")
+}
+
+#Preview("Question Mark SVG - Pink") {
+    ZDQuestionMarkStylePreviewPanel(localAssetName: "Questionmark-Pink")
+}
+
+private struct ZDTagStylePreviewPanel: View {
+    var body: some View {
+        ZStack {
+            Color.zdPageBase.ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 10) {
+                HStack(spacing: 6) {
+                    ZDCardTagChip(text: "营养", textColor: .white, backgroundColor: Color.zdAccentDeep.opacity(0.85))
+                    ZDCardTagChip(text: "健康", textColor: .white, backgroundColor: Color.zdAccentSoft.opacity(0.82))
+                    ZDCardTagChip(text: "科普", textColor: .white, backgroundColor: Color.zdAccentDeep.opacity(0.72))
+                }
+
+                ZDCardAdaptiveTagChipRow(
+                    tags: ["免疫", "维生素", "问答", "实用"],
+                    chipTextColor: .white,
+                    chipBackgroundColor: Color.zdAccentDeep.opacity(0.8),
+                    overflowTextColor: .secondary,
+                    trailingReservedWidth: 40
+                )
+                .frame(width: 220)
+            }
+            .padding(16)
+            .background(
+                RoundedRectangle(cornerRadius: 16, style: .continuous)
+                    .fill(.ultraThinMaterial)
+            )
+        }
+    }
+}
+
+#Preview("Tag Style") {
+    ZDTagStylePreviewPanel()
+}
+
 #Preview("Card Base Components") {
     ZStack {
         Color.zdPageBase.ignoresSafeArea()
@@ -496,7 +642,8 @@ private struct ZDPunchedGlassSurfacePreviewCard: View {
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     ),
-                    canvasSize: CGSize(width: 220, height: 90)
+                    canvasSize: CGSize(width: 220, height: 90),
+                    localAssetName: "Questionmark-Blue"
                 )
             }
 
