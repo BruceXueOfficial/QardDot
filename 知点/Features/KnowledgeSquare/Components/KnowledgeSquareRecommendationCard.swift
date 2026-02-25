@@ -2,7 +2,7 @@ import SwiftUI
 import UIKit
 
 enum KnowledgeSquareCardContentResolver {
-    static func firstTextBody(for card: KnowledgeCard) -> String {
+    nonisolated static func firstTextBody(for card: KnowledgeCard) -> String {
         let modules = card.modules ?? card.blocks ?? []
         if let firstModuleText = modules
             .first(where: { $0.kind == .text })?
@@ -15,7 +15,7 @@ enum KnowledgeSquareCardContentResolver {
         return card.content.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    static func recommendationExcerpt(for card: KnowledgeCard) -> String {
+    nonisolated static func recommendationExcerpt(for card: KnowledgeCard) -> String {
         let primaryText = firstTextBody(for: card)
         guard !primaryText.isEmpty else {
             return "点击查看完整卡片内容"
@@ -24,7 +24,7 @@ enum KnowledgeSquareCardContentResolver {
         return cleanMarkdownMarkers(primaryText)
     }
 
-    private static func cleanMarkdownMarkers(_ text: String) -> String {
+    nonisolated private static func cleanMarkdownMarkers(_ text: String) -> String {
         let normalized = text
             .replacingOccurrences(of: "\r\n", with: "\n")
             .replacingOccurrences(of: "\r", with: "\n")
@@ -41,7 +41,7 @@ enum KnowledgeSquareCardContentResolver {
         return finalText.isEmpty ? "点击查看完整卡片内容" : finalText
     }
 
-    private static func stripMarkdownSyntax(in rawLine: String) -> String {
+    nonisolated private static func stripMarkdownSyntax(in rawLine: String) -> String {
         var line = rawLine
 
         line = line.replacingOccurrences(of: #"^\s{0,3}#{1,6}\s*"#, with: "", options: .regularExpression)
