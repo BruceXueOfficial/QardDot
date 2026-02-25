@@ -2,13 +2,33 @@ import SwiftUI
 
 // MARK: - Sort Mode
 
-enum CardSortMode: Equatable {
+enum CardSortMode: Equatable, RawRepresentable {
     case defaultSort
     case byTag(ascending: Bool)
     case byDate(ascending: Bool)
+
+    var rawValue: String {
+        switch self {
+        case .defaultSort: return "defaultSort"
+        case .byTag(let asc): return "byTag:\(asc)"
+        case .byDate(let asc): return "byDate:\(asc)"
+        }
+    }
+
+    init?(rawValue: String) {
+        if rawValue == "defaultSort" { self = .defaultSort }
+        else if rawValue.hasPrefix("byTag:") {
+            self = .byTag(ascending: rawValue.hasSuffix("true"))
+        }
+        else if rawValue.hasPrefix("byDate:") {
+            self = .byDate(ascending: rawValue.hasSuffix("true"))
+        } else {
+            return nil
+        }
+    }
 }
 
-enum WarehouseMode: Equatable {
+enum WarehouseMode: String, Equatable {
     case cards
     case graphs
 }
@@ -27,8 +47,8 @@ struct CardManagementView: View {
     @State private var selectedIDs: Set<UUID> = []
     @State private var deleteRequest: DeleteRequest?
 
-    @State private var sortMode: CardSortMode = .defaultSort
-    @State private var warehouseMode: WarehouseMode = .cards
+    @AppStorage("CardManagement.SortMode") private var sortMode: CardSortMode = .defaultSort
+    @AppStorage("CardManagement.WarehouseMode") private var warehouseMode: WarehouseMode = .cards
 
     private let columns = [
         GridItem(.flexible(), spacing: 12),
