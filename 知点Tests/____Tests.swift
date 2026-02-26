@@ -347,7 +347,7 @@ struct KnowledgeSquareRecommendationTests {
             ]
         )
 
-        let resolved = KnowledgeSquareCardContentResolver.firstTextBody(for: card)
+        let resolved = KnowledgeCardLViewContentResolver.firstTextBody(for: card)
         #expect(resolved == "模块正文优先")
     }
 
@@ -362,7 +362,7 @@ struct KnowledgeSquareRecommendationTests {
             ]
         )
 
-        let resolved = KnowledgeSquareCardContentResolver.firstTextBody(for: card)
+        let resolved = KnowledgeCardLViewContentResolver.firstTextBody(for: card)
         #expect(resolved == "Legacy Fallback")
     }
 
@@ -375,5 +375,46 @@ struct KnowledgeSquareRecommendationTests {
         let tiny = ZDPunchedCardMetrics(cornerRadius: 1, holeScale: 0.1)
         #expect(tiny.holeSize == 5.4)
         #expect(tiny.holeInset == 4.4)
+    }
+}
+
+struct ListRenderModeTests {
+    @Test
+    func listRenderModeFallsBackToBalancedForUnknownValue() {
+        #expect(ZDListRenderMode.resolve(rawValue: "unknown") == .balanced)
+        #expect(ZDListRenderMode.resolve(rawValue: "visual") == .visual)
+    }
+
+    @Test
+    func listRenderProfilePerformanceIntensityIsMonotonic() {
+        let visual = ZDListRenderMode.visual.profile
+        let balanced = ZDListRenderMode.balanced.profile
+        let performance = ZDListRenderMode.performance.profile
+
+        #expect(performance.materialStrength <= balanced.materialStrength)
+        #expect(balanced.materialStrength <= visual.materialStrength)
+        #expect(performance.blurStrength <= balanced.blurStrength)
+        #expect(balanced.blurStrength <= visual.blurStrength)
+        #expect(performance.primaryShadowStrength <= balanced.primaryShadowStrength)
+        #expect(balanced.primaryShadowStrength <= visual.primaryShadowStrength)
+    }
+
+    @Test
+    func listRenderModeScopeSpecificBehaviorMatchesDesign() {
+        let balancedSquare = ZDListRenderMode.balanced.profile(for: .knowledgeSquare)
+        let balancedWarehouse = ZDListRenderMode.balanced.profile(for: .warehouse)
+        let performanceSquare = ZDListRenderMode.performance.profile(for: .knowledgeSquare)
+        let performanceWarehouse = ZDListRenderMode.performance.profile(for: .warehouse)
+
+        #expect(balancedSquare.glassQuality == .full)
+        #expect(balancedSquare.showsQuestionIcon)
+
+        #expect(balancedWarehouse.glassQuality == .off)
+        #expect(!balancedWarehouse.showsQuestionIcon)
+
+        #expect(performanceSquare.glassQuality == .off)
+        #expect(!performanceSquare.showsQuestionIcon)
+        #expect(performanceWarehouse.glassQuality == .off)
+        #expect(!performanceWarehouse.showsQuestionIcon)
     }
 }

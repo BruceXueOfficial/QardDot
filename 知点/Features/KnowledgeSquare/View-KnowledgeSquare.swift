@@ -6,7 +6,6 @@ private func cardTheme(for card: KnowledgeCard) -> CardThemeColor {
 }
 
 private enum KnowledgeSquareLayoutTuning {
-    static let bannerCardHeight: CGFloat = 248
     static let recentCardWidth: CGFloat = 164
     static let recentCardHeight: CGFloat = 146
     static let imageTruthCardWidth: CGFloat = recentCardWidth
@@ -35,15 +34,42 @@ private enum KnowledgeSquareShadowTuning {
 struct KnowledgeSquareView: View {
     @EnvironmentObject private var library: KnowledgeCardLibraryStore
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(ZDListRenderMode.storageKey) private var listRenderModeRawValue = ZDListRenderMode.defaultSelection.rawValue
 
     @State private var selectedCard: KnowledgeCard?
     @State private var featuredCardIDs: [UUID] = []
+    @State private var randomCardIDs: [UUID] = []
+    @State private var imageTruthItems: [KnowledgeSquareImageTruthItem] = []
+    @State private var bannerCardMeasuredHeight: CGFloat = KnowledgeCardLViewTokens.bannerSize.height
+    @State private var recentCardMeasuredHeight: CGFloat = KnowledgeCardMViewTokens.surfaceSize.height + 38
+    @State private var imageTruthCardMeasuredHeight: CGFloat = KnowledgeSquareLayoutTuning.imageTruthCoverHeight + 42
     @State private var bannerContentFrame: CGRect = .zero
     @State private var bannerViewportWidth: CGFloat = 0
     @State private var recentContentFrame: CGRect = .zero
     @State private var recentViewportWidth: CGFloat = 0
     @State private var imageTruthContentFrame: CGRect = .zero
     @State private var imageTruthViewportWidth: CGFloat = 0
+
+    private var selectedListRenderMode: ZDListRenderMode {
+        ZDListRenderMode.resolve(rawValue: listRenderModeRawValue)
+    }
+
+    private var renderProfile: ZDListRenderProfile {
+        selectedListRenderMode.profile
+    }
+
+    private enum KnowledgeSquareSpacing {
+        static let moduleHeaderToContent: CGFloat = 10
+    }
+
+    private var horizontalSectionBottomInset: CGFloat {
+        renderProfile.showsSecondaryShadow ? 12 : 8
+    }
+
+    private func horizontalSectionFrameHeight(for measuredCardHeight: CGFloat) -> CGFloat {
+        let cardHeight = max(88, min(measuredCardHeight, 360))
+        return cardHeight + horizontalSectionBottomInset
+    }
 
     var body: some View {
         NavigationStack {
@@ -55,6 +81,8 @@ struct KnowledgeSquareView: View {
                 randomSection
                 statsSection
             }
+            .environment(\.zdListRenderMode, selectedListRenderMode)
+            .environment(\.zdListRenderScope, .knowledgeSquare)
         }
         .sheet(item: $selectedCard) { card in
             KnowledgeCardDetailScreen(card: card)
@@ -62,63 +90,126 @@ struct KnowledgeSquareView: View {
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(30)
         }
-        .onAppear(perform: refreshFeaturedCardsIfNeeded)
+        .onAppear {
+            refreshFeaturedCardsIfNeeded()
+            refreshCachedSections()
+        }
         .onChange(of: library.cards.map(\.id)) { _, _ in
             refreshFeaturedCardsIfNeeded()
+            refreshCachedSections()
+        }
+        .onChange(of: library.cards.map(\.updatedAt)) { _, _ in
+            refreshCachedSections()
         }
     }
 
     private var bannerSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        let frameHeight = horizontalSectionFrameHeight(for: bannerCardMeasuredHeight)
+
+        return VStack(alignment: .leading, spacing: KnowledgeSquareSpacing.moduleHeaderToContent) {
             ZDSectionHeader("推荐卡片")
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.bannerCardSpacing) {
-                    ForEach(featuredCards) { card in
-                        Button {
-                            openCard(card)
-                        } label: {
-                            KnowledgeCardLView(
-                                card: card,
-                                viewCount: library.viewCounts[card.id] ?? 0
+                if renderProfile.tracksEdgeFade {
+                    HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.bannerCardSpacing) {
+                        ForEach(Array(featuredCards.enumerated()), id: \.element.id) { index, card in
+                            Button {
+                                openCard(card)
+                            } label: {
+                                KnowledgeCardLView(
+                                    card: card,
+                                    viewCount: library.viewCounts[card.id] ?? 0
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .background(
+                                Group {
+                                    if index == 0 {
+                                        GeometryReader { proxy in
+                                            Color.clear.preference(
+                                                key: BannerCardHeightKey.self,
+                                                value: proxy.size.height
+                                            )
+                                        }
+                                    }
+                                }
                             )
                         }
-                        .buttonStyle(.plain)
+                    }
+                    .background(
+                        GeometryReader { proxy in
+                            Color.clear.preference(
+                                key: HorizontalContentFrameKey.self,
+                                value: proxy.frame(in: .named("bannerScrollSpace"))
+                            )
+                        }
+                    )
+                } else {
+                    HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.bannerCardSpacing) {
+                        ForEach(Array(featuredCards.enumerated()), id: \.element.id) { index, card in
+                            Button {
+                                openCard(card)
+                            } label: {
+                                KnowledgeCardLView(
+                                    card: card,
+                                    viewCount: library.viewCounts[card.id] ?? 0
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .background(
+                                Group {
+                                    if index == 0 {
+                                        GeometryReader { proxy in
+                                            Color.clear.preference(
+                                                key: BannerCardHeightKey.self,
+                                                value: proxy.size.height
+                                            )
+                                        }
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: HorizontalContentFrameKey.self,
-                            value: proxy.frame(in: .named("bannerScrollSpace"))
-                        )
-                    }
-                )
             }
+            .padding(.bottom, horizontalSectionBottomInset)
             .coordinateSpace(name: "bannerScrollSpace")
             .background(
-                GeometryReader { proxy in
-                    Color.clear.preference(key: HorizontalViewportWidthKey.self, value: proxy.size.width)
+                Group {
+                    if renderProfile.tracksEdgeFade {
+                        GeometryReader { proxy in
+                            Color.clear.preference(key: HorizontalViewportWidthKey.self, value: proxy.size.width)
+                        }
+                    }
                 }
             )
             .onPreferenceChange(HorizontalContentFrameKey.self) { frame in
-                bannerContentFrame = frame
+                if renderProfile.tracksEdgeFade {
+                    bannerContentFrame = frame
+                }
             }
             .onPreferenceChange(HorizontalViewportWidthKey.self) { width in
-                bannerViewportWidth = width
+                if renderProfile.tracksEdgeFade {
+                    bannerViewportWidth = width
+                }
+            }
+            .onPreferenceChange(BannerCardHeightKey.self) { height in
+                if height > 1 {
+                    bannerCardMeasuredHeight = height
+                }
             }
             .overlay(alignment: .leading) {
-                if bannerContentFrame.minX < -1 {
-                    edgeFadeOverlay(leading: true)
+                if renderProfile.tracksEdgeFade, bannerContentFrame.minX < -1 {
+                    edgeFadeOverlay(leading: true, style: renderProfile.edgeFadeStyle)
                 }
             }
             .overlay(alignment: .trailing) {
-                if bannerContentFrame.maxX > bannerViewportWidth + 1 {
-                    edgeFadeOverlay(leading: false)
+                if renderProfile.tracksEdgeFade, bannerContentFrame.maxX > bannerViewportWidth + 1 {
+                    edgeFadeOverlay(leading: false, style: renderProfile.edgeFadeStyle)
                 }
             }
             .scrollClipDisabled()
-            .frame(height: KnowledgeSquareLayoutTuning.bannerCardHeight)
+            .frame(height: frameHeight)
         }
     }
 
@@ -128,118 +219,232 @@ struct KnowledgeSquareView: View {
     }
 
     private var recentSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        let frameHeight = horizontalSectionFrameHeight(for: recentCardMeasuredHeight)
+
+        return VStack(alignment: .leading, spacing: KnowledgeSquareSpacing.moduleHeaderToContent) {
             ZDSectionHeader("最近添加")
 
             ScrollView(.horizontal, showsIndicators: false) {
-                HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
-                    ForEach(library.recentlyAdded(limit: 6)) { card in
-                        Button {
-                            openCard(card)
-                        } label: {
-                            KnowledgeCardMView(
-                                card: card,
-                                viewCount: library.viewCounts[card.id] ?? 0
-                            )
-                        }
-                        .buttonStyle(.plain)
-                    }
-                }
-                .background(
-                    GeometryReader { proxy in
-                        Color.clear.preference(
-                            key: HorizontalContentFrameKey.self,
-                            value: proxy.frame(in: .named("recentScrollSpace"))
-                        )
-                    }
-                )
-            }
-            .coordinateSpace(name: "recentScrollSpace")
-            .background(
-                GeometryReader { proxy in
-                    Color.clear.preference(key: HorizontalViewportWidthKey.self, value: proxy.size.width)
-                }
-            )
-            .onPreferenceChange(HorizontalContentFrameKey.self) { frame in
-                recentContentFrame = frame
-            }
-            .onPreferenceChange(HorizontalViewportWidthKey.self) { width in
-                recentViewportWidth = width
-            }
-            .overlay(alignment: .leading) {
-                if recentContentFrame.minX < -1 {
-                    edgeFadeOverlay(leading: true)
-                }
-            }
-            .overlay(alignment: .trailing) {
-                if recentContentFrame.maxX > recentViewportWidth + 1 {
-                    edgeFadeOverlay(leading: false)
-                }
-            }
-            .scrollClipDisabled()
-        }
-    }
-
-    @ViewBuilder
-    private var imageTruthSection: some View {
-        if !cardsWithImagesByCreatedAtAscending.isEmpty {
-            VStack(alignment: .leading, spacing: 14) {
-                Text("图文并茂")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.primary.opacity(0.9))
-
-                ScrollView(.horizontal, showsIndicators: false) {
-                    HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.imageTruthCardSpacing) {
-                        ForEach(cardsWithImagesByCreatedAtAscending) { item in
+                if renderProfile.tracksEdgeFade {
+                    HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
+                        ForEach(Array(library.recentlyAdded(limit: 6).enumerated()), id: \.element.id) { index, card in
                             Button {
-                                openCard(item.card)
+                                openCard(card)
                             } label: {
-                                KnowledgeSquareImageTruthCard(
-                                    title: item.card.title,
-                                    source: item.source
+                                KnowledgeCardMView(
+                                    card: card,
+                                    viewCount: library.viewCounts[card.id] ?? 0
                                 )
                             }
                             .buttonStyle(.plain)
+                            .background(
+                                Group {
+                                    if index == 0 {
+                                        GeometryReader { proxy in
+                                            Color.clear.preference(
+                                                key: RecentCardHeightKey.self,
+                                                value: proxy.size.height
+                                            )
+                                        }
+                                    }
+                                }
+                            )
                         }
                     }
                     .background(
                         GeometryReader { proxy in
                             Color.clear.preference(
                                 key: HorizontalContentFrameKey.self,
-                                value: proxy.frame(in: .named("imageTruthScrollSpace"))
+                                value: proxy.frame(in: .named("recentScrollSpace"))
                             )
                         }
                     )
+                } else {
+                    HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
+                        ForEach(Array(library.recentlyAdded(limit: 6).enumerated()), id: \.element.id) { index, card in
+                            Button {
+                                openCard(card)
+                            } label: {
+                                KnowledgeCardMView(
+                                    card: card,
+                                    viewCount: library.viewCounts[card.id] ?? 0
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .background(
+                                Group {
+                                    if index == 0 {
+                                        GeometryReader { proxy in
+                                            Color.clear.preference(
+                                                key: RecentCardHeightKey.self,
+                                                value: proxy.size.height
+                                            )
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                    }
                 }
+            }
+            .padding(.bottom, horizontalSectionBottomInset)
+            .coordinateSpace(name: "recentScrollSpace")
+            .background(
+                Group {
+                    if renderProfile.tracksEdgeFade {
+                        GeometryReader { proxy in
+                            Color.clear.preference(key: HorizontalViewportWidthKey.self, value: proxy.size.width)
+                        }
+                    }
+                }
+            )
+            .onPreferenceChange(HorizontalContentFrameKey.self) { frame in
+                if renderProfile.tracksEdgeFade {
+                    recentContentFrame = frame
+                }
+            }
+            .onPreferenceChange(HorizontalViewportWidthKey.self) { width in
+                if renderProfile.tracksEdgeFade {
+                    recentViewportWidth = width
+                }
+            }
+            .onPreferenceChange(RecentCardHeightKey.self) { height in
+                if height > 1 {
+                    recentCardMeasuredHeight = height
+                }
+            }
+            .overlay(alignment: .leading) {
+                if renderProfile.tracksEdgeFade, recentContentFrame.minX < -1 {
+                    edgeFadeOverlay(leading: true, style: renderProfile.edgeFadeStyle)
+                }
+            }
+            .overlay(alignment: .trailing) {
+                if renderProfile.tracksEdgeFade, recentContentFrame.maxX > recentViewportWidth + 1 {
+                    edgeFadeOverlay(leading: false, style: renderProfile.edgeFadeStyle)
+                }
+            }
+            .scrollClipDisabled()
+            .frame(height: frameHeight)
+        }
+    }
+
+    @ViewBuilder
+    private var imageTruthSection: some View {
+        if !imageTruthItems.isEmpty {
+            let frameHeight = horizontalSectionFrameHeight(for: imageTruthCardMeasuredHeight)
+
+            VStack(alignment: .leading, spacing: KnowledgeSquareSpacing.moduleHeaderToContent) {
+                Text("图文并茂")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(.primary.opacity(0.9))
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    if renderProfile.tracksEdgeFade {
+                        HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.imageTruthCardSpacing) {
+                            ForEach(Array(imageTruthItems.enumerated()), id: \.element.id) { index, item in
+                                Button {
+                                    openCard(item.card)
+                                } label: {
+                                    KnowledgeSquareImageTruthCard(
+                                        title: item.card.title,
+                                        source: item.source
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .background(
+                                    Group {
+                                        if index == 0 {
+                                            GeometryReader { proxy in
+                                                Color.clear.preference(
+                                                    key: ImageTruthCardHeightKey.self,
+                                                    value: proxy.size.height
+                                                )
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                        .background(
+                            GeometryReader { proxy in
+                                Color.clear.preference(
+                                    key: HorizontalContentFrameKey.self,
+                                    value: proxy.frame(in: .named("imageTruthScrollSpace"))
+                                )
+                            }
+                        )
+                    } else {
+                        HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.imageTruthCardSpacing) {
+                            ForEach(Array(imageTruthItems.enumerated()), id: \.element.id) { index, item in
+                                Button {
+                                    openCard(item.card)
+                                } label: {
+                                    KnowledgeSquareImageTruthCard(
+                                        title: item.card.title,
+                                        source: item.source
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                                .background(
+                                    Group {
+                                        if index == 0 {
+                                            GeometryReader { proxy in
+                                                Color.clear.preference(
+                                                    key: ImageTruthCardHeightKey.self,
+                                                    value: proxy.size.height
+                                                )
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                .padding(.bottom, horizontalSectionBottomInset)
                 .coordinateSpace(name: "imageTruthScrollSpace")
                 .background(
-                    GeometryReader { proxy in
-                        Color.clear.preference(key: HorizontalViewportWidthKey.self, value: proxy.size.width)
+                    Group {
+                        if renderProfile.tracksEdgeFade {
+                            GeometryReader { proxy in
+                                Color.clear.preference(key: HorizontalViewportWidthKey.self, value: proxy.size.width)
+                            }
+                        }
                     }
                 )
                 .onPreferenceChange(HorizontalContentFrameKey.self) { frame in
-                    imageTruthContentFrame = frame
+                    if renderProfile.tracksEdgeFade {
+                        imageTruthContentFrame = frame
+                    }
                 }
                 .onPreferenceChange(HorizontalViewportWidthKey.self) { width in
-                    imageTruthViewportWidth = width
+                    if renderProfile.tracksEdgeFade {
+                        imageTruthViewportWidth = width
+                    }
+                }
+                .onPreferenceChange(ImageTruthCardHeightKey.self) { height in
+                    if height > 1 {
+                        imageTruthCardMeasuredHeight = height
+                    }
                 }
                 .overlay(alignment: .leading) {
-                    if imageTruthContentFrame.minX < -1 {
-                        edgeFadeOverlay(leading: true)
+                    if renderProfile.tracksEdgeFade, imageTruthContentFrame.minX < -1 {
+                        edgeFadeOverlay(leading: true, style: renderProfile.edgeFadeStyle)
                     }
                 }
                 .overlay(alignment: .trailing) {
-                    if imageTruthContentFrame.maxX > imageTruthViewportWidth + 1 {
-                        edgeFadeOverlay(leading: false)
+                    if renderProfile.tracksEdgeFade, imageTruthContentFrame.maxX > imageTruthViewportWidth + 1 {
+                        edgeFadeOverlay(leading: false, style: renderProfile.edgeFadeStyle)
                     }
                 }
                 .scrollClipDisabled()
+                .frame(height: frameHeight)
             }
         }
     }
 
     private var popularSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: KnowledgeSquareSpacing.moduleHeaderToContent) {
             ZDSectionHeader("最多浏览")
 
             VStack(spacing: 10) {
@@ -259,28 +464,16 @@ struct KnowledgeSquareView: View {
         }
     }
 
-    private var cardsWithImagesByCreatedAtAscending: [KnowledgeSquareImageTruthItem] {
-        library.cards
-            .sorted { lhs, rhs in
-                if lhs.createdAt == rhs.createdAt {
-                    return lhs.updatedAt < rhs.updatedAt
-                }
-                return lhs.createdAt < rhs.createdAt
-            }
-            .compactMap { card in
-                guard let source = firstImageSource(of: card) else {
-                    return nil
-                }
-                return KnowledgeSquareImageTruthItem(card: card, source: source)
-            }
+    private var randomCards: [KnowledgeCard] {
+        let cardByID = Dictionary(uniqueKeysWithValues: library.cards.map { ($0.id, $0) })
+        return randomCardIDs.compactMap { cardByID[$0] }
     }
 
     private var randomSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: KnowledgeSquareSpacing.moduleHeaderToContent) {
             ZDSectionHeader("随机发现")
 
             VStack(alignment: .leading, spacing: 10) {
-                let randomCards = Array(library.cards.shuffled().prefix(3))
                 ForEach(randomCards) { card in
                     Button {
                         openCard(card)
@@ -294,7 +487,7 @@ struct KnowledgeSquareView: View {
     }
 
     private var statsSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: KnowledgeSquareSpacing.moduleHeaderToContent) {
             ZDSectionHeader("知识统计")
 
             VStack(alignment: .leading, spacing: 0) {
@@ -344,6 +537,31 @@ struct KnowledgeSquareView: View {
         }
     }
 
+    private func refreshCachedSections() {
+        refreshRandomCards()
+        refreshImageTruthItems()
+    }
+
+    private func refreshRandomCards() {
+        randomCardIDs = Array(library.cards.shuffled().prefix(3)).map(\.id)
+    }
+
+    private func refreshImageTruthItems() {
+        imageTruthItems = library.cards
+            .sorted { lhs, rhs in
+                if lhs.createdAt == rhs.createdAt {
+                    return lhs.updatedAt < rhs.updatedAt
+                }
+                return lhs.createdAt < rhs.createdAt
+            }
+            .compactMap { card in
+                guard let source = firstImageSource(of: card) else {
+                    return nil
+                }
+                return KnowledgeSquareImageTruthItem(card: card, source: source)
+            }
+    }
+
     private func firstImageSource(of card: KnowledgeCard) -> String? {
         let modules = card.modules ?? card.blocks ?? []
         for module in modules where module.kind == .image {
@@ -378,7 +596,7 @@ struct KnowledgeSquareView: View {
         return date.formatted(date: .abbreviated, time: .omitted)
     }
 
-    private func edgeFadeOverlay(leading: Bool) -> some View {
+    private func edgeFadeOverlay(leading: Bool, style: ZDListEdgeFadeStyle) -> some View {
         let baseColor = Color.zdPageBase
         let mask = LinearGradient(
             colors: leading
@@ -400,14 +618,37 @@ struct KnowledgeSquareView: View {
                     )
                 )
 
-            Rectangle()
-                .fill(.ultraThinMaterial)
-                .opacity(colorScheme == .dark ? 0.45 : 0.65)
-                .mask(mask)
+            if style == .glass {
+                Rectangle()
+                    .fill(.ultraThinMaterial)
+                    .opacity(colorScheme == .dark ? 0.45 : 0.65)
+                    .mask(mask)
+            }
         }
-            .frame(width: 46)
-            .blur(radius: 3.2)
+            .frame(width: renderProfile.edgeFadeWidth)
+            .blur(radius: style == .glass ? renderProfile.edgeFadeBlurRadius : 0)
             .allowsHitTesting(false)
+    }
+}
+
+private struct BannerCardHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct RecentCardHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct ImageTruthCardHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
     }
 }
 
@@ -506,14 +747,16 @@ private struct KnowledgeSquareImageCover: View {
     }
 
     private func localImage(_ source: String) -> UIImage? {
-        if source.hasPrefix("file://") {
-            let path = String(source.dropFirst("file://".count))
-            return UIImage(contentsOfFile: path)
+        KnowledgeSquareImageDecodeCache.image(for: source) {
+            if source.hasPrefix("file://") {
+                let path = String(source.dropFirst("file://".count))
+                return UIImage(contentsOfFile: path)
+            }
+            if source.hasPrefix("/") {
+                return UIImage(contentsOfFile: source)
+            }
+            return dataURIImage(source)
         }
-        if source.hasPrefix("/") {
-            return UIImage(contentsOfFile: source)
-        }
-        return dataURIImage(source)
     }
 
     private func dataURIImage(_ source: String) -> UIImage? {
@@ -540,6 +783,34 @@ private struct KnowledgeSquareImageCover: View {
             return nil
         }
         return UIImage(data: data)
+    }
+}
+
+private enum KnowledgeSquareImageDecodeCache {
+    private static let cache: NSCache<NSString, UIImage> = {
+        let cache = NSCache<NSString, UIImage>()
+        cache.countLimit = 80
+        return cache
+    }()
+
+    static func image(for source: String, loader: () -> UIImage?) -> UIImage? {
+        let key = cacheKey(for: source)
+        if let cached = cache.object(forKey: key) {
+            return cached
+        }
+        guard let loaded = loader() else {
+            return nil
+        }
+        cache.setObject(loaded, forKey: key)
+        return loaded
+    }
+
+    private static func cacheKey(for source: String) -> NSString {
+        let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.lowercased().hasPrefix("data:") {
+            return NSString(string: "data:\(trimmed.hashValue)")
+        }
+        return NSString(string: trimmed)
     }
 }
 

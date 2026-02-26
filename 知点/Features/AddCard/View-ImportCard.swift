@@ -390,83 +390,66 @@ struct ImportCardView: View {
         【输出格式约束】（必须严格遵守）
         1. 只允许输出一个 ```json 代码块```，代码块外部绝对不要有任何多余的解释文字、问候或分析。
         2. 暂时不输出 `tags` 字段（留作人工填写）。
-        3. 必须包含固定字段：`title`、`content`、`links`、`codeSnippets`、`images`、`moduleLayout`、`moduleTitles`。
-        4. `content` 必须是长度为 2 的字符串数组，用于两个文字内容块：
-           - `content[0]`：必须是“三级标题 ### + 一段直接回答标题的文字”
-             格式示例：`### 直接结论\n这里是一段直接回答标题的问题`
-           - `content[1]`：必须是普通正文格式，对问题做详细描述（不要再加 `#` 或 `##` 标题）
-        5. `moduleTitles` 必须固定输出并包含每个内容块名称：
-           - `"text": ["总结", "详细说明"]`
-           - `"code": "代码示例"`
-           - `"link": "参考链接"`
-           - `"image": "相关图片"`
-        6. `moduleLayout` 必须固定输出：
-           - `"text": "split"`（让上述两段文字进入两个文字块）
-           - `"code": "group"`（让多段代码进入同一个代码块）
-           - `"link": "group"`（让多个链接进入同一个链接块）
-           - `"image": "split"`（图片按默认分块）
-        7. 当 `links` / `codeSnippets` / `images` 没有可用数据时，必须输出空数组 `[]`。
-        8. `images` 必须是数组；如有图片，优先输出 `data:image/<mime>;base64,<payload>` 格式，严禁编造图片 URL。
-        9. JSON 必须是严格标准格式（英文双引号、无注释、无尾逗号、正确转义）。
+        3. 卡片数据结构必须是一整段 JSON 嵌套，根节点包含 `title` 和 `modules` 数组。
+        4. 按照卡片模块的内容顺序，在 `modules` 数组中依次声明每个模块的 JSON 对象，包含 `type`（类型）、`title`（模块名称）等字段，具体如下：
 
-        【内容约束】
-        - title：必须且只能是一句极简的短句，严格采用“为什么...？”或“...是什么？”的格式，绝不允许输出多个句子或任何冗余标点。
-        - content[0]：必须以 `###` 开头，并直接回答标题问题。
-        - content[1]：详细解释底层原理、应用场景、常见误区，结构清晰但不过度分层。
-        - codeSnippets：可输出多段代码；多段代码会被放入同一个代码块，请保证每段 `name`、`language`、`code` 完整。
-        - images：如能提供图片，请优先输出 `data:image/<mime>;base64,<payload>` 编码；无法提供时输出 `[]`。
-        - links：可输出多个链接，都会归属同一个链接块。必须优先检索视频教程来源：
-          1. Bilibili
-          2. 小红书
-          3. 抖音
-          若以上平台存在相关高质量教程，优先输出这些链接；并可补充少量官方文档/高质量文章。严禁编造链接。
-
-        【输出示例参考】
+        数据结构范例（注意各字段的名称与层级）：
         ```json
         {
           "title": "为什么 Undercut 能实现反超？",
-          "content": [
-            "### 直接结论\nUndercut 通过提前换新胎创造圈速窗口，在时间维度完成反超。",
-            "Undercut 是后车提前进站换新胎，通过出站后数圈的速度窗口累计净时间收益，等待前车进站后实现位置反转。其成立依赖轮胎性能衰减曲线、进站总损失、出站后交通状况与圈速差。若出站遭遇慢车、或对手立即跟进进站（cover undercut），收益会被迅速抹平。"
-          ],
-          "moduleTitles": {
-            "text": ["总结", "详细说明"],
-            "code": "代码示例",
-            "link": "参考链接",
-            "image": "相关图片"
-          },
-          "moduleLayout": {
-            "text": "split",
-            "code": "group",
-            "link": "group",
-            "image": "split"
-          },
-          "links": [
+          "modules": [
             {
-              "url": "https://www.bilibili.com/video/example_a",
-              "title": "Bilibili：F1 Undercut 战术解析"
+              "type": "text",
+              "title": "总结",
+              "content": "Undercut 通过提前换新胎创造圈速窗口，在时间维度完成反超。"
             },
             {
-              "url": "https://www.xiaohongshu.com/explore/example_b",
-              "title": "小红书：Undercut 与 Overcut 实战对比"
-            }
-          ],
-          "codeSnippets": [
-            {
-              "name": "Undercut 时间收益估算",
-              "language": "python",
-              "code": "def undercut_gain(delta_per_lap, laps, pit_loss, initial_gap):\n    return delta_per_lap * laps - pit_loss - initial_gap"
+              "type": "text",
+              "title": "详细说明",
+              "content": "Undercut 是后车提前进站换新胎，通过出站后数圈的速度窗口累计净时间收益，等待前车进站后实现位置反转。其成立依赖轮胎性能衰减曲线、进站总损失、出站后交通状况与圈速差。若出站遭遇慢车、或对手立即跟进进站（cover undercut），收益会被迅速抹平。"
             },
             {
-              "name": "战术成立条件",
-              "language": "bash",
-              "code": "echo \"(新胎圈速优势 * 圈数) > 进站损失 + 初始差距\""
+              "type": "link",
+              "title": "参考链接",
+              "links": [
+                {
+                  "url": "https://www.bilibili.com/video/example_a",
+                  "title": "Bilibili：F1 Undercut 战术解析"
+                }
+              ]
+            },
+            {
+              "type": "code",
+              "title": "代码示例",
+              "snippets": [
+                {
+                  "name": "Undercut 时间收益估算",
+                  "language": "python",
+                  "code": "def undercut_gain(delta_per_lap, laps, pit_loss, initial_gap):\\n    return delta_per_lap * laps - pit_loss - initial_gap"
+                }
+              ]
+            },
+            {
+              "type": "image",
+              "title": "相关图片",
+              "images": [
+                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
+              ]
             }
-          ],
-          "images": [
-            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
           ]
         }
+        ```
+        5. 当图片、代码、链接等没有可用数据时，直接不要在 `modules` 数组里输出相关模块对象，而不是输出空数组对象的模块！
+        6. `images` 的值必须是数组；如有图片，优先输出 `data:image/<mime>;base64,<payload>` 格式，严禁编造图片 URL。
+        7. JSON 必须是严格标准格式（英文双引号、无注释、无尾逗号、正确转义）。
+
+        【内容约束】
+        - 标题 (title)：必须且只能是一句极简的短句，严格采用“为什么...？”或“...是什么？”的格式，绝不允许输出多个句子或任何冗余标点。
+        - 总结模块内容 (content)：直接用正文层级的文本概括核心结论！不需要有“### 直接结论”字眼！越干练越好！
+        - 详细说明模块内容 (content)：详细解释底层原理、应用场景、常见误区，结构清晰但不过度分层。
+        - 代码模块 (code)：可放入多段代码 Snippet，请保证每段 `name`、`language`、`code` 完整。
+        - 图片模块 (image)：如能提供图片，请优先输出 base64 编码；无法提供时丢弃该模块。
+        - 链接模块 (link)：优先提供对应概念或主题的主流平台上的有效的高质量视频教程和文章；严禁编造链接。
         """
     }
 }

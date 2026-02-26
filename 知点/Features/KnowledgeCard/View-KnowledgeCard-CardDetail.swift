@@ -3316,6 +3316,9 @@ private final class LayoutAwareTextView: UITextView {
     var wrapLines: Bool = true
 
     override func layoutSubviews() {
+        if !wrapLines {
+            textContainer.size = CGSize(width: 100_000, height: 100_000)
+        }
         super.layoutSubviews()
         onLayout?()
         
@@ -3324,8 +3327,9 @@ private final class LayoutAwareTextView: UITextView {
         if !wrapLines {
             let usedWidth = layoutManager.usedRect(for: textContainer).width
             let requiredWidth = usedWidth + textContainerInset.left + textContainerInset.right + 24
-            if contentSize.width < requiredWidth || abs(contentSize.width - requiredWidth) > 5 {
-                contentSize = CGSize(width: requiredWidth, height: contentSize.height)
+            let optimalWidth = max(bounds.width, requiredWidth)
+            if abs(contentSize.width - optimalWidth) > 5 {
+                contentSize = CGSize(width: optimalWidth, height: contentSize.height)
             }
         }
     }

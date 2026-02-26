@@ -278,6 +278,7 @@ private struct ZDBorderOverlay: View {
 
 private struct ZDSurfaceCardStyleModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.zdListRenderProfile) private var renderProfile
 
     let style: ZDSurfaceStyle
     let cornerRadius: CGFloat
@@ -291,16 +292,7 @@ private struct ZDSurfaceCardStyleModifier: ViewModifier {
                 shape
                     .fill(surfaceGradient)
                     .opacity(style == .clear ? 0 : 1)
-                    .overlay {
-                        if #available(iOS 26.0, *) {
-                            Color.white.opacity(materialOpacity)
-                                .glassEffect(in: shape)
-                        } else {
-                            shape
-                                .fill(.ultraThinMaterial)
-                                .opacity(fallbackMaterialOpacity)
-                        }
-                    }
+                    .overlay(materialOverlay(in: shape))
             }
             .clipShape(shape)
             .overlay {
@@ -310,6 +302,27 @@ private struct ZDSurfaceCardStyleModifier: ViewModifier {
                     lineWidth: lineWidth
                 )
             }
+    }
+
+    @ViewBuilder
+    private func materialOverlay(in shape: RoundedRectangle) -> some View {
+        switch renderProfile.glassQuality {
+        case .off:
+            Color.clear
+        case .simplified:
+            shape
+                .fill(.ultraThinMaterial)
+                .opacity(fallbackMaterialOpacity * renderProfile.materialStrength)
+        case .full:
+            if #available(iOS 26.0, *) {
+                Color.white.opacity(materialOpacity * renderProfile.materialStrength)
+                    .glassEffect(in: shape)
+            } else {
+                shape
+                    .fill(.ultraThinMaterial)
+                    .opacity(fallbackMaterialOpacity * renderProfile.materialStrength)
+            }
+        }
     }
 
     private var materialOpacity: Double {
@@ -404,42 +417,65 @@ private struct ZDPageBackgroundModifier: ViewModifier {
 
 private struct ZDTopScrollBlurFadeModifier: ViewModifier {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.zdListRenderProfile) private var renderProfile
 
     let solidHeight: CGFloat
     let fadeHeight: CGFloat
 
     func body(content: Content) -> some View {
-        content
-            .overlay(alignment: .top) {
-                GeometryReader { proxy in
-                    topBlurFadeOverlay(safeTopInset: proxy.safeAreaInsets.top)
-                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
-                }
-                .allowsHitTesting(false)
+        Group {
+            if renderProfile.topBlurFadeStyle == .none {
+                content
+            } else {
+                content
+                    .overlay(alignment: .top) {
+                        GeometryReader { proxy in
+                            topBlurFadeOverlay(safeTopInset: proxy.safeAreaInsets.top)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+                        }
+                        .allowsHitTesting(false)
+                    }
             }
+        }
     }
 
     @ViewBuilder
     private func topBlurFadeOverlay(safeTopInset: CGFloat) -> some View {
         let solidBandHeight = safeTopInset + solidHeight
         let totalHeight = solidBandHeight + fadeHeight
-        let baseTintOpacity = colorScheme == .dark ? 0.07 : 0.09
-        let fallbackMaterialOpacity = colorScheme == .dark ? 0.28 : 0.34
+        let baseTintOpacity = colorScheme == .dark ? 0.06 : 0.08
+        let fallbackMaterialOpacity = (colorScheme == .dark ? 0.28 : 0.34) * renderProfile.materialStrength
         let topHighlightOpacity = colorScheme == .dark ? 0.04 : 0.07
         let topMaskOpacity = colorScheme == .dark ? 0.74 : 0.68
         let midMaskOpacity = colorScheme == .dark ? 0.24 : 0.18
 
         ZStack {
-            // Keep a subtle tint + blur so the top stays translucent instead of solid.
             Color.zdPageBase.opacity(baseTintOpacity)
 
-            if #available(iOS 26.0, *) {
-                Color.white.opacity(colorScheme == .dark ? 0.004 : 0.006)
-                    .glassEffect(in: Rectangle())
-            } else {
+            switch renderProfile.topBlurFadeStyle {
+            case .none:
+                Color.clear
+            case .gradient:
                 Rectangle()
-                    .fill(.ultraThinMaterial)
-                    .opacity(fallbackMaterialOpacity)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                Color.white.opacity(colorScheme == .dark ? 0.012 : 0.03),
+                                .clear
+                            ],
+                            startPoint: .top,
+                            endPoint: .bottom
+                        )
+                    )
+            case .glass:
+                if #available(iOS 26.0, *) {
+                    Color.white.opacity((colorScheme == .dark ? 0.004 : 0.006) * renderProfile.materialStrength)
+                        .glassEffect(in: Rectangle())
+                } else {
+                    Rectangle()
+                        .fill(.ultraThinMaterial)
+                        .opacity(fallbackMaterialOpacity)
+                }
             }
 
             LinearGradient(

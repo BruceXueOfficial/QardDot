@@ -115,6 +115,7 @@ private enum KnowledgeCardLViewShadowTuning {
 
 struct KnowledgeCardLView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.zdListRenderProfile) private var renderProfile
 
     let card: KnowledgeCard
     let viewCount: Int
@@ -146,7 +147,12 @@ struct KnowledgeCardLView: View {
     }
 
     var body: some View {
-        ZDSplitGlassCard(
+        decoratedCardSurface
+    }
+
+    @ViewBuilder
+    private var decoratedCardSurface: some View {
+        let baseCard = ZDSplitGlassCard(
             layout: KnowledgeCardLViewTokens.splitLayout,
             palette: palette,
             topFrost: KnowledgeCardLViewTokens.topFrost,
@@ -205,30 +211,40 @@ struct KnowledgeCardLView: View {
         .accessibilityIdentifier("knowledgeSquare.recommendation.card")
         .shadow(
             color: Color.black.opacity(
-                colorScheme == .dark
+                (colorScheme == .dark
                     ? KnowledgeCardLViewShadowTuning.baseDarkOpacity
                     : KnowledgeCardLViewShadowTuning.baseLightOpacity
+                ) * renderProfile.primaryShadowStrength
             ),
-            radius: colorScheme == .dark
+            radius: (colorScheme == .dark
                 ? KnowledgeCardLViewShadowTuning.baseDarkRadius
-                : KnowledgeCardLViewShadowTuning.baseLightRadius,
+                : KnowledgeCardLViewShadowTuning.baseLightRadius
+            ) * renderProfile.primaryShadowStrength,
             x: 0,
-            y: colorScheme == .dark
+            y: (colorScheme == .dark
                 ? KnowledgeCardLViewShadowTuning.baseDarkY
                 : KnowledgeCardLViewShadowTuning.baseLightY
+            ) * renderProfile.primaryShadowStrength
         )
-        .shadow(
-            color: theme.primaryColor.opacity(
-                colorScheme == .dark
-                    ? KnowledgeCardLViewShadowTuning.tintDarkOpacity
-                    : KnowledgeCardLViewShadowTuning.tintLightOpacity
-            ),
-            radius: colorScheme == .dark
-                ? KnowledgeCardLViewShadowTuning.tintDarkRadius
-                : KnowledgeCardLViewShadowTuning.tintLightRadius,
-            x: 0,
-            y: KnowledgeCardLViewShadowTuning.tintY
-        )
+
+        if renderProfile.showsSecondaryShadow {
+            baseCard.shadow(
+                color: theme.primaryColor.opacity(
+                    (colorScheme == .dark
+                        ? KnowledgeCardLViewShadowTuning.tintDarkOpacity
+                        : KnowledgeCardLViewShadowTuning.tintLightOpacity
+                    ) * renderProfile.primaryShadowStrength
+                ),
+                radius: (colorScheme == .dark
+                    ? KnowledgeCardLViewShadowTuning.tintDarkRadius
+                    : KnowledgeCardLViewShadowTuning.tintLightRadius
+                ) * renderProfile.primaryShadowStrength,
+                x: 0,
+                y: KnowledgeCardLViewShadowTuning.tintY * renderProfile.primaryShadowStrength
+            )
+        } else {
+            baseCard
+        }
     }
 }
 

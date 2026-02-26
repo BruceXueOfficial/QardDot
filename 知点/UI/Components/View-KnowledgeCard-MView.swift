@@ -47,6 +47,7 @@ private enum KnowledgeCardMViewShadowTuning {
 
 struct KnowledgeCardMView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.zdListRenderProfile) private var renderProfile
 
     let card: KnowledgeCard
     let viewCount: Int
@@ -101,8 +102,13 @@ struct KnowledgeCardMView: View {
     }
 
     var body: some View {
+        decoratedCardSurface
+    }
+
+    @ViewBuilder
+    private var decoratedCardSurface: some View {
         VStack(alignment: .leading, spacing: 8) {
-            ZDSplitGlassCard(
+            let baseCard = ZDSplitGlassCard(
                 layout: KnowledgeCardMViewTokens.splitLayout,
                 palette: swappedPalette,
                 topFrost: KnowledgeCardMViewTokens.topFrost,
@@ -142,30 +148,40 @@ struct KnowledgeCardMView: View {
             .accessibilityIdentifier("knowledgeSquare.recent.mview.surface")
             .shadow(
                 color: Color.black.opacity(
-                    colorScheme == .dark
+                    (colorScheme == .dark
                         ? KnowledgeCardMViewShadowTuning.baseDarkOpacity
                         : KnowledgeCardMViewShadowTuning.baseLightOpacity
+                    ) * renderProfile.primaryShadowStrength
                 ),
-                radius: colorScheme == .dark
+                radius: (colorScheme == .dark
                     ? KnowledgeCardMViewShadowTuning.baseDarkRadius
-                    : KnowledgeCardMViewShadowTuning.baseLightRadius,
+                    : KnowledgeCardMViewShadowTuning.baseLightRadius
+                ) * renderProfile.primaryShadowStrength,
                 x: 0,
-                y: colorScheme == .dark
+                y: (colorScheme == .dark
                     ? KnowledgeCardMViewShadowTuning.baseDarkY
                     : KnowledgeCardMViewShadowTuning.baseLightY
+                ) * renderProfile.primaryShadowStrength
             )
-            .shadow(
-                color: theme.primaryColor.opacity(
-                    colorScheme == .dark
-                        ? KnowledgeCardMViewShadowTuning.tintDarkOpacity
-                        : KnowledgeCardMViewShadowTuning.tintLightOpacity
-                ),
-                radius: colorScheme == .dark
-                    ? KnowledgeCardMViewShadowTuning.tintDarkRadius
-                    : KnowledgeCardMViewShadowTuning.tintLightRadius,
-                x: 0,
-                y: KnowledgeCardMViewShadowTuning.tintY
-            )
+
+            if renderProfile.showsSecondaryShadow {
+                baseCard.shadow(
+                    color: theme.primaryColor.opacity(
+                        (colorScheme == .dark
+                            ? KnowledgeCardMViewShadowTuning.tintDarkOpacity
+                            : KnowledgeCardMViewShadowTuning.tintLightOpacity
+                        ) * renderProfile.primaryShadowStrength
+                    ),
+                    radius: (colorScheme == .dark
+                        ? KnowledgeCardMViewShadowTuning.tintDarkRadius
+                        : KnowledgeCardMViewShadowTuning.tintLightRadius
+                    ) * renderProfile.primaryShadowStrength,
+                    x: 0,
+                    y: KnowledgeCardMViewShadowTuning.tintY * renderProfile.primaryShadowStrength
+                )
+            } else {
+                baseCard
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(card.title)

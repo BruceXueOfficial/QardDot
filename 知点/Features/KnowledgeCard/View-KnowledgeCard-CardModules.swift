@@ -64,7 +64,7 @@ extension KnowledgeCardView {
         if !raw.isEmpty { return raw }
 
         switch module.kind {
-        case .text: return "文本"
+        case .text: return "总结"
         case .image: return "图片"
         case .code: return "代码"
         case .link: return "链接"

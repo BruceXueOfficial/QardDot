@@ -2,15 +2,29 @@ import SwiftUI
 
 struct ProfileView: View {
     @EnvironmentObject private var library: KnowledgeCardLibraryStore
+    @AppStorage(ZDListRenderMode.storageKey) private var listRenderModeRawValue = ZDListRenderMode.defaultSelection.rawValue
 
     var body: some View {
         NavigationStack {
             ZDPageScaffold(title: "个人页面", bottomPadding: 20, contentSpacing: 16) {
                 statsCard
                 storageCard
+                performanceCard
                 aboutCard
             }
         }
+    }
+
+    private var listRenderMode: ZDListRenderMode {
+        get { ZDListRenderMode.resolve(rawValue: listRenderModeRawValue) }
+        nonmutating set { listRenderModeRawValue = newValue.rawValue }
+    }
+
+    private var listRenderModeBinding: Binding<ZDListRenderMode> {
+        Binding(
+            get: { listRenderMode },
+            set: { listRenderMode = $0 }
+        )
     }
 
     private var statsCard: some View {
@@ -90,6 +104,32 @@ struct ProfileView: View {
                     .font(.caption.weight(.medium))
                     .foregroundStyle(.primary)
             }
+        }
+    }
+
+    private var performanceCard: some View {
+        ZDSurfaceCard(cornerRadius: 14, style: .regular, padding: 16) {
+            ZDSectionHeader("视觉与性能") {
+                Image(systemName: "speedometer")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.zdAccentDeep)
+            }
+
+            Picker("列表渲染模式", selection: listRenderModeBinding) {
+                ForEach(ZDListRenderMode.allCases) { mode in
+                    Text(mode.displayName).tag(mode)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("profile.listRenderMode.picker")
+
+            Text(listRenderMode.detail)
+                .font(.caption)
+                .foregroundStyle(.secondary)
+
+            Text("仅影响列表相关页面（知识广场、卡片仓库）。")
+                .font(.caption2)
+                .foregroundStyle(.secondary)
         }
     }
 }

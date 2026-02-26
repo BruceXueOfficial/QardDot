@@ -91,4 +91,29 @@ final class KnowledgeCardUITests: XCTestCase {
         XCTAssertTrue(app.otherElements["knowledgeSquare.recommendation.body"].firstMatch.exists)
         XCTAssertTrue(app.otherElements["knowledgeSquare.recommendation.footer"].firstMatch.exists)
     }
+
+    @MainActor
+    func testListRenderModeSettingPersistsAfterRelaunch() throws {
+        let app = XCUIApplication()
+        app.launch()
+
+        app.tabBars.buttons["个人"].tap()
+        XCTAssertTrue(app.staticTexts["视觉与性能"].waitForExistence(timeout: 2))
+
+        let picker = app.segmentedControls["profile.listRenderMode.picker"]
+        XCTAssertTrue(picker.waitForExistence(timeout: 2))
+        picker.buttons["性能优先"].tap()
+        XCTAssertTrue(picker.buttons["性能优先"].isSelected)
+
+        app.terminate()
+        app.launch()
+
+        app.tabBars.buttons["个人"].tap()
+        let relaunchedPicker = app.segmentedControls["profile.listRenderMode.picker"]
+        XCTAssertTrue(relaunchedPicker.waitForExistence(timeout: 2))
+        XCTAssertTrue(relaunchedPicker.buttons["性能优先"].isSelected)
+
+        // Reset to keep UI test runs independent.
+        relaunchedPicker.buttons["平衡优先"].tap()
+    }
 }

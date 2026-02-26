@@ -463,7 +463,7 @@ enum CardBlockKind: String, Codable, CaseIterable {
     var displayName: String {
         switch self {
         case .text:
-            return "文本"
+            return "总结"
         case .image:
             return "图片"
         case .code:

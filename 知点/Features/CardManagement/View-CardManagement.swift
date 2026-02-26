@@ -39,6 +39,7 @@ struct CardManagementView: View {
     @EnvironmentObject private var library: KnowledgeCardLibraryStore
     @EnvironmentObject private var graphStore: KnowledgeGraphStore
     @Environment(\.colorScheme) private var colorScheme
+    @AppStorage(ZDListRenderMode.storageKey) private var listRenderModeRawValue = ZDListRenderMode.defaultSelection.rawValue
 
     @State private var searchText = ""
     @State private var selectedCard: KnowledgeCard?
@@ -54,6 +55,10 @@ struct CardManagementView: View {
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12)
     ]
+
+    private var selectedListRenderMode: ZDListRenderMode {
+        ZDListRenderMode.resolve(rawValue: listRenderModeRawValue)
+    }
 
     var body: some View {
         NavigationStack {
@@ -114,6 +119,8 @@ struct CardManagementView: View {
                 selectionToolbar
             }
         }
+        .environment(\.zdListRenderMode, selectedListRenderMode)
+        .environment(\.zdListRenderScope, .warehouse)
         .onChange(of: displayCards.map(\.id)) { _, ids in
             selectedIDs.formIntersection(Set(ids))
         }
@@ -545,6 +552,10 @@ private struct CardGroupSection: View {
     private let pageSpacing: CGFloat = 10
 
     var body: some View {
+        let isSingleCard = cards.count == 1
+        let requiredRows: CGFloat = isSingleCard ? 1.0 : 2.0
+        let sectionHeight = KnowledgeCardSViewTokens.surfaceHeight * requiredRows + (isSingleCard ? 0 : rowSpacing)
+
         VStack(alignment: .leading, spacing: 12) {
             // Group title – tappable to navigate
             NavigationLink {
@@ -579,7 +590,7 @@ private struct CardGroupSection: View {
                                     .onTapGesture { onCardTap(card) }
                                 }
 
-                                if pageCards.count < 4 {
+                                if !isSingleCard && pageCards.count < 4 {
                                     ForEach(0..<(4 - pageCards.count), id: \.self) { _ in
                                         Color.clear
                                             .frame(height: KnowledgeCardSViewTokens.surfaceHeight)
@@ -592,7 +603,7 @@ private struct CardGroupSection: View {
                 }
                 .scrollClipDisabled()
             }
-            .frame(height: KnowledgeCardSViewTokens.surfaceHeight * 2 + rowSpacing)
+            .frame(height: sectionHeight)
         }
     }
 }

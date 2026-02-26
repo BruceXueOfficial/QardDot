@@ -51,6 +51,7 @@ struct ZDSplitCardPalette {
 struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
     @Environment(\.colorScheme) private var colorScheme
     @Environment(\.displayScale) private var displayScale
+    @Environment(\.zdListRenderProfile) private var renderProfile
 
     let layout: ZDSplitCardLayout
     let palette: ZDSplitCardPalette
@@ -91,12 +92,14 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
             let dividerHeight = max(0.5, 1.0 / max(displayScale, 1))
 
             ZStack(alignment: .topLeading) {
-                ZDCardQuestionMarkLayer(
-                    symbol: questionSymbol,
-                    gradient: palette.questionGradient,
-                    canvasSize: proxy.size,
-                    localAssetName: questionAssetName
-                )
+                if renderProfile.showsQuestionIcon {
+                    ZDCardQuestionMarkLayer(
+                        symbol: questionSymbol,
+                        gradient: palette.questionGradient,
+                        canvasSize: proxy.size,
+                        localAssetName: questionAssetName
+                    )
+                }
 
                 VStack(spacing: 0) {
                     sectionLayer(
@@ -174,41 +177,107 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
     private func glassLayer(_ recipe: ZDFrostRecipe, style: ZDGlassLayerStyle) -> some View {
         let isRegular = style == .regular
         let fallbackMaterialOpacity = isRegular
-        ? (colorScheme == .dark ? 0.36 : 0.3)
-        : (colorScheme == .dark ? 0.20 : 0.12)
+            ? (colorScheme == .dark ? 0.36 : 0.3)
+            : (colorScheme == .dark ? 0.20 : 0.12)
         let glassBaseOpacity = isRegular
             ? (colorScheme == .dark ? 0.05 : 0.06)
             : (colorScheme == .dark ? 0.04 : 0.02)
         let glassGain = isRegular ? 0.65 : 0.42
         let tintOpacity = recipe.materialOpacity * (isRegular ? 0.34 : 0.22)
-        let blurRadius = recipe.blurRadius * (isRegular ? 0.95 : 0.75)
+        let blurRadius = recipe.blurRadius * (isRegular ? 0.95 : 0.75) * renderProfile.blurStrength
+        let tunedFallbackOpacity = fallbackMaterialOpacity * renderProfile.materialStrength
+        let tunedTintOpacity = tintOpacity * renderProfile.materialStrength
 
-        Rectangle()
-            .fill(.ultraThinMaterial)
-            .opacity(fallbackMaterialOpacity)
-            .overlay {
-                if #available(iOS 26.0, *) {
-                    Color.white.opacity(glassBaseOpacity + recipe.glassOpacity * glassGain)
-                        .glassEffect(in: Rectangle())
-                } else {
-                    Rectangle()
-                        .fill(.ultraThinMaterial)
-                        .opacity(fallbackMaterialOpacity)
+        switch renderProfile.glassQuality {
+        case .off:
+            lowCostGradientTone(isRegular: isRegular)
+        case .simplified:
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .opacity(tunedFallbackOpacity)
+                .overlay {
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(tunedTintOpacity * 0.42),
+                            Color.white.opacity(tunedTintOpacity * 0.22),
+                            .clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
                 }
-            }
-            .overlay {
-                LinearGradient(
-                    colors: [
-                        Color.white.opacity(tintOpacity),
-                        Color.white.opacity(tintOpacity * 0.45),
-                        .clear
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-            .blur(radius: blurRadius)
-            .clipped()
+                .blur(radius: blurRadius)
+                .clipped()
+        case .full:
+            Rectangle()
+                .fill(.ultraThinMaterial)
+                .opacity(tunedFallbackOpacity)
+                .overlay {
+                    if #available(iOS 26.0, *) {
+                        Color.white.opacity((glassBaseOpacity + recipe.glassOpacity * glassGain) * renderProfile.materialStrength)
+                            .glassEffect(in: Rectangle())
+                    } else {
+                        Rectangle()
+                            .fill(.ultraThinMaterial)
+                            .opacity(tunedFallbackOpacity)
+                    }
+                }
+                .overlay {
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(tunedTintOpacity),
+                            Color.white.opacity(tunedTintOpacity * 0.45),
+                            .clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                }
+                .blur(radius: blurRadius)
+                .clipped()
+        }
+    }
+
+    @ViewBuilder
+    private func lowCostGradientTone(isRegular: Bool) -> some View {
+        let whiteHighlight = colorScheme == .dark
+            ? (isRegular ? 0.05 : 0.03)
+            : (isRegular ? 0.12 : 0.08)
+        let darkDepth = colorScheme == .dark
+            ? (isRegular ? 0.12 : 0.08)
+            : (isRegular ? 0.06 : 0.04)
+        let accentTint = colorScheme == .dark
+            ? (isRegular ? 0.05 : 0.035)
+            : (isRegular ? 0.11 : 0.08)
+
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color.white.opacity(whiteHighlight),
+                    .clear
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            LinearGradient(
+                colors: [
+                    .clear,
+                    Color.black.opacity(darkDepth)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+
+            LinearGradient(
+                colors: [
+                    Color.zdAccentSoft.opacity(accentTint),
+                    .clear
+                ],
+                startPoint: .leading,
+                endPoint: .trailing
+            )
+        }
     }
 }
 

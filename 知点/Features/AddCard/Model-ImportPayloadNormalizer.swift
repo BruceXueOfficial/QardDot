@@ -906,7 +906,7 @@ private extension ImportPayloadNormalizer {
     }
 
     nonisolated static func normalizeCodeSnippetsFromModule(_ raw: [String: Any]) -> [[String: Any]] {
-        var snippets = normalizeCodeSnippets(raw["codeSnippets"])
+        var snippets = normalizeCodeSnippets(raw["snippets"] ?? raw["codeSnippets"])
         if !snippets.isEmpty {
             return snippets
         }
@@ -1069,7 +1069,7 @@ private extension ImportPayloadNormalizer {
         defaultLayout: ModuleLayoutSpec,
         defaultTitles: ModuleTitleSpec
     ) -> [[String: Any]] {
-        let kind = (raw["kind"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let kind = (raw["type"] as? String ?? raw["kind"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
         guard !kind.isEmpty else { return [] }
 
         switch kind {
