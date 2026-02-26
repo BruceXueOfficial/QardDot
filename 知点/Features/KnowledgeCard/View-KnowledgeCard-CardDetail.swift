@@ -3095,6 +3095,7 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
 
     func makeUIView(context: Context) -> UITextView {
         let textView = LayoutAwareTextView()
+        textView.wrapLines = wrapLines
         textView.delegate = context.coordinator
         textView.clipsToBounds = true
         textView.textContainerInset = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
@@ -3123,6 +3124,9 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UITextView, context: Context) {
+        if let customClass = uiView as? LayoutAwareTextView {
+            customClass.wrapLines = wrapLines
+        }
         context.coordinator.parent = self
         context.coordinator.configureWrapBehavior(for: uiView, wrapLines: wrapLines)
         context.coordinator.syncTextIfNeeded(in: uiView)
@@ -3229,9 +3233,10 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
                 textView.isScrollEnabled = true
                 textView.textContainer.widthTracksTextView = false
                 textView.textContainer.lineBreakMode = .byClipping
+                let maxLen: CGFloat = 100000
                 textView.textContainer.size = CGSize(
-                    width: CGFloat.greatestFiniteMagnitude,
-                    height: CGFloat.greatestFiniteMagnitude
+                    width: maxLen,
+                    height: maxLen
                 )
                 textView.showsHorizontalScrollIndicator = true
                 textView.alwaysBounceHorizontal = true
@@ -3308,10 +3313,21 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
 
 private final class LayoutAwareTextView: UITextView {
     var onLayout: (() -> Void)?
+    var wrapLines: Bool = true
 
     override func layoutSubviews() {
         super.layoutSubviews()
         onLayout?()
+        
+        // Sync contentSize manually when line wrapping is disabled
+        // to prevent native bounces where internal widths mismatch
+        if !wrapLines {
+            let usedWidth = layoutManager.usedRect(for: textContainer).width
+            let requiredWidth = usedWidth + textContainerInset.left + textContainerInset.right + 24
+            if contentSize.width < requiredWidth || abs(contentSize.width - requiredWidth) > 5 {
+                contentSize = CGSize(width: requiredWidth, height: contentSize.height)
+            }
+        }
     }
 }
 

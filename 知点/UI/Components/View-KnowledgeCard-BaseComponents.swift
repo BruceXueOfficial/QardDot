@@ -99,9 +99,34 @@ struct ZDCardQuestionMarkLayer: View {
 // MARK: - Tag Style
 
 struct ZDCardTagChip: View {
+    @Environment(\.colorScheme) private var colorScheme
+
     let text: String
     let textColor: Color
     let backgroundColor: Color
+
+    private var fillGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                backgroundColor.opacity(colorScheme == .dark ? 0.90 : 0.88),
+                backgroundColor.opacity(colorScheme == .dark ? 0.78 : 0.74)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var glossGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(colorScheme == .dark ? 0.26 : 0.34),
+                Color.white.opacity(colorScheme == .dark ? 0.10 : 0.14),
+                .clear
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
 
     var body: some View {
         Text(text)
@@ -111,8 +136,25 @@ struct ZDCardTagChip: View {
             .truncationMode(.tail)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(backgroundColor)
-            .clipShape(Capsule())
+            .background {
+                Capsule(style: .continuous)
+                    .fill(fillGradient)
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .fill(glossGradient)
+                            .blendMode(.screen)
+                    }
+                    .overlay {
+                        Capsule(style: .continuous)
+                            .stroke(Color.white.opacity(colorScheme == .dark ? 0.20 : 0.34), lineWidth: 0.6)
+                    }
+                    .shadow(
+                        color: backgroundColor.opacity(colorScheme == .dark ? 0.18 : 0.22),
+                        radius: 2,
+                        x: 0,
+                        y: 1
+                    )
+            }
     }
 }
 
@@ -231,22 +273,22 @@ struct KnowledgeCardPinHoleInnerShadow: View {
     var size: CGFloat = 13
 
     var body: some View {
+        // 底部基底，确保是一个圆形区域
         Circle()
-            .stroke(Color.black.opacity(colorScheme == .dark ? 0.86 : 0.72), lineWidth: 1.65)
-            .blur(radius: 0.26)
-            .offset(y: 0.36)
-            .mask(
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [.black.opacity(1.0), .black.opacity(0.38), .clear],
-                            center: .center,
-                            startRadius: size * 0.12,
-                            endRadius: size * 0.58
-                        )
-                    )
-            )
+            // 1. 设置填充色为透明，我们只需要边框阴影
+            .fill(.clear)
             .frame(width: size, height: size)
+            .overlay {
+                // 2. 绘制阴影层
+                Circle()
+                    .stroke(
+                        Color.black.opacity(colorScheme == .dark ? 0.9 : 0.85), // 增加不透明度
+                        lineWidth: 1.95 // 3. 增加线宽，让阴影更显眼 (原来是 1.95)
+                    )
+                    .blur(radius: 0.2) // 4. 关键：设为 0，让边缘像刀切一样硬
+                    .offset(y: 1.5)  // 5. 关键：增大偏移 (原来是 0.24)，制造深度感
+            }
+            .clipShape(Circle())
     }
 }
 

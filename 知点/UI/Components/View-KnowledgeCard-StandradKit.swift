@@ -224,9 +224,9 @@ private enum ZDSplitGlassCardPreviewTokens {
     )
 
     static let topFrost = ZDFrostRecipe(
-        glassOpacity: 0.025,
-        materialOpacity: 0.07,
-        blurRadius: 0.55
+        glassOpacity: 0.01,
+        materialOpacity: 0.01,
+        blurRadius: 0.01
     )
 
     static let bottomFrost = ZDFrostRecipe(
@@ -237,12 +237,12 @@ private enum ZDSplitGlassCardPreviewTokens {
 
     static let palette = ZDSplitCardPalette(
         topFill: LinearGradient(
-            colors: [Color.blue.opacity(0.52), Color.cyan.opacity(0.42)],
+            colors: [Color.blue.opacity(0.05), Color.cyan.opacity(0.045)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         ),
         bottomFill: LinearGradient(
-            colors: [Color.blue.opacity(0.46), Color.cyan.opacity(0.34)],
+            colors: [Color.blue.opacity(0.25), Color.cyan.opacity(0.2)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         ),

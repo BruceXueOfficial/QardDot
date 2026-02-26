@@ -3,11 +3,11 @@ import SwiftUI
 // MARK: - Template Tokens
 
 enum KnowledgeCardLViewTokens {
-    static let bannerSize = CGSize(width: 252, height: 248)
+    static let bannerSize = CGSize(width: 252, height: 280)
 
     static let splitLayout = ZDSplitCardLayout(
         cornerRadius: 18,
-        topRatio: 0.34,
+        topRatio: 0.285,
         contentPaddingTop: EdgeInsets(top: 10, leading: 12, bottom: 8, trailing: 14),
         contentPaddingBottom: EdgeInsets(top: 12, leading: 12, bottom: 14, trailing: 14),
         punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 18, holeScale: 1.02)
