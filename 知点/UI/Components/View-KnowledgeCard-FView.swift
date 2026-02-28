@@ -10,7 +10,8 @@ enum KnowledgeCardFViewTokens {
         topRatio: 0.30,
         contentPaddingTop: EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 16),
         contentPaddingBottom: EdgeInsets(top: 6, leading: 12, bottom: 10, trailing: 6),
-        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 14, holeScale: 0.98),
+        // Align punch-hole size/inset with LView while keeping FView's own corner radius.
+        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 14, holeScale: 1.312),
         footerTopSpacerMin: 6
     )
 

@@ -277,6 +277,8 @@ final class KnowledgeCardLibraryStore: ObservableObject {
                         normalizedModules[index].text =
                             ImportPayloadNormalizer.decodeEscapedControlSequencesDeterministically(text)
                     }
+                case .linkedCard:
+                    break
                 }
                 normalizedModules[index].moduleTitle = normalizeLegacyModuleTitle(
                     normalizedModules[index].moduleTitle,
@@ -289,6 +291,7 @@ final class KnowledgeCardLibraryStore: ObservableObject {
                     case .code: normalizedModules[index].moduleTitle = defaultModuleTitle(for: .code)
                     case .link: normalizedModules[index].moduleTitle = defaultModuleTitle(for: .link)
                     case .formula: normalizedModules[index].moduleTitle = defaultModuleTitle(for: .formula)
+                    case .linkedCard: normalizedModules[index].moduleTitle = defaultModuleTitle(for: .linkedCard)
                     }
                 }
             }
@@ -384,6 +387,7 @@ final class KnowledgeCardLibraryStore: ObservableObject {
         case .code: return "代码"
         case .link: return "链接"
         case .formula: return "公式"
+        case .linkedCard: return "关联卡片"
         }
     }
 
@@ -411,6 +415,8 @@ final class KnowledgeCardLibraryStore: ObservableObject {
             if trimmed == "公式模块" {
                 return defaultModuleTitle(for: kind)
             }
+        case .linkedCard:
+            break
         }
         return title
     }

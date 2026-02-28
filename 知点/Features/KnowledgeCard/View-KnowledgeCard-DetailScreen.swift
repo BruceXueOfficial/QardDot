@@ -13,6 +13,7 @@ struct KnowledgeCardDetailScreen: View {
     @State private var selectedModuleID: UUID?
     @State private var undoDeleteStack: [EditorUndoAction] = []
     @State private var pendingImagePickerModuleID: UUID?
+    @State private var pendingLinkedCardPickerModuleID: UUID?
     @State private var keyboardIsVisible = false
 
     init(card: KnowledgeCard) {
@@ -39,6 +40,7 @@ struct KnowledgeCardDetailScreen: View {
                         viewModel: viewModel,
                         selectedModuleID: $selectedModuleID,
                         pendingImagePickerModuleID: $pendingImagePickerModuleID,
+                        pendingLinkedCardPickerModuleID: $pendingLinkedCardPickerModuleID,
                         onDeleteModule: handleDeleteModule,
                         onRegisterUndoAction: handleRegisterUndoAction
                     )
@@ -86,6 +88,9 @@ struct KnowledgeCardDetailScreen: View {
                         }
                         Button("添加公式", systemImage: "function") {
                             addModule(.formula)
+                        }
+                        Button("添加关联", systemImage: "link.badge.plus") {
+                            addModule(.linkedCard)
                         }
                     } label: {
                         circleControlChrome(
@@ -157,6 +162,8 @@ struct KnowledgeCardDetailScreen: View {
             selectedModuleID = insertedID
             if kind == .image {
                 pendingImagePickerModuleID = insertedID
+            } else if kind == .linkedCard {
+                pendingLinkedCardPickerModuleID = insertedID
             }
         }
     }

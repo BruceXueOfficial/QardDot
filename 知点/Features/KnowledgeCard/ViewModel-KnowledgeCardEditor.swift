@@ -370,6 +370,25 @@ final class KnowledgeCardViewModel: ObservableObject {
         setModules(current, touchUpdatedAt: true)
     }
 
+    // MARK: - Linked Cards
+
+    func addLinkedCards(_ ids: Set<UUID>) {
+        var current = card.linkedCardIDs ?? []
+        let existingSet = Set(current)
+        for id in ids where !existingSet.contains(id) {
+            current.append(id)
+        }
+        card.linkedCardIDs = current.isEmpty ? nil : current
+        card.touchUpdatedAt()
+    }
+
+    func removeLinkedCard(_ linkedID: UUID) {
+        var current = card.linkedCardIDs ?? []
+        current.removeAll { $0 == linkedID }
+        card.linkedCardIDs = current.isEmpty ? nil : current
+        card.touchUpdatedAt()
+    }
+
     @discardableResult
     func removeModule(id: UUID) -> RemovedModuleSnapshot? {
         guard var current = card.modules,
@@ -557,6 +576,8 @@ private extension KnowledgeCardViewModel {
             return CardBlock(kind: .link, moduleTitle: defaultModuleTitle(for: .link))
         case .formula:
             return CardBlock(kind: .formula, moduleTitle: defaultModuleTitle(for: .formula), text: "")
+        case .linkedCard:
+            return CardBlock(kind: .linkedCard, moduleTitle: defaultModuleTitle(for: .linkedCard))
         }
     }
 
@@ -690,6 +711,7 @@ private extension KnowledgeCardViewModel {
         case .code: return "代码"
         case .link: return "链接"
         case .formula: return "公式"
+        case .linkedCard: return "关联卡片"
         }
     }
 
@@ -717,6 +739,8 @@ private extension KnowledgeCardViewModel {
             if trimmed == "公式模块" {
                 return defaultModuleTitle(for: kind)
             }
+        case .linkedCard:
+            break
         }
         return title
     }

@@ -374,26 +374,19 @@ struct CardManagementView: View {
     // MARK: - Selection Toolbar
 
     private var selectionToolbar: some View {
-        let actionButtonWidth: CGFloat = 108
+        let actionButtonWidth: CGFloat = 96
         let allSelected = !displayCards.isEmpty && selectedIDs.count == displayCards.count
 
         return ZDFloatingActionBar {
-            Button {
+            ZDSecondaryButton(text: allSelected ? "取消全选" : "全选", fullWidth: false) {
                 let visibleIDs = Set(displayCards.map(\.id))
                 if !visibleIDs.isEmpty && selectedIDs == visibleIDs {
                     selectedIDs.removeAll()
                 } else {
                     selectedIDs = visibleIDs
                 }
-            } label: {
-                Text(allSelected ? "取消全选" : "全选")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.zdAccentDeep)
-                    .frame(width: actionButtonWidth, height: 42)
-                    .background(Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.18 : 0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .frame(width: actionButtonWidth)
 
             Text("已选 \(selectedIDs.count)")
                 .font(.subheadline.weight(.semibold))
@@ -611,9 +604,8 @@ private struct CardGroupSection: View {
     private let pageSpacing: CGFloat = 10
 
     var body: some View {
-        let isSingleCard = cards.count == 1
-        let requiredRows: CGFloat = isSingleCard ? 1.0 : 2.0
-        let sectionHeight = KnowledgeCardSViewTokens.surfaceHeight * requiredRows + (isSingleCard ? 0 : rowSpacing)
+        let requiredRows: CGFloat = cards.count <= 2 ? 1.0 : 2.0
+        let sectionHeight = KnowledgeCardSViewTokens.surfaceHeight * requiredRows + (requiredRows > 1 ? rowSpacing : 0)
 
         VStack(alignment: .leading, spacing: 12) {
             // Group title – tappable to navigate
@@ -647,13 +639,6 @@ private struct CardGroupSection: View {
                                         isSelected: selectedIDs.contains(card.id)
                                     )
                                     .onTapGesture { onCardTap(card) }
-                                }
-
-                                if !isSingleCard && pageCards.count < 4 {
-                                    ForEach(0..<(4 - pageCards.count), id: \.self) { _ in
-                                        Color.clear
-                                            .frame(height: KnowledgeCardSViewTokens.surfaceHeight)
-                                    }
                                 }
                             }
                             .frame(width: pageWidth, alignment: .leading)
@@ -774,26 +759,19 @@ struct FilteredCardsView: View {
     }
 
     private var selectionToolbar: some View {
-        let actionButtonWidth: CGFloat = 108
+        let actionButtonWidth: CGFloat = 96
         let allSelected = !cards.isEmpty && selectedIDs.count == cards.count
 
         return ZDFloatingActionBar {
-            Button {
+            ZDSecondaryButton(text: allSelected ? "取消全选" : "全选", fullWidth: false) {
                 let visibleIDs = Set(cards.map(\.id))
                 if !visibleIDs.isEmpty && selectedIDs == visibleIDs {
                     selectedIDs.removeAll()
                 } else {
                     selectedIDs = visibleIDs
                 }
-            } label: {
-                Text(allSelected ? "取消全选" : "全选")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.zdAccentDeep)
-                    .frame(width: actionButtonWidth, height: 42)
-                    .background(Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.18 : 0.12))
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
-            .buttonStyle(.plain)
+            .frame(width: actionButtonWidth)
 
             Text("已选 \(selectedIDs.count)")
                 .font(.subheadline.weight(.semibold))

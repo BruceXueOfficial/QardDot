@@ -27,6 +27,9 @@ struct KnowledgeCard: Identifiable, Codable {
     // Legacy long-card field kept for backward compatibility.
     var blocks: [CardBlock]?
 
+    // Linked card references (card-to-card relationships).
+    var linkedCardIDs: [UUID]?
+
     // Resolved theme colors (not stored, computed)
     var resolvedPrimary: Color { (themeColor ?? .defaultTheme).primaryColor }
     var resolvedSecondary: Color { (themeColor ?? .defaultTheme).secondaryColor }
@@ -44,7 +47,8 @@ struct KnowledgeCard: Identifiable, Codable {
         tags: [String]? = nil,
         themeColor: CardThemeColor? = nil,
         modules: [CardBlock]? = nil,
-        blocks: [CardBlock]? = nil
+        blocks: [CardBlock]? = nil,
+        linkedCardIDs: [UUID]? = nil
     ) {
         self.id = id
         self.createdAt = createdAt
@@ -59,6 +63,7 @@ struct KnowledgeCard: Identifiable, Codable {
         self.themeColor = themeColor
         self.modules = modules ?? blocks
         self.blocks = blocks ?? modules
+        self.linkedCardIDs = linkedCardIDs
     }
 
     mutating func touchUpdatedAt() {
@@ -464,6 +469,7 @@ enum CardBlockKind: String, Codable, CaseIterable {
     case code
     case link
     case formula
+    case linkedCard
 
     var displayName: String {
         switch self {
@@ -477,6 +483,8 @@ enum CardBlockKind: String, Codable, CaseIterable {
             return "链接"
         case .formula:
             return "公式"
+        case .linkedCard:
+            return "关联卡片"
         }
     }
 }

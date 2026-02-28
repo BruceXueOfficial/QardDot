@@ -48,6 +48,7 @@ struct ManualCardCreationView: View {
             case .code: return block.codeSnippets?.first?.code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
             case .link: return !(block.linkItems ?? []).isEmpty
             case .formula: return !(block.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+            case .linkedCard: return true // a linked module implies it exists
             }
         }
     }

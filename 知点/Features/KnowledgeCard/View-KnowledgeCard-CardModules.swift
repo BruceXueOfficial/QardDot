@@ -71,6 +71,7 @@ extension KnowledgeCardView {
         case .code: return "代码"
         case .link: return "链接"
         case .formula: return "公式"
+        case .linkedCard: return "关联卡片"
         }
     }
 
@@ -132,6 +133,19 @@ extension KnowledgeCardView {
                 }
                 .buttonStyle(.plain)
             )
+        case .linkedCard:
+            return AnyView(
+                Button {
+                    dismissKeyboard()
+                    showLinkedCardPicker = true
+                } label: {
+                    Image(systemName: "plus")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.zdAccentDeep.opacity(0.9))
+                        .frame(width: 24, height: 24)
+                }
+                .buttonStyle(.plain)
+            )
         default:
             return nil
         }
@@ -150,6 +164,8 @@ extension KnowledgeCardView {
             linkModuleBody(module)
         case .formula:
             formulaModuleBody(module)
+        case .linkedCard:
+            linkedCardModuleBody(module)
         }
     }
 
@@ -720,6 +736,108 @@ extension KnowledgeCardView {
         }
         .frame(maxWidth: .infinity, minHeight: 82, alignment: .topLeading)
         .animation(.spring(response: 0.25, dampingFraction: 0.86), value: entries.map(\.id))
+    }
+
+    @ViewBuilder
+    private func linkedCardModuleBody(_ module: CardBlock) -> some View {
+        let linkedIDs = viewModel.card.linkedCardIDs ?? []
+
+        VStack(alignment: .leading, spacing: 10) {
+            if linkedIDs.isEmpty {
+                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    .fill(Color.clear)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 30)
+                    .overlay {
+                        Text("点击右上角加号添加关联卡片")
+                            .font(.footnote)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                    }
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        dismissKeyboard()
+                        showLinkedCardPicker = true
+                    }
+            } else {
+                ForEach(linkedIDs, id: \.self) { linkedID in
+                    if let linkedCard = library.cards.first(where: { $0.id == linkedID }) {
+                        linkedCardItemRow(card: linkedCard, moduleID: module.id)
+                    }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 82, alignment: .topLeading)
+        .animation(.spring(response: 0.25, dampingFraction: 0.86), value: linkedIDs)
+    }
+
+    @ViewBuilder
+    private func linkedCardItemRow(card: KnowledgeCard, moduleID: UUID) -> some View {
+        let tags = card.tags ?? []
+        let theme = card.themeColor ?? .defaultTheme
+        let useLightCardText = theme.prefersLightForeground(in: colorScheme)
+        let cornerRadius: CGFloat = 10
+
+        Button {
+            selectedModuleID = moduleID
+            dismissKeyboard()
+            activeLinkedCardDestination = card
+        } label: {
+            HStack(spacing: 10) {
+                Text(card.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(useLightCardText ? Color.white.opacity(0.94) : Color.black.opacity(0.84))
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if !tags.isEmpty {
+                    HStack(spacing: 6) {
+                        ForEach(tags.prefix(2), id: \.self) { tag in
+                            Text(tag)
+                                .font(.caption.weight(.medium))
+                                .foregroundStyle(useLightCardText ? Color.white.opacity(0.82) : Color.black.opacity(0.54))
+                        }
+                        if tags.count > 2 {
+                            Text("...")
+                                .font(.caption2.weight(.medium))
+                                .foregroundStyle(useLightCardText ? Color.white.opacity(0.82) : Color.black.opacity(0.54))
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 9)
+            .background(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .fill(theme.cardBackgroundGradient)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(theme.cardBorderGradient.opacity(0.58), lineWidth: 0.78)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+                    .stroke(
+                        colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.2),
+                        lineWidth: 0.4
+                    )
+                    .padding(1)
+            )
+        }
+        .buttonStyle(.plain)
+        .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
+        .contextMenu {
+            Button(role: .destructive) {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.86)) {
+                    viewModel.removeLinkedCard(card.id)
+                }
+            } label: {
+                Label("删除关联卡片", systemImage: "trash")
+                    .foregroundStyle(.red)
+            }
+            .tint(.red)
+        }
     }
 
     private func visibleLinkEntries(of module: CardBlock) -> [LinkItem] {

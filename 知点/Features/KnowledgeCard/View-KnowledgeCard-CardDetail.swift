@@ -10,11 +10,12 @@ struct KnowledgeCardView: View {
     @ObservedObject var viewModel: KnowledgeCardViewModel
     @Binding var selectedModuleID: UUID?
     @Binding var pendingImagePickerModuleID: UUID?
+    @Binding var pendingLinkedCardPickerModuleID: UUID?
     let onDeleteModule: ((UUID) -> Void)?
     let onRegisterUndoAction: ((EditorUndoAction) -> Void)?
     var hideTitle: Bool = false
     var hideOuterPadding: Bool = false
-    @EnvironmentObject private var library: KnowledgeCardLibraryStore
+    @EnvironmentObject var library: KnowledgeCardLibraryStore
     @Environment(\.colorScheme) var colorScheme
 
     @State var previewImageSource: String?
@@ -40,6 +41,8 @@ struct KnowledgeCardView: View {
     @State var linkInputURLDraft = ""
     @State var linkInputErrorMessage: String?
     @State var activeLinkBrowserDestination: LinkBrowserDestination?
+    @State var showLinkedCardPicker = false
+    @State var activeLinkedCardDestination: KnowledgeCard?
 
     @State var formulaEditingModuleIDs: Set<UUID> = []
     @State var formulaDrafts: [UUID: String] = [:]
@@ -49,6 +52,7 @@ struct KnowledgeCardView: View {
         viewModel: KnowledgeCardViewModel,
         selectedModuleID: Binding<UUID?> = .constant(nil),
         pendingImagePickerModuleID: Binding<UUID?> = .constant(nil),
+        pendingLinkedCardPickerModuleID: Binding<UUID?> = .constant(nil),
         hideTitle: Bool = false,
         hideOuterPadding: Bool = false,
         onDeleteModule: ((UUID) -> Void)? = nil,
@@ -57,6 +61,7 @@ struct KnowledgeCardView: View {
         self.viewModel = viewModel
         self._selectedModuleID = selectedModuleID
         self._pendingImagePickerModuleID = pendingImagePickerModuleID
+        self._pendingLinkedCardPickerModuleID = pendingLinkedCardPickerModuleID
         self.hideTitle = hideTitle
         self.hideOuterPadding = hideOuterPadding
         self.onDeleteModule = onDeleteModule
@@ -107,6 +112,12 @@ struct KnowledgeCardView: View {
             presentImageSourcePicker(for: moduleID)
             pendingImagePickerModuleID = nil
         }
+        .onChange(of: pendingLinkedCardPickerModuleID) { _, newValue in
+            if newValue != nil {
+                showLinkedCardPicker = true
+                pendingLinkedCardPickerModuleID = nil
+            }
+        }
         .sheet(isPresented: $isShowingSystemImagePicker) {
             if let source = systemImagePickerSource {
                 SystemImagePicker(sourceType: source) { image in
@@ -136,6 +147,20 @@ struct KnowledgeCardView: View {
         }
         .sheet(item: $activeLinkBrowserDestination) { destination in
             LinkInAppBrowserSheet(destination: destination)
+        }
+        .sheet(isPresented: $showLinkedCardPicker) {
+            CardLinkPickerSheet(
+                excludedCardIDs: viewModel.card.linkedCardIDs.map(Set.init) ?? [],
+                onLink: {
+                    viewModel.addLinkedCards($0)
+                }
+            )
+        }
+        .sheet(item: $activeLinkedCardDestination) { card in
+            KnowledgeCardDetailScreen(card: card)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(30)
         }
         .sheet(item: $tagEditorPreviewCard) { previewCard in
             ImportTagPreviewScreen(

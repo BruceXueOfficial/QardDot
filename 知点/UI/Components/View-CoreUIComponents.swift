@@ -129,21 +129,67 @@ struct ZDPrimaryButton: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: 8) {
+            HStack(spacing: 6) {
                 if let icon {
                     Image(systemName: icon)
-                        .font(.body.weight(.semibold))
+                        .font(.footnote.weight(.semibold))
                 }
                 Text(text)
-                    .font(.headline.weight(.bold))
+                    .font(.footnote.weight(.bold))
             }
             .foregroundStyle(.white)
             .frame(maxWidth: fullWidth ? .infinity : nil)
-            .padding(.vertical, 14)
-            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 16)
             .background(ZDThemeTokens.default.interactiveFill)
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
             .shadow(color: Color.zdAccentDeep.opacity(0.18), radius: 8, x: 0, y: 4)
+        }
+        .buttonStyle(.plain)
+        .disabled(isDisabled)
+        .opacity(isDisabled ? 0.5 : 1)
+    }
+}
+
+struct ZDSecondaryButton: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let text: String
+    let icon: String?
+    var isDisabled: Bool = false
+    var fullWidth: Bool = true
+    let action: () -> Void
+
+    init(
+        text: String,
+        icon: String? = nil,
+        isDisabled: Bool = false,
+        fullWidth: Bool = true,
+        action: @escaping () -> Void
+    ) {
+        self.text = text
+        self.icon = icon
+        self.isDisabled = isDisabled
+        self.fullWidth = fullWidth
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 6) {
+                if let icon {
+                    Image(systemName: icon)
+                        .font(.footnote.weight(.semibold))
+                }
+                Text(text)
+                    .font(.footnote.weight(.semibold))
+            }
+            .foregroundStyle(Color.zdAccentDeep)
+            .frame(maxWidth: fullWidth ? .infinity : nil)
+            .padding(.vertical, 10)
+            .padding(.horizontal, 16)
+            .background(Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.18 : 0.12))
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
@@ -293,10 +339,10 @@ struct ZDFloatingActionBar<Content: View>: View {
         HStack(spacing: 12) {
             content()
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 6)
+        .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
-        .zdSurfaceCardStyle(.elevated, cornerRadius: 28, lineWidth: 1.05)
+        .zdSurfaceCardStyle(.elevated, cornerRadius: 32, lineWidth: 1.05)
     }
 }
 
