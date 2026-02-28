@@ -1221,12 +1221,11 @@ private extension ImportPayloadNormalizer {
                 .trimmingCharacters(in: .whitespacesAndNewlines)
             guard !rawContent.isEmpty else { return [] }
             let resolvedTitle = resolveModuleTitle(from: raw, defaultTitle: "公式")
-            let normalizedContent = decodeEscapedControlSequencesDeterministically(rawContent)
             return [[
                 "id": (raw["id"] as? String) ?? UUID().uuidString,
                 "kind": "formula",
                 "moduleTitle": resolvedTitle,
-                "text": normalizedContent
+                "text": rawContent
             ]]
 
         default:

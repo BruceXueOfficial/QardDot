@@ -71,7 +71,7 @@ enum ZDListRenderMode: String, CaseIterable, Identifiable {
                 edgeFadeStyle: .none,
                 edgeFadeWidth: 0,
                 edgeFadeBlurRadius: 0,
-                topBlurFadeStyle: .none
+                topBlurFadeStyle: .gradient
             )
         }
     }

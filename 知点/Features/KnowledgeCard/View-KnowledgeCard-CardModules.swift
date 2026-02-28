@@ -8,6 +8,11 @@ import SafariServices
 
 // MARK: - Module List & Editors
 extension KnowledgeCardView {
+    private enum ModuleLayoutMetrics {
+        // Keep module editors as compact as code module's baseline height.
+        static let compactEditorMinimumHeight: CGFloat = 30
+    }
+
     var moduleCardLayout: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(viewModel.modules.enumerated()), id: \.element.id) { _, module in
@@ -180,9 +185,13 @@ extension KnowledgeCardView {
                     }
                 ),
                 isEditable: true,
-                minimumHeight: 156
+                minimumHeight: ModuleLayoutMetrics.compactEditorMinimumHeight
             )
-            .frame(maxWidth: .infinity, minHeight: 156, alignment: .topLeading)
+            .frame(
+                maxWidth: .infinity,
+                minHeight: ModuleLayoutMetrics.compactEditorMinimumHeight,
+                alignment: .topLeading
+            )
 
             if (module.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Text("点击输入文字内容")
@@ -218,9 +227,13 @@ extension KnowledgeCardView {
                                 }
                             ),
                             isEditable: true,
-                            minimumHeight: 80
+                            minimumHeight: ModuleLayoutMetrics.compactEditorMinimumHeight
                         )
-                        .frame(maxWidth: .infinity, minHeight: 80, alignment: .topLeading)
+                        .frame(
+                            maxWidth: .infinity,
+                            minHeight: ModuleLayoutMetrics.compactEditorMinimumHeight,
+                            alignment: .topLeading
+                        )
 
                         if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             Text("输入 LaTeX 公式，例如 E = mc^2")
@@ -734,7 +747,7 @@ extension KnowledgeCardView {
                 }
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 82, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .animation(.spring(response: 0.25, dampingFraction: 0.86), value: entries.map(\.id))
     }
 
@@ -767,7 +780,7 @@ extension KnowledgeCardView {
                 }
             }
         }
-        .frame(maxWidth: .infinity, minHeight: 82, alignment: .topLeading)
+        .frame(maxWidth: .infinity, alignment: .topLeading)
         .animation(.spring(response: 0.25, dampingFraction: 0.86), value: linkedIDs)
     }
 

@@ -308,7 +308,11 @@ private struct ZDSurfaceCardStyleModifier: ViewModifier {
     private func materialOverlay(in shape: RoundedRectangle) -> some View {
         switch renderProfile.glassQuality {
         case .off:
-            Color.clear
+            if renderProfile.mode == .performance, style != .clear {
+                performanceLiquidOverlay(in: shape)
+            } else {
+                Color.clear
+            }
         case .simplified:
             shape
                 .fill(.ultraThinMaterial)
@@ -322,6 +326,49 @@ private struct ZDSurfaceCardStyleModifier: ViewModifier {
                     .fill(.ultraThinMaterial)
                     .opacity(fallbackMaterialOpacity * renderProfile.materialStrength)
             }
+        }
+    }
+
+    @ViewBuilder
+    private func performanceLiquidOverlay(in shape: RoundedRectangle) -> some View {
+        ZStack {
+            if #available(iOS 26.0, *) {
+                Color.white
+                    .opacity(performanceGlassOpacity)
+                    .glassEffect(in: shape)
+            } else {
+                shape
+                    .fill(.ultraThinMaterial)
+                    .opacity(performanceFallbackMaterialOpacity)
+            }
+
+            shape
+                .fill(
+                    LinearGradient(
+                        colors: [
+                            Color.white.opacity(performanceSheenTopOpacity),
+                            Color.white.opacity(performanceSheenMidOpacity),
+                            .clear
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .blendMode(.screen)
+
+            shape
+                .fill(
+                    RadialGradient(
+                        colors: [
+                            Color.white.opacity(performanceCornerGlowOpacity),
+                            .clear
+                        ],
+                        center: .topLeading,
+                        startRadius: max(1, cornerRadius * 0.24),
+                        endRadius: max(18, cornerRadius * 3.4)
+                    )
+                )
+                .blendMode(.screen)
         }
     }
 
@@ -349,6 +396,44 @@ private struct ZDSurfaceCardStyleModifier: ViewModifier {
         case .error:
             return colorScheme == .dark ? 0.36 : 0.57
         }
+    }
+
+    private var performanceGlassOpacity: Double {
+        switch style {
+        case .regular:
+            return colorScheme == .dark ? 0.012 : 0.02
+        case .elevated:
+            return colorScheme == .dark ? 0.014 : 0.022
+        case .clear:
+            return 0
+        case .error:
+            return colorScheme == .dark ? 0.012 : 0.02
+        }
+    }
+
+    private var performanceFallbackMaterialOpacity: Double {
+        switch style {
+        case .regular:
+            return colorScheme == .dark ? 0.2 : 0.26
+        case .elevated:
+            return colorScheme == .dark ? 0.24 : 0.3
+        case .clear:
+            return 0
+        case .error:
+            return colorScheme == .dark ? 0.22 : 0.28
+        }
+    }
+
+    private var performanceSheenTopOpacity: Double {
+        colorScheme == .dark ? 0.1 : 0.18
+    }
+
+    private var performanceSheenMidOpacity: Double {
+        colorScheme == .dark ? 0.04 : 0.08
+    }
+
+    private var performanceCornerGlowOpacity: Double {
+        colorScheme == .dark ? 0.08 : 0.15
     }
 
     private var surfaceGradient: LinearGradient {
@@ -443,14 +528,31 @@ private struct ZDTopScrollBlurFadeModifier: ViewModifier {
     private func topBlurFadeOverlay(safeTopInset: CGFloat) -> some View {
         let solidBandHeight = safeTopInset + solidHeight
         let totalHeight = solidBandHeight + fadeHeight
-        let baseTintOpacity = colorScheme == .dark ? 0.06 : 0.08
         let fallbackMaterialOpacity = (colorScheme == .dark ? 0.28 : 0.34) * renderProfile.materialStrength
-        let topHighlightOpacity = colorScheme == .dark ? 0.04 : 0.07
-        let topMaskOpacity = colorScheme == .dark ? 0.74 : 0.68
-        let midMaskOpacity = colorScheme == .dark ? 0.24 : 0.18
+        let fadeTokens: (baseTintOpacity: Double, topHighlightOpacity: Double, topMaskOpacity: Double, midMaskOpacity: Double) = {
+            switch renderProfile.topBlurFadeStyle {
+            case .none:
+                return (0, 0, 0, 0)
+            case .glass:
+                return (
+                    colorScheme == .dark ? 0.06 : 0.08,
+                    colorScheme == .dark ? 0.04 : 0.07,
+                    colorScheme == .dark ? 0.74 : 0.68,
+                    colorScheme == .dark ? 0.24 : 0.18
+                )
+            case .gradient:
+                // Stronger top cover for content occlusion under status bar.
+                return (
+                    colorScheme == .dark ? 0.32 : 0.48,
+                    colorScheme == .dark ? 0.06 : 0.1,
+                    colorScheme == .dark ? 0.96 : 0.92,
+                    colorScheme == .dark ? 0.42 : 0.38
+                )
+            }
+        }()
 
         ZStack {
-            Color.zdPageBase.opacity(baseTintOpacity)
+            Color.zdPageBase.opacity(fadeTokens.baseTintOpacity)
 
             switch renderProfile.topBlurFadeStyle {
             case .none:
@@ -460,7 +562,7 @@ private struct ZDTopScrollBlurFadeModifier: ViewModifier {
                     .fill(
                         LinearGradient(
                             colors: [
-                                Color.white.opacity(colorScheme == .dark ? 0.012 : 0.03),
+                                Color.white.opacity(colorScheme == .dark ? 0.04 : 0.09),
                                 .clear
                             ],
                             startPoint: .top,
@@ -480,7 +582,7 @@ private struct ZDTopScrollBlurFadeModifier: ViewModifier {
 
             LinearGradient(
                 colors: [
-                    Color.white.opacity(topHighlightOpacity),
+                    Color.white.opacity(fadeTokens.topHighlightOpacity),
                     .clear
                 ],
                 startPoint: .top,
@@ -491,13 +593,13 @@ private struct ZDTopScrollBlurFadeModifier: ViewModifier {
         .mask(
             VStack(spacing: 0) {
                 Color.black
-                    .opacity(topMaskOpacity)
+                    .opacity(fadeTokens.topMaskOpacity)
                     .frame(height: solidBandHeight)
 
                 LinearGradient(
                     colors: [
-                        Color.black.opacity(topMaskOpacity),
-                        Color.black.opacity(midMaskOpacity),
+                        Color.black.opacity(fadeTokens.topMaskOpacity),
+                        Color.black.opacity(fadeTokens.midMaskOpacity),
                         .clear
                     ],
                     startPoint: .top,

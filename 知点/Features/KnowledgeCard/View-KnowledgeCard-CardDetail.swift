@@ -765,6 +765,7 @@ struct NotionLikeTextEditor: UIViewRepresentable {
         let rendered = NSMutableAttributedString()
 
         var isInsideFence = false
+        var isInsideQuote = false
 
         for (index, rawLine) in lines.enumerated() {
             var line = rawLine
@@ -775,10 +776,12 @@ struct NotionLikeTextEditor: UIViewRepresentable {
                 isInsideFence.toggle()
                 lineAttributes = fencedCodeDelimiterAttributes()
                 allowsInlineMarkdown = false
+                isInsideQuote = false
             } else if isInsideFence {
                 lineAttributes = fencedCodeAttributes()
                 allowsInlineMarkdown = false
             } else if tableLineIndexes.contains(index) {
+                isInsideQuote = false
                 if isMarkdownTableSeparatorLine(line) {
                     line = normalizedTableSeparatorLine(line)
                     lineAttributes = tableSeparatorAttributes()
@@ -791,17 +794,28 @@ struct NotionLikeTextEditor: UIViewRepresentable {
                 }
                 allowsInlineMarkdown = false
             } else if let heading = parseHeading(line) {
+                isInsideQuote = false
                 line = heading.content
                 lineAttributes = headingAttributes(level: heading.level)
             } else if let content = parseQuoteContent(line) {
+                isInsideQuote = true
                 line = content
                 lineAttributes = quoteAttributes()
             } else if let content = parseUnorderedListContent(line) {
+                isInsideQuote = false
                 line = "• " + content
                 lineAttributes = listAttributes()
             } else if let ordered = parseOrderedListContent(line) {
+                isInsideQuote = false
                 line = "\(ordered.prefix) " + ordered.content
                 lineAttributes = listAttributes()
+            } else if isInsideQuote {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.isEmpty {
+                    isInsideQuote = false
+                } else {
+                    lineAttributes = quoteAttributes()
+                }
             }
 
             let lineAttributed = makeInlineAttributed(
@@ -3173,6 +3187,8 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
         textView.wrapLines = wrapLines
         textView.delegate = context.coordinator
         textView.clipsToBounds = true
+        // Keep layout contiguous so long single-line code can report full width reliably.
+        textView.layoutManager.allowsNonContiguousLayout = false
         textView.textContainerInset = UIEdgeInsets(top: 12, left: 12, bottom: 12, right: 12)
         textView.textContainer.lineFragmentPadding = 0
         textView.keyboardDismissMode = .interactive
@@ -3471,8 +3487,12 @@ private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate
 
         // Keep horizontal scroll metrics in sync so long lines are really reachable.
         if !wrapLines {
-            layoutManager.ensureLayout(for: textContainer)
-            let glyphRange = layoutManager.glyphRange(for: textContainer)
+            let fullCharacterRange = NSRange(location: 0, length: textStorage.length)
+            layoutManager.ensureLayout(forCharacterRange: fullCharacterRange)
+            let glyphRange = layoutManager.glyphRange(
+                forCharacterRange: fullCharacterRange,
+                actualCharacterRange: nil
+            )
             let usedRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
             let requiredWidth = ceil(usedRect.width + textContainerInset.left + textContainerInset.right + 2)
             let requiredHeight = ceil(usedRect.height + textContainerInset.top + textContainerInset.bottom)
