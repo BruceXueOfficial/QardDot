@@ -2,20 +2,17 @@ import SwiftUI
 
 enum ZDListRenderMode: String, CaseIterable, Identifiable {
     case visual
-    case balanced
     case performance
 
     static let storageKey = "App.ListRenderMode"
-    static let defaultSelection: ZDListRenderMode = .balanced
+    static let defaultSelection: ZDListRenderMode = .visual
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
         case .visual:
-            return "视觉优先"
-        case .balanced:
-            return "平衡优先"
+            return "视效优先"
         case .performance:
             return "性能优先"
         }
@@ -24,11 +21,9 @@ enum ZDListRenderMode: String, CaseIterable, Identifiable {
     var detail: String {
         switch self {
         case .visual:
-            return "广场与仓库都保留玻璃效果与问号图标。"
-        case .balanced:
-            return "广场保留玻璃与问号，仓库关闭玻璃与问号。"
+            return "适配液态玻璃视效，清晰透亮"
         case .performance:
-            return "广场与仓库都关闭玻璃效果与问号图标。"
+            return "采用玻璃渐变视效，流畅美观"
         }
     }
 
@@ -40,7 +35,7 @@ enum ZDListRenderMode: String, CaseIterable, Identifiable {
         profile(for: .knowledgeSquare)
     }
 
-    func profile(for scope: ZDListRenderScope) -> ZDListRenderProfile {
+    func profile(for _: ZDListRenderScope) -> ZDListRenderProfile {
         switch self {
         case .visual:
             return ZDListRenderProfile(
@@ -51,51 +46,28 @@ enum ZDListRenderMode: String, CaseIterable, Identifiable {
                 primaryShadowStrength: 1.0,
                 showsSecondaryShadow: true,
                 showsQuestionIcon: true,
+                questionPlacement: .topTrailing,
+                questionOpacity: 1.0,
+                questionBlurRadius: 0,
+                questionFrostStrength: 0,
                 edgeFadeStyle: .glass,
                 edgeFadeWidth: 46,
                 edgeFadeBlurRadius: 3.2,
                 topBlurFadeStyle: .glass
             )
-        case .balanced:
-            switch scope {
-            case .knowledgeSquare:
-                return ZDListRenderProfile(
-                    mode: .balanced,
-                    glassQuality: .full,
-                    materialStrength: 0.78,
-                    blurStrength: 0.72,
-                    primaryShadowStrength: 0.88,
-                    showsSecondaryShadow: true,
-                    showsQuestionIcon: true,
-                    edgeFadeStyle: .glass,
-                    edgeFadeWidth: 40,
-                    edgeFadeBlurRadius: 2.2,
-                    topBlurFadeStyle: .glass
-                )
-            case .warehouse:
-                return ZDListRenderProfile(
-                    mode: .balanced,
-                    glassQuality: .off,
-                    materialStrength: 0,
-                    blurStrength: 0,
-                    primaryShadowStrength: 0.52,
-                    showsSecondaryShadow: false,
-                    showsQuestionIcon: false,
-                    edgeFadeStyle: .none,
-                    edgeFadeWidth: 0,
-                    edgeFadeBlurRadius: 0,
-                    topBlurFadeStyle: .none
-                )
-            }
         case .performance:
             return ZDListRenderProfile(
                 mode: .performance,
                 glassQuality: .off,
                 materialStrength: 0,
                 blurStrength: 0,
-                primaryShadowStrength: 0.28,
+                primaryShadowStrength: 0.42,
                 showsSecondaryShadow: false,
                 showsQuestionIcon: false,
+                questionPlacement: .bottomTrailing,
+                questionOpacity: 0.86,
+                questionBlurRadius: 7.2,
+                questionFrostStrength: 1.18,
                 edgeFadeStyle: .none,
                 edgeFadeWidth: 0,
                 edgeFadeBlurRadius: 0,
@@ -128,6 +100,11 @@ enum ZDTopBlurFadeStyle: Equatable {
     case none
 }
 
+enum ZDQuestionIconPlacement: Equatable {
+    case topTrailing
+    case bottomTrailing
+}
+
 struct ZDListRenderProfile: Equatable {
     let mode: ZDListRenderMode
     let glassQuality: ZDListGlassQuality
@@ -136,6 +113,10 @@ struct ZDListRenderProfile: Equatable {
     let primaryShadowStrength: Double
     let showsSecondaryShadow: Bool
     let showsQuestionIcon: Bool
+    let questionPlacement: ZDQuestionIconPlacement
+    let questionOpacity: Double
+    let questionBlurRadius: CGFloat
+    let questionFrostStrength: Double
     let edgeFadeStyle: ZDListEdgeFadeStyle
     let edgeFadeWidth: CGFloat
     let edgeFadeBlurRadius: CGFloat

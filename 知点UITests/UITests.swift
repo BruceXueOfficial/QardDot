@@ -25,14 +25,11 @@ final class KnowledgeCardUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["新增"].tap()
+        app.tabBars.buttons["新建"].tap()
         XCTAssertTrue(app.staticTexts["新建卡片"].waitForExistence(timeout: 2))
 
         app.tabBars.buttons["仓库"].tap()
         XCTAssertTrue(app.staticTexts["卡片管理"].waitForExistence(timeout: 2))
-
-        app.tabBars.buttons["个人"].tap()
-        XCTAssertTrue(app.staticTexts["个人"].waitForExistence(timeout: 2))
 
         app.tabBars.buttons["广场"].tap()
         XCTAssertTrue(app.staticTexts["知识广场"].waitForExistence(timeout: 2))
@@ -43,7 +40,7 @@ final class KnowledgeCardUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["新增"].tap()
+        app.tabBars.buttons["新建"].tap()
         XCTAssertTrue(app.staticTexts["新建卡片"].waitForExistence(timeout: 2))
 
         app.staticTexts["手动新建"].tap()
@@ -58,7 +55,7 @@ final class KnowledgeCardUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["新增"].tap()
+        app.tabBars.buttons["新建"].tap()
         XCTAssertTrue(app.staticTexts["新建图谱"].waitForExistence(timeout: 2))
 
         app.buttons["新建图谱"].firstMatch.tap()
@@ -97,7 +94,7 @@ final class KnowledgeCardUITests: XCTestCase {
         let app = XCUIApplication()
         app.launch()
 
-        app.tabBars.buttons["个人"].tap()
+        app.buttons["app.profile.button"].firstMatch.tap()
         XCTAssertTrue(app.staticTexts["视觉与性能"].waitForExistence(timeout: 2))
 
         let picker = app.segmentedControls["profile.listRenderMode.picker"]
@@ -108,12 +105,12 @@ final class KnowledgeCardUITests: XCTestCase {
         app.terminate()
         app.launch()
 
-        app.tabBars.buttons["个人"].tap()
+        app.buttons["app.profile.button"].firstMatch.tap()
         let relaunchedPicker = app.segmentedControls["profile.listRenderMode.picker"]
         XCTAssertTrue(relaunchedPicker.waitForExistence(timeout: 2))
         XCTAssertTrue(relaunchedPicker.buttons["性能优先"].isSelected)
 
         // Reset to keep UI test runs independent.
-        relaunchedPicker.buttons["平衡优先"].tap()
+        relaunchedPicker.buttons["视效优先"].tap()
     }
 }

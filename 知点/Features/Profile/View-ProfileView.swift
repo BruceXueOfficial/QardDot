@@ -63,20 +63,20 @@ struct ProfileView: View {
                     .foregroundStyle(Color.zdAccentDeep)
             }
 
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(Color.zdAccentSoft)
-                    .frame(width: 8, height: 8)
-                Text("本地存储正常")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
+//            HStack(spacing: 8) {
+//                Circle()
+//                    .fill(Color.zdAccentSoft)
+//                    .frame(width: 8, height: 8)
+//                Text("卡片数据存储本地")
+//                    .font(.caption)
+//                    .foregroundStyle(.secondary)
+//            }
 
             HStack(spacing: 6) {
                 Image(systemName: "info.circle")
                     .font(.caption2)
                     .foregroundStyle(.secondary)
-                Text("数据保存在设备本地。加入 Apple Developer Program 后可开启 iCloud 同步。")
+                Text("数据保存在设备本地，加入会员畅享 1TB 云端存储")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -91,17 +91,24 @@ struct ProfileView: View {
                     .foregroundStyle(Color.zdAccentDeep)
             }
 
-            Text("知点 (QardDot) 是一款知识卡片管理工具，帮助你用卡片的方式整理和回顾知识。")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            HStack (spacing: 6) {
+                Image(systemName: "info.circle")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text("知点帮助你用卡片的方式整理和回顾知识。")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+            
 
-            HStack {
-                Text("版本")
+            HStack (spacing: 6) {
+                Text("应用版本")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                 Spacer()
                 Text("1.0.0")
-                    .font(.caption.weight(.medium))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(.primary)
             }
         }
@@ -109,13 +116,13 @@ struct ProfileView: View {
 
     private var performanceCard: some View {
         ZDSurfaceCard(cornerRadius: 14, style: .regular, padding: 16) {
-            ZDSectionHeader("视觉与性能") {
+            ZDSectionHeader("视觉样式") {
                 Image(systemName: "speedometer")
                     .font(.system(size: 15, weight: .medium))
                     .foregroundStyle(Color.zdAccentDeep)
             }
 
-            Picker("列表渲染模式", selection: listRenderModeBinding) {
+            Picker("渲染模式", selection: listRenderModeBinding) {
                 ForEach(ZDListRenderMode.allCases) { mode in
                     Text(mode.displayName).tag(mode)
                 }
@@ -123,13 +130,18 @@ struct ProfileView: View {
             .pickerStyle(.segmented)
             .accessibilityIdentifier("profile.listRenderMode.picker")
 
-            Text(listRenderMode.detail)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-
-            Text("仅影响列表相关页面（知识广场、卡片仓库）。")
-                .font(.caption2)
-                .foregroundStyle(.secondary)
+            HStack (spacing: 6) {
+                Image(systemName: "info.circle")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text(listRenderMode.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            
+//            Text("影响全页面卡片样式：广场、新建、仓库与详情展示。")
+//                .font(.caption2)
+//                .foregroundStyle(.secondary)
         }
     }
 }

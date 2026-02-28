@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		0A1F0001AA4A000100E1A001 /* LaTeXSwiftUI in Frameworks */ = {isa = PBXBuildFile; productRef = 0A1F0002AA4A000200E1A002 /* LaTeXSwiftUI */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		019151B32F39FAF2001ED124 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0A1F0001AA4A000100E1A001 /* LaTeXSwiftUI in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = "知点";
 			packageProductDependencies = (
+				0A1F0002AA4A000200E1A002 /* LaTeXSwiftUI */,
 			);
 			productName = "知点";
 			productReference = 019151A52F39FAF1001ED124 /* 知点.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = 0191519C2F39FAF1001ED124;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				0A1F0003AA4A000300E1A003 /* XCRemoteSwiftPackageReference "LaTeXSwiftUI" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 019151A62F39FAF1001ED124 /* Products */;
 			projectDirPath = "";
@@ -588,6 +597,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		0A1F0003AA4A000300E1A003 /* XCRemoteSwiftPackageReference "LaTeXSwiftUI" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/colinc86/LaTeXSwiftUI";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.5.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0A1F0002AA4A000200E1A002 /* LaTeXSwiftUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 0A1F0003AA4A000300E1A003 /* XCRemoteSwiftPackageReference "LaTeXSwiftUI" */;
+			productName = LaTeXSwiftUI;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 0191519D2F39FAF1001ED124 /* Project object */;
 }

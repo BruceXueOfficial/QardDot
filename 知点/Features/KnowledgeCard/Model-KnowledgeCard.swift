@@ -429,6 +429,10 @@ struct CardBlock: Identifiable, Codable, Equatable {
         )
     }
 
+    static func formula(_ latex: String, moduleTitle: String? = nil) -> CardBlock {
+        CardBlock(kind: .formula, moduleTitle: moduleTitle, text: latex)
+    }
+
     private static func normalizedImageSources(imageURLs: [String]?, fallback: String?) -> [String] {
         let normalized = (imageURLs ?? [])
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
@@ -459,6 +463,7 @@ enum CardBlockKind: String, Codable, CaseIterable {
     case image
     case code
     case link
+    case formula
 
     var displayName: String {
         switch self {
@@ -470,6 +475,8 @@ enum CardBlockKind: String, Codable, CaseIterable {
             return "代码"
         case .link:
             return "链接"
+        case .formula:
+            return "公式"
         }
     }
 }

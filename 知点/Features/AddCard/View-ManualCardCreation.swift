@@ -47,6 +47,7 @@ struct ManualCardCreationView: View {
             case .image: return !(block.imageURLs ?? []).isEmpty
             case .code: return block.codeSnippets?.first?.code.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
             case .link: return !(block.linkItems ?? []).isEmpty
+            case .formula: return !(block.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
             }
         }
     }
@@ -118,6 +119,9 @@ struct ManualCardCreationView: View {
                         Button("添加链接", systemImage: "link") {
                             editorViewModel.addModule(.link)
                         }
+                        Button("添加公式", systemImage: "function") {
+                            editorViewModel.addModule(.formula)
+                        }
                     } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 16, weight: .bold))
@@ -167,8 +171,6 @@ struct ManualCardCreationView: View {
 
     private var titleCard: some View {
         let cornerRadius: CGFloat = 24
-        let holeSize: CGFloat = 16.5
-        let holeInset: CGFloat = 14
 
         return VStack(alignment: .leading, spacing: 12) {
             ZStack(alignment: .topLeading) {
@@ -237,31 +239,11 @@ struct ManualCardCreationView: View {
         .padding(.top, 20)
         .padding(.bottom, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            TitleCardPunchedShape(cornerRadius: cornerRadius, holeSize: holeSize, holeInset: holeInset)
-                .fill(theme.cardBackgroundGradient, style: FillStyle(eoFill: true))
+        .zdPunchedGlassBackground(
+            theme.cardBackgroundGradient,
+            metrics: ZDPunchedCardMetrics(cornerRadius: cornerRadius, holeScale: 1.0),
+            borderGradient: theme.cardBorderGradient
         )
-        .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
-        .overlay(
-            TitleCardPunchedShape(cornerRadius: cornerRadius, holeSize: holeSize, holeInset: holeInset)
-                .stroke(theme.cardBorderGradient.opacity(0.58), lineWidth: 0.78)
-        )
-        .overlay(
-            TitleCardPunchedShape(cornerRadius: cornerRadius, holeSize: holeSize, holeInset: holeInset)
-                .stroke(
-                    colorScheme == .dark
-                        ? Color.white.opacity(0.08)
-                        : Color.white.opacity(0.2),
-                    lineWidth: 0.4
-                )
-                .padding(1)
-        )
-        .overlay(alignment: .topTrailing) {
-            KnowledgeCardPinHoleInnerShadow(size: holeSize)
-                .padding(.top, holeInset)
-                .padding(.trailing, holeInset)
-                .allowsHitTesting(false)
-        }
     }
 
     private var contentModule: some View {

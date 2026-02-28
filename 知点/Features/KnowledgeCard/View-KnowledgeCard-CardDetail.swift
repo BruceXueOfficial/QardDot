@@ -41,6 +41,10 @@ struct KnowledgeCardView: View {
     @State var linkInputErrorMessage: String?
     @State var activeLinkBrowserDestination: LinkBrowserDestination?
 
+    @State var formulaEditingModuleIDs: Set<UUID> = []
+    @State var formulaDrafts: [UUID: String] = [:]
+    @State var formulaErrorModuleIDs: Set<UUID> = []
+
     init(
         viewModel: KnowledgeCardViewModel,
         selectedModuleID: Binding<UUID?> = .constant(nil),
@@ -296,31 +300,11 @@ private extension KnowledgeCardView {
         .padding(.top, 20)
         .padding(.bottom, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            TitleCardPunchedShape(cornerRadius: 24, holeSize: 16.5, holeInset: 14)
-                .fill(resolvedTheme.cardBackgroundGradient, style: FillStyle(eoFill: true))
+        .zdPunchedGlassBackground(
+            resolvedTheme.cardBackgroundGradient,
+            metrics: ZDPunchedCardMetrics(cornerRadius: 24, holeScale: 1.0),
+            borderGradient: resolvedTheme.cardBorderGradient
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            TitleCardPunchedShape(cornerRadius: 24, holeSize: 16.5, holeInset: 14)
-                .stroke(resolvedTheme.cardBorderGradient.opacity(0.58), lineWidth: 0.78)
-        )
-        .overlay(
-            TitleCardPunchedShape(cornerRadius: 24, holeSize: 16.5, holeInset: 14)
-                .stroke(
-                    colorScheme == .dark
-                        ? Color.white.opacity(0.08)
-                        : Color.white.opacity(0.2),
-                    lineWidth: 0.4
-                )
-                .padding(1)
-        )
-        .overlay(alignment: .topTrailing) {
-            KnowledgeCardPinHoleInnerShadow(size: 16.5)
-                .padding(.top, 14)
-                .padding(.trailing, 14)
-                .allowsHitTesting(false)
-        }
     }
 
 }
@@ -2927,16 +2911,82 @@ struct FullscreenImageViewer: View {
     let source: String
     let onDismiss: () -> Void
 
+    @State private var scale: CGFloat = 1.0
+    @State private var finalScale: CGFloat = 1.0
+    @State private var offset: CGSize = .zero
+    @State private var finalOffset: CGSize = .zero
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            Color.black.opacity(0.95)
+            Color.black.opacity(scale == 1.0 ? max(0.4, 0.95 - Double(abs(offset.height) / 1000.0)) : 0.95)
                 .ignoresSafeArea()
                 .onTapGesture { onDismiss() }
 
             imageContent
+                .scaleEffect(scale)
+                .offset(offset)
+                .gesture(
+                    SimultaneousGesture(
+                        MagnificationGesture()
+                            .onChanged { value in
+                                scale = finalScale * value
+                            }
+                            .onEnded { value in
+                                finalScale *= value
+                                if finalScale < 1.0 {
+                                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                        finalScale = 1.0
+                                        scale = 1.0
+                                        offset = .zero
+                                        finalOffset = .zero
+                                    }
+                                }
+                            },
+                        DragGesture()
+                            .onChanged { value in
+                                if scale > 1.0 {
+                                    offset = CGSize(
+                                        width: finalOffset.width + value.translation.width,
+                                        height: finalOffset.height + value.translation.height
+                                    )
+                                } else {
+                                    offset = value.translation
+                                }
+                            }
+                            .onEnded { value in
+                                if scale > 1.0 {
+                                    finalOffset = offset
+                                } else {
+                                    if abs(value.translation.height) > 120 || abs(value.translation.width) > 120 {
+                                        onDismiss()
+                                    } else {
+                                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                                            offset = .zero
+                                            finalOffset = .zero
+                                        }
+                                    }
+                                }
+                            }
+                    )
+                )
+                .onTapGesture(count: 2) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        if scale > 1.0 {
+                            scale = 1.0
+                            finalScale = 1.0
+                            offset = .zero
+                            finalOffset = .zero
+                        } else {
+                            scale = 2.5
+                            finalScale = 2.5
+                        }
+                    }
+                }
+                .onTapGesture(count: 1) {
+                    onDismiss()
+                }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(16)
-                .onTapGesture { onDismiss() }
 
             Button {
                 onDismiss()
@@ -3070,7 +3120,7 @@ struct HighlightedCodeText: View {
                     Text(highlighted)
                         .font(.system(.footnote, design: .monospaced))
                         .padding(12)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: true, vertical: false)
                 }
                 .background(colorScheme == .dark ? Color.zdSurfaceElevated : Color.white)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
@@ -3239,7 +3289,7 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
                     height: maxLen
                 )
                 textView.showsHorizontalScrollIndicator = true
-                textView.alwaysBounceHorizontal = true
+                textView.alwaysBounceHorizontal = false
                 textView.isDirectionalLockEnabled = false
             }
 
@@ -3311,9 +3361,81 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
     }
 }
 
-private final class LayoutAwareTextView: UITextView {
+private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate {
     var onLayout: (() -> Void)?
     var wrapLines: Bool = true
+
+    override init(frame: CGRect, textContainer: NSTextContainer?) {
+        super.init(frame: frame, textContainer: textContainer)
+        panGestureRecognizer.delegate = self
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        panGestureRecognizer.delegate = self
+    }
+
+    // When not wrapping lines and there is horizontal content overflow,
+    // ensure horizontal pans are recognised by this text view rather than
+    // being swallowed by an ancestor SwiftUI ScrollView.
+    override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+        guard gestureRecognizer == panGestureRecognizer, !wrapLines else {
+            return true
+        }
+        let hasHorizontalOverflow = contentSize.width > bounds.width + 0.5
+        guard hasHorizontalOverflow else { return true }
+
+        let velocity = panGestureRecognizer.velocity(in: self)
+        let isHorizontalPan = abs(velocity.x) > abs(velocity.y)
+        if isHorizontalPan {
+            // Check if there is room to scroll in the panned direction.
+            let atLeadingEdge = contentOffset.x <= 0
+            let atTrailingEdge = contentOffset.x >= contentSize.width - bounds.width
+            let panningRight = velocity.x > 0  // finger moves right = scroll left
+            let panningLeft  = velocity.x < 0  // finger moves left  = scroll right
+
+            // If already at the edge in the panned direction, let parent handle it.
+            if panningRight && atLeadingEdge { return true }
+            if panningLeft  && atTrailingEdge { return true }
+
+            return true
+        }
+        return true
+    }
+
+    // Ask UIKit to let us scroll simultaneously with the outer ScrollView
+    // only when the drag direction matches our scrollable axis.
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+        // Always allow simultaneous recognition so the outer vertical
+        // ScrollView still works when the user scrolls vertically.
+        return true
+    }
+
+    // When horizontal overflow exists, ask any ancestor scroll-view's
+    // pan gesture to wait until ours fails, so we get first shot at
+    // horizontal drags.
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+        guard gestureRecognizer == panGestureRecognizer, !wrapLines else {
+            return false
+        }
+        let hasHorizontalOverflow = contentSize.width > bounds.width + 0.5
+        guard hasHorizontalOverflow else { return false }
+
+        // If the other gesture is a pan on a different scroll view
+        // (e.g. the parent SwiftUI ScrollView), require it to wait.
+        if let otherPan = otherGestureRecognizer as? UIPanGestureRecognizer,
+           otherPan != panGestureRecognizer,
+           otherGestureRecognizer.view is UIScrollView {
+            return true
+        }
+        return false
+    }
 
     override func layoutSubviews() {
         if !wrapLines {
@@ -3321,15 +3443,27 @@ private final class LayoutAwareTextView: UITextView {
         }
         super.layoutSubviews()
         onLayout?()
-        
-        // Sync contentSize manually when line wrapping is disabled
-        // to prevent native bounces where internal widths mismatch
+
+        // Keep horizontal scroll metrics in sync so long lines are really reachable.
         if !wrapLines {
-            let usedWidth = layoutManager.usedRect(for: textContainer).width
-            let requiredWidth = usedWidth + textContainerInset.left + textContainerInset.right + 24
-            let optimalWidth = max(bounds.width, requiredWidth)
-            if abs(contentSize.width - optimalWidth) > 5 {
-                contentSize = CGSize(width: optimalWidth, height: contentSize.height)
+            layoutManager.ensureLayout(for: textContainer)
+            let glyphRange = layoutManager.glyphRange(for: textContainer)
+            let usedRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
+            let requiredWidth = ceil(usedRect.width + textContainerInset.left + textContainerInset.right + 2)
+            let requiredHeight = ceil(usedRect.height + textContainerInset.top + textContainerInset.bottom)
+            let targetSize = CGSize(
+                width: max(bounds.width, requiredWidth),
+                height: max(bounds.height, requiredHeight)
+            )
+            if abs(contentSize.width - targetSize.width) > 1 || abs(contentSize.height - targetSize.height) > 1 {
+                contentSize = targetSize
+            }
+
+            let hasHorizontalOverflow = contentSize.width > bounds.width + 0.5
+            showsHorizontalScrollIndicator = hasHorizontalOverflow
+            alwaysBounceHorizontal = hasHorizontalOverflow
+            if !hasHorizontalOverflow, contentOffset.x != 0 {
+                setContentOffset(CGPoint(x: 0, y: contentOffset.y), animated: false)
             }
         }
     }

@@ -93,12 +93,7 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
 
             ZStack(alignment: .topLeading) {
                 if renderProfile.showsQuestionIcon {
-                    ZDCardQuestionMarkLayer(
-                        symbol: questionSymbol,
-                        gradient: palette.questionGradient,
-                        canvasSize: proxy.size,
-                        localAssetName: questionAssetName
-                    )
+                    questionMarkLayer(canvasSize: proxy.size)
                 }
 
                 VStack(spacing: 0) {
@@ -135,10 +130,31 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
         }
         .zdPunchedGlassSurface(
             metrics: layout.punchedMetrics,
-            borderGradient: palette.border,
-            innerHighlightLightOpacity: 0,
-            innerHighlightDarkOpacity: 0
+            borderGradient: palette.border
         )
+    }
+
+    @ViewBuilder
+    private func questionMarkLayer(canvasSize: CGSize) -> some View {
+        let baseLayer = ZDCardQuestionMarkLayer(
+            symbol: questionSymbol,
+            gradient: palette.questionGradient,
+            canvasSize: canvasSize,
+            localAssetName: questionAssetName,
+            placement: renderProfile.questionPlacement
+        )
+
+        baseLayer
+            .opacity(renderProfile.questionOpacity)
+            .blur(radius: renderProfile.questionBlurRadius)
+            .overlay {
+                if renderProfile.questionFrostStrength > 0 {
+                    baseLayer
+                        .opacity(renderProfile.questionFrostStrength * 0.36)
+                        .blur(radius: renderProfile.questionBlurRadius + 4)
+                        .blendMode(.screen)
+                }
+            }
     }
 
     @ViewBuilder
@@ -190,7 +206,11 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
 
         switch renderProfile.glassQuality {
         case .off:
-            lowCostGradientTone(isRegular: isRegular)
+            if renderProfile.mode == .performance && colorScheme == .light {
+                Color.clear
+            } else {
+                lowCostGradientTone(isRegular: isRegular)
+            }
         case .simplified:
             Rectangle()
                 .fill(.ultraThinMaterial)
@@ -241,14 +261,14 @@ struct ZDSplitGlassCard<Header: View, BodyContent: View, Footer: View>: View {
     @ViewBuilder
     private func lowCostGradientTone(isRegular: Bool) -> some View {
         let whiteHighlight = colorScheme == .dark
-            ? (isRegular ? 0.05 : 0.03)
-            : (isRegular ? 0.12 : 0.08)
+            ? (isRegular ? 0.035 : 0.025)
+            : (isRegular ? 0.09 : 0.065)
         let darkDepth = colorScheme == .dark
-            ? (isRegular ? 0.12 : 0.08)
-            : (isRegular ? 0.06 : 0.04)
+            ? (isRegular ? 0.08 : 0.05)
+            : (isRegular ? 0.026 : 0.018)
         let accentTint = colorScheme == .dark
-            ? (isRegular ? 0.05 : 0.035)
-            : (isRegular ? 0.11 : 0.08)
+            ? (isRegular ? 0.036 : 0.024)
+            : (isRegular ? 0.08 : 0.055)
 
         ZStack {
             LinearGradient(
@@ -396,4 +416,16 @@ private struct ZDSplitGlassCardPreviewHost: View {
 #Preview("Split Glass - Dark") {
     ZDSplitGlassCardPreviewHost()
         .preferredColorScheme(.dark)
+}
+
+#Preview("Split Glass - 性能优先（Light）") {
+    ZDSplitGlassCardPreviewHost()
+        .preferredColorScheme(.light)
+        .environment(\.zdListRenderMode, .performance)
+}
+
+#Preview("Split Glass - 性能优先（Dark）") {
+    ZDSplitGlassCardPreviewHost()
+        .preferredColorScheme(.dark)
+        .environment(\.zdListRenderMode, .performance)
 }

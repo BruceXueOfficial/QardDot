@@ -3,6 +3,7 @@ import SwiftUI
 struct AddCardHubView: View {
     @EnvironmentObject private var library: KnowledgeCardLibraryStore
     @EnvironmentObject private var graphStore: KnowledgeGraphStore
+    @State private var showProfileSheet = false
     @State private var showManualCreation = false
     @State private var showImportCard = false
     @State private var showSmartChat = false
@@ -12,7 +13,12 @@ struct AddCardHubView: View {
 
     var body: some View {
         NavigationStack {
-            ZDPageScaffold(title: "新建内容", bottomPadding: 20, contentSpacing: 18) {
+            ZDPageScaffold(
+                title: "新建内容",
+                bottomPadding: 20,
+                contentSpacing: 18,
+                titleTrailing: { profileButton }
+            ) {
                 ZDSectionHeader("新建卡片")
 
                 AddEntryCard(
@@ -50,6 +56,12 @@ struct AddCardHubView: View {
                     showCreateGraph = true
                 }
             }
+        }
+        .sheet(isPresented: $showProfileSheet) {
+            ProfileView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(30)
         }
         .sheet(isPresented: $showManualCreation) {
             ManualCardCreationView(onCreate: handleCreation)
@@ -109,6 +121,12 @@ struct AddCardHubView: View {
                 }
             }
         )
+    }
+
+    private var profileButton: some View {
+        ZDProfileEntryButton {
+            showProfileSheet = true
+        }
     }
 }
 

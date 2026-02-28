@@ -22,11 +22,11 @@ struct ImportCardView: View {
                     infoSection
                         .padding(.top, 2)
                     promptGuideRow
-                        .padding(.top, 18)
+                        .padding(.top, assistSectionSpacing)
                     quickActionRow
-                        .padding(.top, 10)
+                        .padding(.top, assistSectionSpacing)
                     pasteSection
-                        .padding(.top, 18)
+                        .padding(.top, assistSectionSpacing)
                     resultSection
                         .padding(.top, 12)
                     importButton
@@ -53,10 +53,11 @@ struct ImportCardView: View {
         }
     }
 
+    private let assistSectionSpacing: CGFloat = 12
     private let assistIconTextSpacing: CGFloat = 12
     private let assistIconFrame: CGFloat = 24
     private let assistTextSpacing: CGFloat = 2
-    private let assistRowMinHeight: CGFloat = 88
+    private let assistRowMinHeight: CGFloat = 72
 
     private var assistTitleFont: Font { .subheadline.weight(.semibold) }
     private var assistSubtitleFont: Font { .caption }
@@ -116,8 +117,9 @@ struct ImportCardView: View {
                     .foregroundStyle(.secondary.opacity(0.5))
             }
             .padding(16)
-            .frame(maxWidth: .infinity, minHeight: assistRowMinHeight, alignment: .leading)
-            .zdGlassSurface(cornerRadius: 16)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: assistRowMinHeight)
+            .zdGlassSurface(cornerRadius: 14)
         }
         .buttonStyle(.plain)
     }
@@ -125,7 +127,7 @@ struct ImportCardView: View {
     // MARK: - Quick Actions
 
     private var quickActionRow: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: assistSectionSpacing) {
             quickActionCard(
                 icon: promptCopied ? "checkmark.circle.fill" : "doc.on.doc.fill",
                 title: "一键复制",
@@ -170,7 +172,8 @@ struct ImportCardView: View {
                 }
             }
             .padding(16)
-            .frame(maxWidth: .infinity, minHeight: assistRowMinHeight, alignment: .leading)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: assistRowMinHeight)
             .background(
                 active
                     ? Color.zdAccentSoft.opacity(colorScheme == .dark ? 0.16 : 0.12)
@@ -385,13 +388,13 @@ struct ImportCardView: View {
 
     private var promptTemplate: String {
         """
-        你是“专家级知识卡片构建师”。请根据我们刚刚讨论的知识内容，为我深度总结并生成用于导入的标准化 JSON 数据。
+        你是"专家级知识卡片构建师"。请根据我们刚刚讨论的知识内容，为我深度总结并生成用于导入的标准化 JSON 数据。
 
         【输出格式约束】（必须严格遵守）
         1. 只允许输出一个 ```json 代码块```，代码块外部绝对不要有任何多余的解释文字、问候或分析。
         2. 暂时不输出 `tags` 字段（留作人工填写）。
         3. 卡片数据结构必须是一整段 JSON 嵌套，根节点包含 `title` 和 `modules` 数组。
-        4. 按照卡片模块的内容顺序，在 `modules` 数组中依次声明每个模块的 JSON 对象，包含 `type`（类型）、`title`（模块名称）等字段，具体如下：
+        4. 按照卡片模块的内容顺序，在 `modules` 数组中依次声明每个模块的 JSON 对象，包含 `type`（类型）、`title`（模块名称）等字段。支持的类型有：text、code、link、image、formula。具体如下：
 
         数据结构范例（注意各字段的名称与层级）：
         ```json
@@ -405,8 +408,13 @@ struct ImportCardView: View {
             },
             {
               "type": "text",
-              "title": "详细说明",
-              "content": "Undercut 是后车提前进站换新胎，通过出站后数圈的速度窗口累计净时间收益，等待前车进站后实现位置反转。其成立依赖轮胎性能衰减曲线、进站总损失、出站后交通状况与圈速差。若出站遭遇慢车、或对手立即跟进进站（cover undercut），收益会被迅速抹平。"
+              "title": "主要内容",
+              "content": "Undercut 的核心逻辑：\\n\\n- 后车提前进站换上新胎\\n- 利用出站后数圈的速度窗口，累计净时间收益\\n- 当前车稍后进站时，后车已在实际排位上完成反超\\n\\n成立的关键条件：\\n\\n- 旧胎与新胎之间的圈速差足够大\\n- 进站总损失（pit loss）可被速度收益覆盖\\n- 出站后不遭遇慢车阻挡\\n\\n> 若对手立即跟进进站（cover undercut），收益会被迅速抹平。"
+            },
+            {
+              "type": "formula",
+              "title": "关键公式",
+              "content": "\\\\Delta t = \\\\sum_{i=1}^{n} \\\\delta_i - t_{\\\\text{pit}} - g_0"
             },
             {
               "type": "link",
@@ -439,17 +447,32 @@ struct ImportCardView: View {
           ]
         }
         ```
-        5. 当图片、代码、链接等没有可用数据时，直接不要在 `modules` 数组里输出相关模块对象，而不是输出空数组对象的模块！
+        5. 当图片、代码、链接、公式等没有可用数据时，直接不要在 `modules` 数组里输出相关模块对象，而不是输出空数组对象的模块！
         6. `images` 的值必须是数组；如有图片，优先输出 `data:image/<mime>;base64,<payload>` 格式，严禁编造图片 URL。
         7. JSON 必须是严格标准格式（英文双引号、无注释、无尾逗号、正确转义）。
 
         【内容约束】
-        - 标题 (title)：必须且只能是一句极简的短句，严格采用“为什么...？”或“...是什么？”的格式，绝不允许输出多个句子或任何冗余标点。
-        - 总结模块内容 (content)：直接用正文层级的文本概括核心结论！不需要有“### 直接结论”字眼！越干练越好！
-        - 详细说明模块内容 (content)：详细解释底层原理、应用场景、常见误区，结构清晰但不过度分层。
-        - 代码模块 (code)：可放入多段代码 Snippet，请保证每段 `name`、`language`、`code` 完整。
-        - 图片模块 (image)：如能提供图片，请优先输出 base64 编码；无法提供时丢弃该模块。
-        - 链接模块 (link)：优先提供对应概念或主题的主流平台上的有效的高质量视频教程和文章；严禁编造链接。
+        - 标题 (title)：必须且只能是一句极简的短句，严格采用"为什么...？"或"...是什么？"的格式，绝不允许输出多个句子或任何冗余标点。
+        - 总结模块 (type: text, title: "总结")：直接用一句正文层级的文本概括核心结论！不需要有"### 直接结论"字眼！越干练越好！
+        - 主要内容模块 (type: text, title: "主要内容")：这是卡片的核心知识模块，请务必遵守以下排版规范：
+          · 使用逻辑清晰、条理分明的内容来回答该知识点。
+          · 善用 Markdown 正文段落、bullet point（- 列表）、有序列表（1. 2. 3.）和引用（> ）来组织内容。
+          · 如适用，可以举例说明，使回答更具体易懂。
+          · **禁止使用多级标题（### / ## / # 等）**；只用正文、列表和引用即可。
+          · 每个要点之间需通过空行分隔，保持阅读舒适度。
+        - 公式模块 (type: formula)：用于展示数学、物理等学科公式。`content` 字段填写标准 LaTeX 公式源码（不要包含 $ 或 $$ 定界符），例如 `E = mc^2` 或 `\\frac{d}{dx}\\int_a^x f(t)\\,dt = f(x)`。仅当知识点涉及明确的公式时才输出此模块。
+        - 代码模块 (type: code)：可放入多段代码 Snippet，请保证每段 `name`、`language`、`code` 完整。
+        - 图片模块 (type: image)：如能提供图片，请优先输出 base64 编码；无法提供时丢弃该模块。
+        - 链接模块 (type: link)：优先提供对应概念或主题的主流平台上的有效的高质量视频教程和文章；严禁编造链接。
+
+        【按知识领域定制输出】
+        根据知识点所属领域，请自动适配输出内容：
+        - 编程 / 技术类：必须附带代码示例模块，用真实、可运行的代码片段来辅助理解。
+        - 含英文缩写 / 术语类（如 API、DNS、OOP 等）：在「总结」或「主要内容」中首次出现时标注英文全称，例如 "API（Application Programming Interface）"。
+        - 数学 / 物理 / 工程类：如涉及公式，务必使用公式模块（formula），用 LaTeX 准确表示。
+        - 日常常识 / 生活类：精简输出，不必展开过多学术细节，侧重实用建议与注意事项。
+        - 历史 / 人文 / 社科类：附加关键时间线或事件背景，帮助建立上下文。
+        - 医学 / 健康类：强调信息来源的权威性，措辞谨慎，避免绝对化表述，并建议咨询专业人士。
         """
     }
 }
@@ -657,31 +680,11 @@ struct ImportTagPreviewScreen: View {
         .padding(.top, 20)
         .padding(.bottom, 18)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            TitleCardPunchedShape(cornerRadius: 24, holeSize: 16.5, holeInset: 14)
-                .fill(theme.cardBackgroundGradient, style: FillStyle(eoFill: true))
+        .zdPunchedGlassBackground(
+            theme.cardBackgroundGradient,
+            metrics: ZDPunchedCardMetrics(cornerRadius: 24, holeScale: 1.0),
+            borderGradient: theme.cardBorderGradient
         )
-        .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-        .overlay(
-            TitleCardPunchedShape(cornerRadius: 24, holeSize: 16.5, holeInset: 14)
-                .stroke(theme.cardBorderGradient.opacity(0.58), lineWidth: 0.78)
-        )
-        .overlay(
-            TitleCardPunchedShape(cornerRadius: 24, holeSize: 16.5, holeInset: 14)
-                .stroke(
-                    colorScheme == .dark
-                        ? Color.white.opacity(0.08)
-                        : Color.white.opacity(0.2),
-                    lineWidth: 0.4
-                )
-                .padding(1)
-        )
-        .overlay(alignment: .topTrailing) {
-            KnowledgeCardPinHoleInnerShadow(size: 16.5)
-                .padding(.top, 14)
-                .padding(.trailing, 14)
-                .allowsHitTesting(false)
-        }
     }
 
     private var tagEditorSection: some View {
@@ -692,6 +695,7 @@ struct ImportTagPreviewScreen: View {
 
             HStack(spacing: 8) {
                 TextField("输入标签（支持逗号分隔）", text: $tagInput)
+                    .font(.caption)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
                     .padding(.horizontal, 12)
@@ -704,7 +708,7 @@ struct ImportTagPreviewScreen: View {
                     addInputTags()
                 }
                 .font(.subheadline.weight(.semibold))
-                .padding(.horizontal, 12)
+                .padding(.horizontal, 20)
                 .padding(.vertical, 10)
                 .background(Color.zdAccentSoft.opacity(0.22))
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -802,6 +806,7 @@ struct ImportTagPreviewScreen: View {
                     HStack(spacing: 5) {
                         Text(tag)
                             .lineLimit(1)
+                        Spacer(minLength: 4)
                         Image(systemName: "plus")
                             .font(.system(size: 9, weight: .bold))
                     }

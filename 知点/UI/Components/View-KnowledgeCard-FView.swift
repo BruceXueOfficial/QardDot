@@ -31,6 +31,7 @@ enum KnowledgeCardFViewTokens {
 
 struct KnowledgeCardFView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.zdListRenderProfile) private var renderProfile
 
     let card: KnowledgeCard
 
@@ -39,7 +40,7 @@ struct KnowledgeCardFView: View {
     }
 
     private var palette: ZDSplitCardPalette {
-        theme.recommendationSplitPalette(in: colorScheme)
+        theme.recommendationSplitPalette(in: colorScheme, renderMode: renderProfile.mode)
     }
 
     private var questionAssetName: String {
@@ -141,4 +142,48 @@ private struct KnowledgeCardFViewPreviewPanel: View {
 #Preview("KnowledgeCard-FView - Dark") {
     KnowledgeCardFViewPreviewPanel(themes: [.blue, .green, .orange, .purple])
         .preferredColorScheme(.dark)
+}
+
+#Preview("KnowledgeCard-FView Themes - 性能优先（Light）") {
+    KnowledgeCardFViewPreviewPanel(themes: [.blue, .green, .orange, .purple])
+        .preferredColorScheme(.light)
+        .environment(\.zdListRenderMode, .performance)
+}
+
+#Preview("KnowledgeCard-FView Themes - 性能优先（Dark）") {
+    KnowledgeCardFViewPreviewPanel(themes: [.blue, .green, .orange, .purple])
+        .preferredColorScheme(.dark)
+        .environment(\.zdListRenderMode, .performance)
+}
+
+private struct KnowledgeCardFViewModePreview: View {
+    let mode: ZDListRenderMode
+
+    private var sampleCard: KnowledgeCard {
+        KnowledgeCard(
+            title: "Git 中的 Push 命令是什么？",
+            content: "git push 会把本地分支提交同步到远程仓库，常用于团队协作。",
+            tags: ["Git", "编程"],
+            themeColor: .blue
+        )
+    }
+
+    var body: some View {
+        ZStack {
+            Color.zdPageBase.ignoresSafeArea()
+            KnowledgeCardFView(card: sampleCard)
+        }
+        .padding()
+        .environment(\.zdListRenderMode, mode)
+    }
+}
+
+#Preview("KnowledgeCard-FView - 视效优先") {
+    KnowledgeCardFViewModePreview(mode: .visual)
+        .preferredColorScheme(.light)
+}
+
+#Preview("KnowledgeCard-FView - 性能优先") {
+    KnowledgeCardFViewModePreview(mode: .performance)
+        .preferredColorScheme(.light)
 }

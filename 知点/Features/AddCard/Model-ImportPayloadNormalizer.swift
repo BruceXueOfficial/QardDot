@@ -1216,6 +1216,19 @@ private extension ImportPayloadNormalizer {
                 }
             }
 
+        case "formula":
+            let rawContent = (raw["text"] as? String ?? raw["content"] as? String ?? "")
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+            guard !rawContent.isEmpty else { return [] }
+            let resolvedTitle = resolveModuleTitle(from: raw, defaultTitle: "公式")
+            let normalizedContent = decodeEscapedControlSequencesDeterministically(rawContent)
+            return [[
+                "id": (raw["id"] as? String) ?? UUID().uuidString,
+                "kind": "formula",
+                "moduleTitle": resolvedTitle,
+                "text": normalizedContent
+            ]]
+
         default:
             return []
         }

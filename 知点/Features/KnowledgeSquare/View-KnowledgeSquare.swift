@@ -34,9 +34,10 @@ private enum KnowledgeSquareShadowTuning {
 struct KnowledgeSquareView: View {
     @EnvironmentObject private var library: KnowledgeCardLibraryStore
     @Environment(\.colorScheme) private var colorScheme
-    @AppStorage(ZDListRenderMode.storageKey) private var listRenderModeRawValue = ZDListRenderMode.defaultSelection.rawValue
+    @Environment(\.zdListRenderProfile) private var renderProfile
 
     @State private var selectedCard: KnowledgeCard?
+    @State private var showProfileSheet = false
     @State private var featuredCardIDs: [UUID] = []
     @State private var randomCardIDs: [UUID] = []
     @State private var imageTruthItems: [KnowledgeSquareImageTruthItem] = []
@@ -50,16 +51,8 @@ struct KnowledgeSquareView: View {
     @State private var imageTruthContentFrame: CGRect = .zero
     @State private var imageTruthViewportWidth: CGFloat = 0
 
-    private var selectedListRenderMode: ZDListRenderMode {
-        ZDListRenderMode.resolve(rawValue: listRenderModeRawValue)
-    }
-
-    private var renderProfile: ZDListRenderProfile {
-        selectedListRenderMode.profile
-    }
-
     private enum KnowledgeSquareSpacing {
-        static let moduleHeaderToContent: CGFloat = 10
+        static let moduleHeaderToContent: CGFloat = 8
     }
 
     private var horizontalSectionBottomInset: CGFloat {
@@ -73,21 +66,30 @@ struct KnowledgeSquareView: View {
 
     var body: some View {
         NavigationStack {
-            ZDPageScaffold(title: "知识广场") {
+            ZDPageScaffold(
+                title: "知识广场",
+                titleTrailing: { profileButton }
+            ) {
                 bannerSection
                 recentSection
                 imageTruthSection
                 popularSection
+                yesterdaySection
                 randomSection
                 statsSection
             }
-            .environment(\.zdListRenderMode, selectedListRenderMode)
             .environment(\.zdListRenderScope, .knowledgeSquare)
         }
         .sheet(item: $selectedCard) { card in
             KnowledgeCardDetailScreen(card: card)
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+                .presentationCornerRadius(30)
+        }
+        .sheet(isPresented: $showProfileSheet) {
+            ProfileView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)
                 .presentationCornerRadius(30)
         }
         .onAppear {
@@ -334,9 +336,7 @@ struct KnowledgeSquareView: View {
             let frameHeight = horizontalSectionFrameHeight(for: imageTruthCardMeasuredHeight)
 
             VStack(alignment: .leading, spacing: KnowledgeSquareSpacing.moduleHeaderToContent) {
-                Text("图文并茂")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(.primary.opacity(0.9))
+                ZDSectionHeader("图文并茂")
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     if renderProfile.tracksEdgeFade {
@@ -346,7 +346,7 @@ struct KnowledgeSquareView: View {
                                     openCard(item.card)
                                 } label: {
                                     KnowledgeSquareImageTruthCard(
-                                        title: item.card.title,
+                                        card: item.card,
                                         source: item.source
                                     )
                                 }
@@ -380,7 +380,7 @@ struct KnowledgeSquareView: View {
                                     openCard(item.card)
                                 } label: {
                                     KnowledgeSquareImageTruthCard(
-                                        title: item.card.title,
+                                        card: item.card,
                                         source: item.source
                                     )
                                 }
@@ -443,6 +443,12 @@ struct KnowledgeSquareView: View {
         }
     }
 
+    private var profileButton: some View {
+        ZDProfileEntryButton {
+            showProfileSheet = true
+        }
+    }
+
     private var popularSection: some View {
         VStack(alignment: .leading, spacing: KnowledgeSquareSpacing.moduleHeaderToContent) {
             ZDSectionHeader("最多浏览")
@@ -464,9 +470,47 @@ struct KnowledgeSquareView: View {
         }
     }
 
+    @ViewBuilder
+    private var yesterdaySection: some View {
+        let cards = yesterdayCards
+        if !cards.isEmpty {
+            let frameHeight = horizontalSectionFrameHeight(for: KnowledgeCardMViewTokens.surfaceSize.height + 38)
+
+            VStack(alignment: .leading, spacing: KnowledgeSquareSpacing.moduleHeaderToContent) {
+                ZDSectionHeader("昨日添加")
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
+                        ForEach(cards) { card in
+                            Button {
+                                openCard(card)
+                            } label: {
+                                KnowledgeCardMView(
+                                    card: card,
+                                    viewCount: library.viewCounts[card.id] ?? 0
+                                )
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .padding(.bottom, horizontalSectionBottomInset)
+                .scrollClipDisabled()
+                .frame(height: frameHeight)
+            }
+        }
+    }
+
     private var randomCards: [KnowledgeCard] {
         let cardByID = Dictionary(uniqueKeysWithValues: library.cards.map { ($0.id, $0) })
         return randomCardIDs.compactMap { cardByID[$0] }
+    }
+
+    private var yesterdayCards: [KnowledgeCard] {
+        let calendar = Calendar.current
+        return library.cards
+            .filter { calendar.isDateInYesterday($0.createdAt) }
+            .sorted { $0.createdAt > $1.createdAt }
     }
 
     private var randomSection: some View {
@@ -676,8 +720,18 @@ private struct KnowledgeSquareImageTruthItem: Identifiable {
 private struct KnowledgeSquareImageTruthCard: View {
     @Environment(\.colorScheme) private var colorScheme
 
-    let title: String
+    let card: KnowledgeCard
     let source: String
+
+    private var tagSummary: String {
+        let normalized = (card.tags ?? [])
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+        if normalized.isEmpty {
+            return "未添加标签"
+        }
+        return normalized.joined(separator: "；")
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
@@ -692,11 +746,18 @@ private struct KnowledgeSquareImageTruthCard: View {
                         .stroke(Color.black.opacity(colorScheme == .dark ? 0.18 : 0.08), lineWidth: 0.8)
                 )
 
-            Text(title)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.primary.opacity(0.9))
-                .lineLimit(2)
-                .multilineTextAlignment(.leading)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(card.title)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(.primary.opacity(0.9))
+                    .lineLimit(2)
+                    .multilineTextAlignment(.leading)
+
+                Text(tagSummary)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+            }
                 .frame(width: KnowledgeSquareLayoutTuning.imageTruthCardWidth, alignment: .leading)
         }
         .frame(width: KnowledgeSquareLayoutTuning.imageTruthCardWidth, alignment: .leading)
@@ -748,15 +809,49 @@ private struct KnowledgeSquareImageCover: View {
 
     private func localImage(_ source: String) -> UIImage? {
         KnowledgeSquareImageDecodeCache.image(for: source) {
-            if source.hasPrefix("file://") {
-                let path = String(source.dropFirst("file://".count))
-                return UIImage(contentsOfFile: path)
+            let trimmed = source.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmed.lowercased().hasPrefix("file://") {
+                let path = URL(string: trimmed)?.path ?? String(trimmed.dropFirst("file://".count))
+                if let image = UIImage(contentsOfFile: path) {
+                    return image
+                }
+                return resolveModuleImageFromCurrentDocuments(using: path)
             }
-            if source.hasPrefix("/") {
-                return UIImage(contentsOfFile: source)
+            if trimmed.hasPrefix("/") {
+                if let image = UIImage(contentsOfFile: trimmed) {
+                    return image
+                }
+                return resolveModuleImageFromCurrentDocuments(using: trimmed)
             }
-            return dataURIImage(source)
+            if let image = resolveModuleImageFromCurrentDocuments(using: trimmed) {
+                return image
+            }
+            return dataURIImage(trimmed)
         }
+    }
+
+    private func resolveModuleImageFromCurrentDocuments(using rawSource: String) -> UIImage? {
+        let trimmed = rawSource.trimmingCharacters(in: .whitespacesAndNewlines)
+        let filename = (trimmed as NSString).lastPathComponent
+        guard !filename.isEmpty else {
+            return nil
+        }
+
+        let hintsModuleImage = trimmed.contains("ModuleImages/")
+            || filename.hasPrefix("module-image-")
+            || filename.hasPrefix("imported-image-")
+        guard hintsModuleImage else {
+            return nil
+        }
+
+        guard let docsDir = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        let currentPath = docsDir
+            .appendingPathComponent("ModuleImages", isDirectory: true)
+            .appendingPathComponent(filename)
+            .path
+        return UIImage(contentsOfFile: currentPath)
     }
 
     private func dataURIImage(_ source: String) -> UIImage? {

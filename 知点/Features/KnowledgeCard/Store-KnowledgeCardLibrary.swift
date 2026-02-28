@@ -10,7 +10,7 @@ final class KnowledgeCardLibraryStore: ObservableObject {
     private static let cardsFileName = "knowledge_cards.json"
     private static let viewCountsFileName = "view_counts.json"
     private static let bundledSeedVersionKey = "knowledge_card_bundled_seed_version"
-    private static let bundledSeedVersion = "2026-02-git-vitamin-v4-prompt-modules"
+    private static let bundledSeedVersion = "2026-02-formula-structured-v5"
 
     static func bundledSeedCardsForPreview() -> [KnowledgeCard] {
         KnowledgeCardLibrarySeed.makeCards()
@@ -272,6 +272,11 @@ final class KnowledgeCardLibraryStore: ObservableObject {
                         normalizedModules[index].linkItem = validEntries.first
                     }
                     break
+                case .formula:
+                    if let text = normalizedModules[index].text {
+                        normalizedModules[index].text =
+                            ImportPayloadNormalizer.decodeEscapedControlSequencesDeterministically(text)
+                    }
                 }
                 normalizedModules[index].moduleTitle = normalizeLegacyModuleTitle(
                     normalizedModules[index].moduleTitle,
@@ -283,6 +288,7 @@ final class KnowledgeCardLibraryStore: ObservableObject {
                     case .image: normalizedModules[index].moduleTitle = defaultModuleTitle(for: .image)
                     case .code: normalizedModules[index].moduleTitle = defaultModuleTitle(for: .code)
                     case .link: normalizedModules[index].moduleTitle = defaultModuleTitle(for: .link)
+                    case .formula: normalizedModules[index].moduleTitle = defaultModuleTitle(for: .formula)
                     }
                 }
             }
@@ -377,6 +383,7 @@ final class KnowledgeCardLibraryStore: ObservableObject {
         case .image: return "图片"
         case .code: return "代码"
         case .link: return "链接"
+        case .formula: return "公式"
         }
     }
 
@@ -398,6 +405,10 @@ final class KnowledgeCardLibraryStore: ObservableObject {
             }
         case .link:
             if trimmed == "链接模块" {
+                return defaultModuleTitle(for: kind)
+            }
+        case .formula:
+            if trimmed == "公式模块" {
                 return defaultModuleTitle(for: kind)
             }
         }
@@ -423,10 +434,22 @@ final class KnowledgeCardLibraryStore: ObservableObject {
         for seedCard in KnowledgeCardLibrarySeed.makeCards() {
             let key = normalizedTitleKey(seedCard.title)
             if let index = merged.firstIndex(where: { normalizedTitleKey($0.title) == key }) {
-                var updatedCard = seedCard
-                updatedCard.id = merged[index].id
-                updatedCard.createdAt = merged[index].createdAt
-                updatedCard.updatedAt = Date()
+                let existingCard = merged[index]
+                let updatedCard = KnowledgeCard(
+                    id: existingCard.id,
+                    createdAt: existingCard.createdAt,
+                    updatedAt: Date(),
+                    title: seedCard.title,
+                    content: seedCard.content,
+                    type: seedCard.type,
+                    images: seedCard.images,
+                    codeSnippets: seedCard.codeSnippets,
+                    links: seedCard.links,
+                    tags: seedCard.tags,
+                    themeColor: seedCard.themeColor,
+                    modules: seedCard.modules,
+                    blocks: seedCard.blocks
+                )
                 merged[index] = updatedCard
                 mutated = true
             } else {
@@ -529,22 +552,12 @@ private enum KnowledgeCardLibrarySeed {
                     [
                         "type": "text",
                         "title": "总结",
-                        "content": "`git commit` 会把暂存区的改动固化为一个可追踪的提交版本。"
+                        "content": "`git commit` 会把暂存区（Staging Area）的改动固化为一个可追踪的提交版本。"
                     ],
                     [
                         "type": "text",
-                        "title": "详细说明",
-                        "content": "`git commit` 的输入是暂存区（staging area）而不是工作区，因此在执行前通常先 `git add` 指定本次提交范围。高质量提交建议做到“语义单一、信息清晰、粒度可回滚”。若需要补漏文件或修改提交信息，可使用 `git commit --amend` 修正最近一次提交。"
-                    ],
-                    [
-                        "type": "link",
-                        "title": "参考链接",
-                        "links": [
-                            ["url": "https://search.bilibili.com/all?keyword=git%20commit%20%E6%95%99%E7%A8%8B", "title": "Bilibili：Git commit 实战教程"],
-                            ["url": "https://www.xiaohongshu.com/search_result?keyword=git%20commit", "title": "小红书：Git commit 使用经验"],
-                            ["url": "https://www.douyin.com/search/Git%20commit", "title": "抖音：Git commit 常见误区"],
-                            ["url": "https://git-scm.com/docs/git-commit", "title": "Git 官方文档：git-commit"]
-                        ]
+                        "title": "主要内容",
+                        "content": "`git commit` 的输入是暂存区而不是工作区，因此在执行前通常先 `git add` 指定本次提交范围。\n\n核心要点：\n\n- 每次 commit 会生成一个唯一的 SHA-1 哈希值，作为版本标识\n- 高质量提交建议做到“语义单一、信息清晰、粒度可回滚”\n- 提交信息推荐使用约定式格式，如 `feat:` `fix:` `docs:` 等前缀\n\n常用操作：\n\n1. `git commit -m \"message\"` — 直接附带提交信息\n2. `git commit --amend` — 修正最近一次提交（补漏文件或修改信息）\n3. `git commit -a` — 跳过 add 步骤，直接提交所有已跟踪文件的改动\n\n> 注意：`--amend` 会改写提交历史（hash 变化），已推送到远程的提交慎用。"
                     ],
                     [
                         "type": "code",
@@ -561,6 +574,13 @@ private enum KnowledgeCardLibrarySeed {
                                 "code": "git add src/login.swift\ngit commit --amend --no-edit"
                             ]
                         ]
+                    ],
+                    [
+                        "type": "link",
+                        "title": "参考链接",
+                        "links": [
+                            ["url": "https://git-scm.com/docs/git-commit", "title": "Git 官方文档：git-commit"]
+                        ]
                     ]
                 ],
                 "tags": ["Git", "编程"]
@@ -573,22 +593,12 @@ private enum KnowledgeCardLibrarySeed {
                     [
                         "type": "text",
                         "title": "总结",
-                        "content": "`git add` 用来把工作区改动加入暂存区，决定“下一次 commit 提交什么”。"
+                        "content": "`git add` 用来把工作区改动加入暂存区（Staging Area），决定“下一次 commit 提交什么”。"
                     ],
                     [
                         "type": "text",
-                        "title": "详细说明",
-                        "content": "`git add` 支持按文件、按目录、按交互块（`-p`）选择改动，适合做小而清晰的提交。多人协作时，先精确 add 再 commit 能显著降低回滚与代码审查成本。若误加文件，可通过 `git restore --staged <file>` 取消暂存。"
-                    ],
-                    [
-                        "type": "link",
-                        "title": "参考链接",
-                        "links": [
-                            ["url": "https://search.bilibili.com/all?keyword=git%20add%20-p", "title": "Bilibili：Git add -p 分块暂存教程"],
-                            ["url": "https://www.xiaohongshu.com/search_result?keyword=git%20add", "title": "小红书：Git add 常用姿势"],
-                            ["url": "https://www.douyin.com/search/Git%20add", "title": "抖音：Git add 使用讲解"],
-                            ["url": "https://git-scm.com/docs/git-add", "title": "Git 官方文档：git-add"]
-                        ]
+                        "title": "主要内容",
+                        "content": "`git add` 是 Git 工作流中最基础的命令之一，它控制的是“哪些改动进入下一次提交”。\n\n常见用法：\n\n- `git add <文件>` — 精确添加指定文件\n- `git add .` — 添加当前目录下所有改动\n- `git add -p` — 交互式选择改动块（适合做精细提交）\n\n撤销误添加：\n\n- `git restore --staged <file>` — 将文件从暂存区移回工作区\n- `git reset HEAD <file>` — 旧版 Git 的等效操作\n\n> 多人协作时，先精确 add 再 commit 能显著降低回滚与代码审查成本。一次 commit 只做一件事是最佳实践。"
                     ],
                     [
                         "type": "code",
@@ -605,6 +615,13 @@ private enum KnowledgeCardLibrarySeed {
                                 "code": "git add src/config.swift\ngit restore --staged src/config.swift"
                             ]
                         ]
+                    ],
+                    [
+                        "type": "link",
+                        "title": "参考链接",
+                        "links": [
+                            ["url": "https://git-scm.com/docs/git-add", "title": "Git 官方文档：git-add"]
+                        ]
                     ]
                 ],
                 "tags": ["Git", "编程"]
@@ -617,22 +634,12 @@ private enum KnowledgeCardLibrarySeed {
                     [
                         "type": "text",
                         "title": "总结",
-                        "content": "`git push` 会把本地分支提交上传到远程仓库，供协作方拉取和审阅。"
+                        "content": "`git push` 会把本地分支的提交上传到远程仓库，供协作方拉取和审阅。"
                     ],
                     [
                         "type": "text",
-                        "title": "详细说明",
-                        "content": "`git push` 常见于功能分支提交流程。首次推送建议用 `--set-upstream` 绑定跟踪分支，后续可直接 `git push`。如果远程比本地新，推送会被拒绝，需要先拉取并整合差异，再重新推送。强推（`--force`）应谨慎使用，优先考虑 `--force-with-lease`。"
-                    ],
-                    [
-                        "type": "link",
-                        "title": "参考链接",
-                        "links": [
-                            ["url": "https://search.bilibili.com/all?keyword=git%20push%20%E5%A4%B1%E8%B4%A5", "title": "Bilibili：Git push 被拒处理教程"],
-                            ["url": "https://www.xiaohongshu.com/search_result?keyword=git%20push", "title": "小红书：Git push 实战笔记"],
-                            ["url": "https://www.douyin.com/search/Git%20push", "title": "抖音：Git push 常见问题"],
-                            ["url": "https://git-scm.com/docs/git-push", "title": "Git 官方文档：git-push"]
-                        ]
+                        "title": "主要内容",
+                        "content": "`git push` 用于将本地完成的工作同步到远程仓库（如 GitHub、GitLab）。\n\n基本流程：\n\n1. 在本地完成开发并 commit\n2. 使用 `git push` 将提交推送到远程分支\n3. 协协作者通过 pull 获取你的更新\n\n首次推送注意事项：\n\n- 第一次推送新分支需绑定上游：`git push --set-upstream origin <分支名>`\n- 之后在同一分支上可以直接 `git push`\n\n推送失败的常见原因：\n\n- 远程比本地新 → 先 `git pull` 再推送\n- 分支保护规则 → 需通过 PR/MR 合并\n\n> 强推（`--force`）会覆盖远程历史，应优先使用更安全的 `--force-with-lease`。"
                     ],
                     [
                         "type": "code",
@@ -649,6 +656,13 @@ private enum KnowledgeCardLibrarySeed {
                                 "code": "git push --force-with-lease origin feature/login-ui"
                             ]
                         ]
+                    ],
+                    [
+                        "type": "link",
+                        "title": "参考链接",
+                        "links": [
+                            ["url": "https://git-scm.com/docs/git-push", "title": "Git 官方文档：git-push"]
+                        ]
                     ]
                 ],
                 "tags": ["Git", "编程"]
@@ -661,22 +675,12 @@ private enum KnowledgeCardLibrarySeed {
                     [
                         "type": "text",
                         "title": "总结",
-                        "content": "`git pull` 用于把远程分支最新提交拉到本地并自动整合。"
+                        "content": "`git pull` 用于把远程分支最新提交拉到本地并自动整合，本质是 `fetch + merge`。"
                     ],
                     [
                         "type": "text",
-                        "title": "详细说明",
-                        "content": "`git pull` 本质是 `fetch + merge/rebase`。默认策略通常是 merge，也可配置为 rebase（`git pull --rebase`）以保持线性历史。遇到冲突时要先解决冲突并完成继续操作，再推送到远程。团队应统一 pull 策略，避免历史风格混乱。"
-                    ],
-                    [
-                        "type": "link",
-                        "title": "参考链接",
-                        "links": [
-                            ["url": "https://search.bilibili.com/all?keyword=git%20pull%20rebase", "title": "Bilibili：Git pull 与 rebase 讲解"],
-                            ["url": "https://www.xiaohongshu.com/search_result?keyword=git%20pull", "title": "小红书：Git pull 冲突处理经验"],
-                            ["url": "https://www.douyin.com/search/Git%20pull", "title": "抖音：Git pull 快速上手"],
-                            ["url": "https://git-scm.com/docs/git-pull", "title": "Git 官方文档：git-pull"]
-                        ]
+                        "title": "主要内容",
+                        "content": "`git pull` 是日常协作中使用频率最高的远程同步命令。\n\n两种整合策略：\n\n- **Merge 模式**（默认）：产生一个合并提交，保留完整分支历史\n- **Rebase 模式**（`git pull --rebase`）：将本地提交“重放”在远程之上，历史更线性\n\n冲突处理步骤：\n\n1. Git 提示哪些文件存在冲突\n2. 手动编辑冲突文件，选择保留的内容\n3. `git add` 标记已解决\n4. 完成合并（merge：`git commit`；rebase：`git rebase --continue`）\n\n> 团队应统一 pull 策略。混用 merge 和 rebase 会导致提交历史风格不一致。"
                     ],
                     [
                         "type": "code",
@@ -693,6 +697,13 @@ private enum KnowledgeCardLibrarySeed {
                                 "code": "git switch feature/login-ui\ngit pull --rebase origin main"
                             ]
                         ]
+                    ],
+                    [
+                        "type": "link",
+                        "title": "参考链接",
+                        "links": [
+                            ["url": "https://git-scm.com/docs/git-pull", "title": "Git 官方文档：git-pull"]
+                        ]
                     ]
                 ],
                 "tags": ["Git", "编程"]
@@ -705,22 +716,12 @@ private enum KnowledgeCardLibrarySeed {
                     [
                         "type": "text",
                         "title": "总结",
-                        "content": "`git rebase` 会把当前分支提交“重新安放”到新的基底上，形成更线性的历史。"
+                        "content": "`git rebase` 会把当前分支提交“重新安放”到新的基底上，形成更线性的提交历史。"
                     ],
                     [
                         "type": "text",
-                        "title": "详细说明",
-                        "content": "`git rebase` 适合在功能分支上同步主线最新提交，减少无意义 merge commit。它会改写提交历史（commit hash 会变化），因此不建议对已共享的公共分支随意 rebase。出现冲突时可按提示逐个解决并执行 `git rebase --continue`。"
-                    ],
-                    [
-                        "type": "link",
-                        "title": "参考链接",
-                        "links": [
-                            ["url": "https://search.bilibili.com/all?keyword=git%20rebase%20%E6%95%99%E7%A8%8B", "title": "Bilibili：Git rebase 实战教程"],
-                            ["url": "https://www.xiaohongshu.com/search_result?keyword=git%20rebase", "title": "小红书：Git rebase 使用经验"],
-                            ["url": "https://www.douyin.com/search/Git%20rebase", "title": "抖音：Git rebase 冲突处理"],
-                            ["url": "https://git-scm.com/docs/git-rebase", "title": "Git 官方文档：git-rebase"]
-                        ]
+                        "title": "主要内容",
+                        "content": "`git rebase` 适合在功能分支上同步主线最新提交，避免产生无意义的 merge commit。\n\n工作原理：\n\n- 找到当前分支和目标分支的共同祖先\n- 将当前分支从祖先之后的提交“摘下来”\n- 以目标分支最新提交为新基底，逐个重新应用\n\n这意味着提交的 hash 值会改变，因此：\n\n- ✅ 适合对本地未推送的功能分支使用\n- ❌ 不建议对已共享的公共分支执行\n\n交互式 rebase（`git rebase -i`）可以：\n\n- 合并多个小提交为一个\n- 修改提交信息\n- 重新排列提交顺序\n- 删除不需要的提交\n\n> 出现冲突时按提示逐个解决，然后执行 `git rebase --continue` 继续。"
                     ],
                     [
                         "type": "code",
@@ -736,6 +737,13 @@ private enum KnowledgeCardLibrarySeed {
                                 "language": "bash",
                                 "code": "git rebase -i HEAD~4"
                             ]
+                        ]
+                    ],
+                    [
+                        "type": "link",
+                        "title": "参考链接",
+                        "links": [
+                            ["url": "https://git-scm.com/docs/git-rebase", "title": "Git 官方文档：git-rebase"]
                         ]
                     ]
                 ],
@@ -753,16 +761,18 @@ private enum KnowledgeCardLibrarySeed {
                     ],
                     [
                         "type": "text",
-                        "title": "详细说明",
-                        "content": "维生素A参与视网膜感光过程，缺乏时常见夜间视力下降；它也参与免疫屏障和上皮细胞分化，对皮肤和黏膜完整性很重要。常见来源包括动物肝脏、蛋黄、乳制品，以及富含胡萝卜素的深色蔬果。补充应避免长期高剂量，尤其孕期需遵循专业建议。"
+                        "title": "主要内容",
+                        "content": "维生素A是一种脂溶性维生素，在人体内有多种重要功能。\n\n主要生理作用：\n\n- **视觉功能**：参与视网膜感光色素（视紫红质）的合成，缺乏时常见夜间视力下降\n- **免疫屏障**：维持上皮细胞分化和黏膜完整性，增强抵抗感染的能力\n- **皮肤健康**：促进皮肤细胞正常代谢，缺乏时皮肤容易干燥粗糙\n\n常见食物来源：\n\n- 动物性来源：肝脏、蛋黄、乳制品（直接含有视黄醇）\n- 植物性来源：胡萝卜、南瓜、菠菜等深色蔬果（含 β-胡萝卜素，体内转化为维生素A）\n\n> 维生素A为脂溶性，长期高剂量补充可能蓄积中毒，尤其孕期需遵循专业建议。日常优先通过饮食摄入。"
+                    ],
+                    [
+                        "type": "formula",
+                        "title": "化学式",
+                        "content": "C_{20}H_{30}O"
                     ],
                     [
                         "type": "link",
                         "title": "参考链接",
                         "links": [
-                            ["url": "https://search.bilibili.com/all?keyword=%E7%BB%B4%E7%94%9F%E7%B4%A0A%20%E4%BD%9C%E7%94%A8", "title": "Bilibili：维生素A 作用与缺乏表现"],
-                            ["url": "https://www.xiaohongshu.com/search_result?keyword=%E7%BB%B4%E7%94%9F%E7%B4%A0A", "title": "小红书：维生素A 饮食补充经验"],
-                            ["url": "https://www.douyin.com/search/%E7%BB%B4%E7%94%9F%E7%B4%A0A", "title": "抖音：维生素A 科普短视频"],
                             ["url": "https://ods.od.nih.gov/factsheets/VitaminA-Consumer/", "title": "NIH ODS：Vitamin A Fact Sheet"]
                         ]
                     ]
@@ -777,20 +787,17 @@ private enum KnowledgeCardLibrarySeed {
                     [
                         "type": "text",
                         "title": "总结",
-                        "content": "维生素B族主要参与能量代谢、神经系统和造血相关过程。"
+                        "content": "维生素B族是一组功能互补的水溶性维生素，主要参与能量代谢、神经传导和造血过程。"
                     ],
                     [
                         "type": "text",
-                        "title": "详细说明",
-                        "content": "维生素B族并不是单一营养素，而是一组功能互补的成员，如 B1、B2、B6、B12 与叶酸。它们广泛参与碳水、脂肪和蛋白质代谢，也与神经传导和造血过程密切相关。长期饮食结构单一、极端节食或特殊吸收问题人群更容易出现不足，补充策略应先评估再定量。"
+                        "title": "主要内容",
+                        "content": "维生素B族不是单一营养素，而是包含 8 种成员的大家族。\n\n各成员主要功能：\n\n- **B1（硫胺素）**：碳水化合物代谢的辅酶，缺乏可导致脚气病\n- **B2（核黄素）**：参与能量代谢，缺乏时常见口角炎\n- **B6（吡哆醇）**：氨基酸代谢和神经递质合成\n- **B12（钴胺素）**：红细胞生成和神经系统维护，素食者容易缺乏\n- **叶酸（B9）**：DNA 合成和细胞分裂，孕期尤为重要\n\n容易缺乏的人群：\n\n- 长期饮食结构单一者\n- 极端节食或纯素食者\n- 有特殊吸收问题的人群（如胃肠疾病患者）\n\n> B族维生素为水溶性，体内不易蓄积，但补充策略仍应先评估再定量，建议咨询专业人士。"
                     ],
                     [
                         "type": "link",
                         "title": "参考链接",
                         "links": [
-                            ["url": "https://search.bilibili.com/all?keyword=%E7%BB%B4%E7%94%9F%E7%B4%A0B%E6%97%8F%20%E4%BD%9C%E7%94%A8", "title": "Bilibili：维生素B族全景讲解"],
-                            ["url": "https://www.xiaohongshu.com/search_result?keyword=%E7%BB%B4%E7%94%9F%E7%B4%A0B%E6%97%8F", "title": "小红书：维生素B族补充经验贴"],
-                            ["url": "https://www.douyin.com/search/%E7%BB%B4%E7%94%9F%E7%B4%A0B%E6%97%8F", "title": "抖音：维生素B族 科普视频"],
                             ["url": "https://ods.od.nih.gov/factsheets/VitaminB12-Consumer/", "title": "NIH ODS：Vitamin B12 Fact Sheet"]
                         ]
                     ]
@@ -805,20 +812,22 @@ private enum KnowledgeCardLibrarySeed {
                     [
                         "type": "text",
                         "title": "总结",
-                        "content": "维生素C核心作用是抗氧化、促进胶原合成并帮助铁吸收。"
+                        "content": "维生素C核心作用是抗氧化、促进胶原合成并帮助非血红素铁的吸收。"
                     ],
                     [
                         "type": "text",
-                        "title": "详细说明",
-                        "content": "维生素C参与胶原蛋白合成，对皮肤、血管和创伤修复有帮助；它还是重要的抗氧化营养素，并能促进非血红素铁吸收。常见食物来源包括柑橘、猕猴桃、草莓、青椒和西兰花。日常建议优先饮食摄入，长期高剂量补充需注意胃肠不适和个体差异。"
+                        "title": "主要内容",
+                        "content": "维生素C（抗坏血酸，Ascorbic Acid）是人体必需的水溶性维生素，无法自行合成。\n\n三大核心功能：\n\n1. **抗氧化**：清除自由基，保护细胞免受氧化损伤\n2. **胶原蛋白合成**：对皮肤、血管和创伤修复至关重要\n3. **促进铁吸收**：帮助植物性食物中的非血红素铁转化为可吸收形式\n\n常见食物来源：\n\n- 柑橘类水果（橙子、柠檬）\n- 猕猴桃、草莓\n- 青椒、西兰花\n\n例如，一个中等大小的橙子约含 70mg 维生素C，基本可满足成人日推荐量。\n\n> 日常建议优先通过饮食摄入。长期高剂量补充（>2000mg/天）可能引起胃肠不适，具体方案建议咨询医生。"
+                    ],
+                    [
+                        "type": "formula",
+                        "title": "化学式",
+                        "content": "C_6H_8O_6"
                     ],
                     [
                         "type": "link",
                         "title": "参考链接",
                         "links": [
-                            ["url": "https://search.bilibili.com/all?keyword=%E7%BB%B4%E7%94%9F%E7%B4%A0C%20%E4%BD%9C%E7%94%A8", "title": "Bilibili：维生素C 作用与补充建议"],
-                            ["url": "https://www.xiaohongshu.com/search_result?keyword=%E7%BB%B4%E7%94%9F%E7%B4%A0C", "title": "小红书：维生素C 使用体验与误区"],
-                            ["url": "https://www.douyin.com/search/%E7%BB%B4%E7%94%9F%E7%B4%A0C", "title": "抖音：维生素C 科普视频"],
                             ["url": "https://ods.od.nih.gov/factsheets/VitaminC-Consumer/", "title": "NIH ODS：Vitamin C Fact Sheet"]
                         ]
                     ]
@@ -833,20 +842,17 @@ private enum KnowledgeCardLibrarySeed {
                     [
                         "type": "text",
                         "title": "总结",
-                        "content": "维生素D主要帮助钙磷吸收，支持骨骼、肌肉和免疫功能。"
+                        "content": "维生素D主要帮助钙磷吸收，支持骨骼健康、肌肉功能和免疫调节。"
                     ],
                     [
                         "type": "text",
-                        "title": "详细说明",
-                        "content": "维生素D有助于钙和磷吸收，与骨密度、肌肉功能及免疫调节相关。其来源包括日照合成、鱼类、蛋黄及强化食品。对久居室内、日照不足或特定人群，评估后补充会更稳妥。补充不宜盲目超量，建议结合检测结果和专业建议制定方案。"
+                        "title": "主要内容",
+                        "content": "维生素D是一种脂溶性维生素，也被称为“阳光维生素”，因为人体可通过日照在皮肤中合成。\n\n主要生理作用：\n\n- **钙磷代谢**：促进小肠对钙和磷的吸收，维持骨密度\n- **肌肉功能**：影响肌肉收缩和平衡能力，缺乏时易跌倒\n- **免疫调节**：参与先天和适应性免疫应答\n\n获取途径：\n\n- 日照合成（每天 15-20 分钟中等强度阳光照射）\n- 食物来源：深海鱼类（三文鱼、沙丁鱼）、蛋黄、强化牛奶\n- 膳食补充剂（维生素D3 效果优于 D2）\n\n容易缺乏的人群：\n\n- 久居室内、日照不足者\n- 老年人（皮肤合成能力下降）\n- 深肤色人群（黑色素阻碍紫外线吸收）\n\n> 补充不宜盲目超量，建议通过血液检测 25(OH)D 水平后再制定方案，并遵循专业建议。"
                     ],
                     [
                         "type": "link",
                         "title": "参考链接",
                         "links": [
-                            ["url": "https://search.bilibili.com/all?keyword=%E7%BB%B4%E7%94%9F%E7%B4%A0D%20%E4%BD%9C%E7%94%A8", "title": "Bilibili：维生素D 与骨骼健康"],
-                            ["url": "https://www.xiaohongshu.com/search_result?keyword=%E7%BB%B4%E7%94%9F%E7%B4%A0D", "title": "小红书：维生素D 补充经验与剂量讨论"],
-                            ["url": "https://www.douyin.com/search/%E7%BB%B4%E7%94%9F%E7%B4%A0D", "title": "抖音：维生素D 科普短视频"],
                             ["url": "https://ods.od.nih.gov/factsheets/VitaminD-Consumer/", "title": "NIH ODS：Vitamin D Fact Sheet"]
                         ]
                     ]

@@ -14,6 +14,8 @@ extension KnowledgeCardView {
                 UnifiedModuleContainer(
                     title: moduleTitle(module),
                     isSelected: selectedModuleID == module.id,
+                    borderPrimaryColor: resolvedTheme.primaryColor,
+                    borderSecondaryColor: resolvedTheme.secondaryColor,
                     headerAccessory: moduleHeaderAccessory(for: module),
                     onTap: {
                         selectedModuleID = module.id
@@ -68,6 +70,7 @@ extension KnowledgeCardView {
         case .image: return "图片"
         case .code: return "代码"
         case .link: return "链接"
+        case .formula: return "公式"
         }
     }
 
@@ -145,6 +148,8 @@ extension KnowledgeCardView {
             codeModuleBody(module)
         case .link:
             linkModuleBody(module)
+        case .formula:
+            formulaModuleBody(module)
         }
     }
 
@@ -172,6 +177,171 @@ extension KnowledgeCardView {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    @ViewBuilder
+    private func formulaModuleBody(_ module: CardBlock) -> some View {
+        let storedText = module.text ?? ""
+        let isEditing = formulaEditingModuleIDs.contains(module.id)
+        let hasError = formulaErrorModuleIDs.contains(module.id)
+        let draft = formulaDrafts[module.id] ?? storedText
+        let trimmedStored = storedText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        VStack(alignment: .leading, spacing: 0) {
+            if isEditing {
+                // ── Editing Mode ──
+                VStack(alignment: .leading, spacing: 8) {
+                    ZStack(alignment: .topLeading) {
+                        NotionLikeTextEditor(
+                            text: Binding(
+                                get: { formulaDrafts[module.id] ?? storedText },
+                                set: { value in
+                                    formulaDrafts[module.id] = value
+                                    // Clear error when user modifies input
+                                    formulaErrorModuleIDs.remove(module.id)
+                                }
+                            ),
+                            isEditable: true,
+                            minimumHeight: 80
+                        )
+                        .frame(maxWidth: .infinity, minHeight: 80, alignment: .topLeading)
+
+                        if draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            Text("输入 LaTeX 公式，例如 E = mc^2")
+                                .font(.footnote)
+                                .foregroundStyle(.secondary)
+                                .padding(.top, 8)
+                                .allowsHitTesting(false)
+                        }
+                    }
+
+                    if hasError {
+                        HStack(spacing: 4) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                                .font(.caption2)
+                            Text("公式格式有误，请检查 LaTeX 语法")
+                                .font(.caption)
+                        }
+                        .foregroundStyle(.red.opacity(0.85))
+                        .transition(.opacity.combined(with: .move(edge: .top)))
+                    }
+
+                    HStack {
+                        Spacer()
+                        Button {
+                            confirmFormulaEditing(module: module)
+                        } label: {
+                            Text("确认")
+                                .font(.subheadline.weight(.semibold))
+                                .foregroundStyle(Color.white)
+                                .padding(.horizontal, 18)
+                                .padding(.vertical, 8)
+                                .background(
+                                    Capsule()
+                                        .fill(viewModel.card.resolvedPrimary)
+                                )
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(12)
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.03))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(
+                            hasError
+                                ? Color.red.opacity(0.5)
+                                : Color.secondary.opacity(0.15),
+                            lineWidth: hasError ? 1.2 : 0.8
+                        )
+                )
+            } else if !trimmedStored.isEmpty {
+                // ── Preview Mode ──
+                VStack(alignment: .leading, spacing: 0) {
+                    LaTeXFormulaPreview(latex: trimmedStored)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.vertical, 16)
+                        .padding(.horizontal, 12)
+                }
+                .background(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.03))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(Color.secondary.opacity(0.15), lineWidth: 0.8)
+                )
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // Tap rendered formula → switch to editing mode
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.84)) {
+                        formulaDrafts[module.id] = storedText
+                        formulaEditingModuleIDs.insert(module.id)
+                        formulaErrorModuleIDs.remove(module.id)
+                    }
+                }
+            } else {
+                // ── Empty State → Auto enter editing ──
+                Text("点击输入 LaTeX 公式")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .center)
+                    .padding(.vertical, 20)
+                    .background(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.02))
+                    )
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                            .strokeBorder(style: StrokeStyle(lineWidth: 0.8, dash: [6, 4]))
+                            .foregroundStyle(Color.secondary.opacity(0.25))
+                    )
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.84)) {
+                            formulaDrafts[module.id] = ""
+                            formulaEditingModuleIDs.insert(module.id)
+                        }
+                    }
+                    .onAppear {
+                        // New modules auto-enter editing mode
+                        if !formulaEditingModuleIDs.contains(module.id) {
+                            formulaDrafts[module.id] = ""
+                            formulaEditingModuleIDs.insert(module.id)
+                        }
+                    }
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .animation(.spring(response: 0.3, dampingFraction: 0.84), value: isEditing)
+        .animation(.spring(response: 0.3, dampingFraction: 0.84), value: hasError)
+    }
+
+    private func confirmFormulaEditing(module: CardBlock) {
+        let draft = (formulaDrafts[module.id] ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !draft.isEmpty else {
+            _ = withAnimation {
+                formulaErrorModuleIDs.insert(module.id)
+            }
+            return
+        }
+
+        // Save the LaTeX source to the model
+        viewModel.updateTextModule(id: module.id, text: draft)
+
+        // Exit editing mode
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.84)) {
+            formulaEditingModuleIDs.remove(module.id)
+            formulaErrorModuleIDs.remove(module.id)
+            formulaDrafts.removeValue(forKey: module.id)
+        }
+
+        // Dismiss keyboard
+        dismissKeyboard()
     }
 
     @ViewBuilder
@@ -283,10 +453,10 @@ extension KnowledgeCardView {
     @ViewBuilder
     private func codeSnippetFrame(moduleID: UUID, snippet: CodeSnippet) -> some View {
         let minEditorHeight: CGFloat = 30
-        let maxEditorHeight: CGFloat = 200
-        let editorVerticalInsets: CGFloat = 24
+        let maxEditorHeight: CGFloat = 160
+        let editorVerticalInsets: CGFloat = 16
         let lineHeight = BasicCodeHighlighter.editorBaseFont.lineHeight
-        let reserveLinesHeight = lineHeight * 2
+        let reserveLinesHeight: CGFloat = 6.0
 
         let target = ModuleCodeSnippetTarget(moduleID: moduleID, snippetID: snippet.id)
         let isRemoving = removingCodeSnippetTarget == target
@@ -337,7 +507,7 @@ extension KnowledgeCardView {
             }
         )
 
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 8) {
                 Spacer(minLength: 0)
 
@@ -448,7 +618,9 @@ extension KnowledgeCardView {
                 .animation(.easeInOut(duration: 0.15), value: isCopied)
             }
         }
-        .padding(12)
+        .padding(.horizontal, 12)
+        .padding(.top, 10)
+        .padding(.bottom, 8)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -1120,6 +1292,8 @@ private struct UnifiedModuleContainer<Content: View>: View {
 
     let title: String
     let isSelected: Bool
+    let borderPrimaryColor: Color
+    let borderSecondaryColor: Color
     let headerAccessory: AnyView?
     let onTap: () -> Void
     let onRename: (String) -> Void
@@ -1226,8 +1400,8 @@ private struct UnifiedModuleContainer<Content: View>: View {
         containerShape.stroke(
             LinearGradient(
                 colors: [
-                    Color.zdAccentDeep.opacity(isSelected ? 0.86 : 0.42),
-                    Color.zdAccentSoft.opacity(isSelected ? 0.76 : 0.34)
+                    borderPrimaryColor.opacity(primaryBorderOpacity),
+                    borderSecondaryColor.opacity(secondaryBorderOpacity)
                 ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -1239,10 +1413,45 @@ private struct UnifiedModuleContainer<Content: View>: View {
     private var secondaryBorder: some View {
         containerShape
             .stroke(
-                colorScheme == .dark ? Color.white.opacity(0.07) : Color.white.opacity(0.18),
+                LinearGradient(
+                    colors: [
+                        borderPrimaryColor.opacity(innerBorderPrimaryOpacity),
+                        borderSecondaryColor.opacity(innerBorderSecondaryOpacity)
+                    ],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
                 lineWidth: 0.4
             )
             .padding(1)
+    }
+
+    private var primaryBorderOpacity: Double {
+        if isSelected {
+            return colorScheme == .dark ? 0.9 : 0.84
+        }
+        return colorScheme == .dark ? 0.48 : 0.38
+    }
+
+    private var secondaryBorderOpacity: Double {
+        if isSelected {
+            return colorScheme == .dark ? 0.8 : 0.72
+        }
+        return colorScheme == .dark ? 0.42 : 0.32
+    }
+
+    private var innerBorderPrimaryOpacity: Double {
+        if isSelected {
+            return colorScheme == .dark ? 0.24 : 0.2
+        }
+        return colorScheme == .dark ? 0.14 : 0.1
+    }
+
+    private var innerBorderSecondaryOpacity: Double {
+        if isSelected {
+            return colorScheme == .dark ? 0.2 : 0.16
+        }
+        return colorScheme == .dark ? 0.1 : 0.08
     }
 
     private var dragShadowColor: Color {

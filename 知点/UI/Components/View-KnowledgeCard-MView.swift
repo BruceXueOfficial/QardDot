@@ -83,7 +83,7 @@ struct KnowledgeCardMView: View {
     }
 
     private var palette: ZDSplitCardPalette {
-        theme.recommendationSplitPalette(in: colorScheme)
+        theme.recommendationSplitPalette(in: colorScheme, renderMode: renderProfile.mode)
     }
 
     private var swappedPalette: ZDSplitCardPalette {
@@ -126,9 +126,9 @@ struct KnowledgeCardMView: View {
                 EmptyView()
             } footer: {
                 HStack(spacing: 10) {
-                    HStack(spacing: 5) {
+                    HStack(spacing: 4) {
                         Image(systemName: "eye.fill")
-                        Text("查看 \(viewCount)")
+                        Text("\(viewCount)")
                             .monospacedDigit()
                     }
 
@@ -185,7 +185,7 @@ struct KnowledgeCardMView: View {
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(card.title)
-                    .font(.headline.weight(.semibold))
+                    .font(.subheadline.weight(.semibold))
                     .foregroundStyle(.primary.opacity(0.96))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -238,4 +238,48 @@ private struct KnowledgeCardMViewPreviewGallery: View {
 #Preview("KnowledgeCard-MView - Dark") {
     KnowledgeCardMViewPreviewGallery(themes: [.blue, .green, .orange, .purple])
         .preferredColorScheme(.dark)
+}
+
+#Preview("KnowledgeCard-MView Themes - 性能优先（Light）") {
+    KnowledgeCardMViewPreviewGallery(themes: [.blue, .green, .orange, .purple])
+        .preferredColorScheme(.light)
+        .environment(\.zdListRenderMode, .performance)
+}
+
+#Preview("KnowledgeCard-MView Themes - 性能优先（Dark）") {
+    KnowledgeCardMViewPreviewGallery(themes: [.blue, .green, .orange, .purple])
+        .preferredColorScheme(.dark)
+        .environment(\.zdListRenderMode, .performance)
+}
+
+private struct KnowledgeCardMViewModePreview: View {
+    let mode: ZDListRenderMode
+
+    private var sampleCard: KnowledgeCard {
+        KnowledgeCard(
+            title: "Git 中的 Commit 命令是什么？",
+            content: "git commit 会把暂存区内容固化为一个可追踪版本，并生成提交记录。",
+            tags: ["Git", "编程"],
+            themeColor: .blue
+        )
+    }
+
+    var body: some View {
+        ZStack {
+            Color.zdPageBase.ignoresSafeArea()
+            KnowledgeCardMView(card: sampleCard, viewCount: 25)
+        }
+        .padding()
+        .environment(\.zdListRenderMode, mode)
+    }
+}
+
+#Preview("KnowledgeCard-MView - 视效优先") {
+    KnowledgeCardMViewModePreview(mode: .visual)
+        .preferredColorScheme(.light)
+}
+
+#Preview("KnowledgeCard-MView - 性能优先") {
+    KnowledgeCardMViewModePreview(mode: .performance)
+        .preferredColorScheme(.light)
 }

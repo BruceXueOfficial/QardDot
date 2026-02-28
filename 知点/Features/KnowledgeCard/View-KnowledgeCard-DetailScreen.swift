@@ -57,15 +57,16 @@ struct KnowledgeCardDetailScreen: View {
                     Button {
                         showDeleteConfirmation = true
                     } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(Color.red)
-                            .frame(width: 48, height: 48)
-                            .background(Color.clear)
-                            .clipShape(Circle())
-                            .zdGlassSurface(cornerRadius: 999, lineWidth: 1.2, isClear: true)
-                            .shadow(color: .black.opacity(0.12), radius: 6, x: 0, y: 3)
+                        circleControlChrome(
+                            Image(systemName: "trash")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(destructiveControlTint),
+                            borderColor: destructiveControlBorder,
+                            shadowRadius: 6,
+                            shadowY: 3
+                        )
                     }
+                    .buttonStyle(.plain)
                     .padding(.trailing, controlHorizontalInset + safeTrailing)
                     .padding(.bottom, floatingBottomInset)
                 }
@@ -83,16 +84,20 @@ struct KnowledgeCardDetailScreen: View {
                         Button("添加链接", systemImage: "link") {
                             addModule(.link)
                         }
+                        Button("添加公式", systemImage: "function") {
+                            addModule(.formula)
+                        }
                     } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 16, weight: .bold))
-                            .foregroundStyle(viewModel.card.resolvedPrimary)
-                            .frame(width: 48, height: 48)
-                            .background(Color.clear)
-                            .clipShape(Circle())
-                            .zdGlassSurface(cornerRadius: 999, lineWidth: 1.2, isClear: true)
-                            .shadow(color: .black.opacity(0.12), radius: 6, x: 0, y: 3)
+                        circleControlChrome(
+                            Image(systemName: "plus")
+                                .font(.system(size: 16, weight: .bold))
+                                .foregroundStyle(themeControlTint),
+                            borderColor: themeControlBorder,
+                            shadowRadius: 6,
+                            shadowY: 3
+                        )
                     }
+                    .buttonStyle(.plain)
                     .padding(.leading, controlHorizontalInset + safeLeading)
                     .padding(.bottom, floatingBottomInset)
                 }
@@ -101,21 +106,18 @@ struct KnowledgeCardDetailScreen: View {
                         Button {
                             undoDeleteModule()
                         } label: {
-                            Text("撤销")
-                                .font(.subheadline.weight(.semibold))
-                                .foregroundStyle(Color.red.opacity(0.9))
-                                .frame(minWidth: 94, minHeight: 48)
-                                .background(
-                                    LiquidGlassChip(cornerRadius: 999)
-                                )
-                                .clipShape(Capsule())
-                                .overlay(
-                                    Capsule()
-                                        .strokeBorder(Color.red.opacity(0.84), lineWidth: 1.1)
-                                )
+                            capsuleControlChrome(
+                                Text("撤销")
+                                    .font(.subheadline.weight(.semibold))
+                                    .foregroundStyle(destructiveControlTint),
+                                borderColor: destructiveControlBorder,
+                                minWidth: 94,
+                                minHeight: 48,
+                                shadowRadius: 5,
+                                shadowY: 2
+                            )
                         }
                         .buttonStyle(.plain)
-                        .shadow(color: .black.opacity(0.08), radius: 5, x: 0, y: 2)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .padding(.bottom, floatingBottomInset)
                     }
@@ -200,14 +202,14 @@ struct KnowledgeCardDetailScreen: View {
                 Button {
                     showThemeColorPicker = true
                 } label: {
-                    Image(systemName: "paintpalette")
-                        .font(.system(size: 17, weight: .medium))
-                        .foregroundStyle(Color.zdAccentDeep.opacity(0.9))
-                        .frame(width: 48, height: 48)
-                        .background(Color.clear)
-                        .clipShape(Circle())
-                        .zdGlassSurface(cornerRadius: 999, lineWidth: 1.2, isClear: true)
-                        .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+                    circleControlChrome(
+                        Image(systemName: "paintpalette")
+                            .font(.system(size: 17, weight: .medium))
+                            .foregroundStyle(themeControlTint),
+                        borderColor: themeControlBorder,
+                        shadowRadius: 4,
+                        shadowY: 2
+                    )
                 }
                 .buttonStyle(.plain)
 
@@ -216,14 +218,14 @@ struct KnowledgeCardDetailScreen: View {
                 Button {
                     dismiss()
                 } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(Color.zdAccentDeep.opacity(0.92))
-                        .frame(width: 48, height: 48)
-                        .background(Color.clear)
-                        .clipShape(Circle())
-                        .zdGlassSurface(cornerRadius: 999, lineWidth: 1.2, isClear: true)
-                        .shadow(color: .black.opacity(0.08), radius: 4, x: 0, y: 2)
+                    circleControlChrome(
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(themeControlTint),
+                        borderColor: themeControlBorder,
+                        shadowRadius: 4,
+                        shadowY: 2
+                    )
                 }
                 .buttonStyle(.plain)
             }
@@ -234,6 +236,111 @@ struct KnowledgeCardDetailScreen: View {
         .padding(.bottom, 8)
         .background(topBarBackground)
         .zIndex(4)
+    }
+
+    private var themeControlTint: Color {
+        viewModel.card.resolvedPrimary
+    }
+
+    private var themeControlBorder: Color {
+        themeControlTint.opacity(colorScheme == .dark ? 0.82 : 0.72)
+    }
+
+    private var destructiveControlTint: Color {
+        Color.red.opacity(colorScheme == .dark ? 0.95 : 0.9)
+    }
+
+    private var destructiveControlBorder: Color {
+        Color.red.opacity(colorScheme == .dark ? 0.82 : 0.72)
+    }
+
+    private var liquidGlassFillOpacity: Double {
+        colorScheme == .dark ? 0.11 : 0.16
+    }
+
+    private var liquidGlassFallbackMaterialOpacity: Double {
+        colorScheme == .dark ? 0.52 : 0.68
+    }
+
+    private var liquidGlassInnerHighlight: Color {
+        colorScheme == .dark ? Color.white.opacity(0.2) : Color.white.opacity(0.58)
+    }
+
+    private var floatingControlShadow: Color {
+        .black.opacity(colorScheme == .dark ? 0.16 : 0.08)
+    }
+
+    @ViewBuilder
+    private var liquidGlassCircleFill: some View {
+        if #available(iOS 26.0, *) {
+            Color.white
+                .opacity(liquidGlassFillOpacity)
+                .glassEffect(in: Circle())
+        } else {
+            Circle()
+                .fill(.ultraThinMaterial)
+                .opacity(liquidGlassFallbackMaterialOpacity)
+        }
+    }
+
+    @ViewBuilder
+    private var liquidGlassCapsuleFill: some View {
+        if #available(iOS 26.0, *) {
+            Color.white
+                .opacity(liquidGlassFillOpacity)
+                .glassEffect(in: Capsule())
+        } else {
+            Capsule()
+                .fill(.ultraThinMaterial)
+                .opacity(liquidGlassFallbackMaterialOpacity)
+        }
+    }
+
+    private func circleControlChrome<Content: View>(
+        _ content: Content,
+        borderColor: Color,
+        shadowRadius: CGFloat,
+        shadowY: CGFloat
+    ) -> some View {
+        content
+            .frame(width: 48, height: 48)
+            .background(liquidGlassCircleFill)
+            .clipShape(Circle())
+            .overlay {
+                Circle()
+                    .strokeBorder(liquidGlassInnerHighlight, lineWidth: 0.85)
+                    .padding(0.8)
+            }
+            .overlay {
+                Circle()
+                    .strokeBorder(borderColor, lineWidth: 1.12)
+            }
+            .shadow(color: floatingControlShadow, radius: shadowRadius, x: 0, y: shadowY)
+    }
+
+    private func capsuleControlChrome<Content: View>(
+        _ content: Content,
+        borderColor: Color,
+        minWidth: CGFloat,
+        minHeight: CGFloat,
+        shadowRadius: CGFloat,
+        shadowY: CGFloat
+    ) -> some View {
+        content
+            .frame(minWidth: minWidth, minHeight: minHeight)
+            .padding(.horizontal, 8)
+            .background(liquidGlassCapsuleFill)
+            .clipShape(Capsule())
+            .overlay {
+                Capsule()
+                    .strokeBorder(liquidGlassInnerHighlight, lineWidth: 0.85)
+                    .padding(0.8)
+            }
+            .overlay {
+                Capsule()
+                    .strokeBorder(borderColor, lineWidth: 1.1)
+            }
+            .shadow(color: floatingControlShadow, radius: shadowRadius, x: 0, y: shadowY)
     }
 
     @ViewBuilder

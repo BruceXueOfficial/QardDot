@@ -6,12 +6,14 @@ enum CardSortMode: Equatable, RawRepresentable {
     case defaultSort
     case byTag(ascending: Bool)
     case byDate(ascending: Bool)
+    case byColor
 
     var rawValue: String {
         switch self {
         case .defaultSort: return "defaultSort"
         case .byTag(let asc): return "byTag:\(asc)"
         case .byDate(let asc): return "byDate:\(asc)"
+        case .byColor: return "byColor"
         }
     }
 
@@ -22,6 +24,8 @@ enum CardSortMode: Equatable, RawRepresentable {
         }
         else if rawValue.hasPrefix("byDate:") {
             self = .byDate(ascending: rawValue.hasSuffix("true"))
+        } else if rawValue == "byColor" {
+            self = .byColor
         } else {
             return nil
         }
@@ -39,10 +43,10 @@ struct CardManagementView: View {
     @EnvironmentObject private var library: KnowledgeCardLibraryStore
     @EnvironmentObject private var graphStore: KnowledgeGraphStore
     @Environment(\.colorScheme) private var colorScheme
-    @AppStorage(ZDListRenderMode.storageKey) private var listRenderModeRawValue = ZDListRenderMode.defaultSelection.rawValue
 
     @State private var searchText = ""
     @State private var selectedCard: KnowledgeCard?
+    @State private var showProfileSheet = false
 
     @State private var isSelectionMode = false
     @State private var selectedIDs: Set<UUID> = []
@@ -55,10 +59,6 @@ struct CardManagementView: View {
         GridItem(.flexible(), spacing: 12),
         GridItem(.flexible(), spacing: 12)
     ]
-
-    private var selectedListRenderMode: ZDListRenderMode {
-        ZDListRenderMode.resolve(rawValue: listRenderModeRawValue)
-    }
 
     var body: some View {
         NavigationStack {
@@ -74,6 +74,12 @@ struct CardManagementView: View {
                 selectedIDs.removeAll()
                 deleteRequest = nil
             }
+        }
+        .sheet(isPresented: $showProfileSheet) {
+            ProfileView()
+                .presentationDetents([.large])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(30)
         }
         .sheet(item: $selectedCard) { card in
             KnowledgeCardDetailScreen(card: card)
@@ -112,6 +118,8 @@ struct CardManagementView: View {
                 tagGroupedView
             case .byDate:
                 dateGroupedView
+            case .byColor:
+                colorGroupedView
             }
         }
         .overlay(alignment: .bottom) {
@@ -119,7 +127,6 @@ struct CardManagementView: View {
                 selectionToolbar
             }
         }
-        .environment(\.zdListRenderMode, selectedListRenderMode)
         .environment(\.zdListRenderScope, .warehouse)
         .onChange(of: displayCards.map(\.id)) { _, ids in
             selectedIDs.formIntersection(Set(ids))
@@ -189,13 +196,11 @@ struct CardManagementView: View {
 
             Spacer(minLength: 16)
 
-            if warehouseMode == .cards {
-                HStack(spacing: 10) {
+            HStack(spacing: 10) {
+                if warehouseMode == .cards {
                     sortMenuButton
                     selectionButton
-                }
-            } else {
-                HStack(spacing: 10) {
+                } else {
                     ZDIconButton(
                         systemName: "plus",
                         active: false
@@ -203,6 +208,7 @@ struct CardManagementView: View {
                         NotificationCenter.default.post(name: .init("ShowGraphCreateSheet"), object: nil)
                     }
                 }
+                profileButton
             }
         }
         .padding(.top, 4)
@@ -255,6 +261,14 @@ struct CardManagementView: View {
             } label: {
                 Label("按照时间", systemImage: "clock")
             }
+
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.84)) {
+                    sortMode = .byColor
+                }
+            } label: {
+                Label("按照颜色", systemImage: sortMode == .byColor ? "checkmark" : "paintpalette")
+            }
         } label: {
             Image(systemName: "arrow.up.arrow.down")
                 .font(.system(size: 14, weight: .semibold))
@@ -280,6 +294,12 @@ struct CardManagementView: View {
                     selectedIDs.removeAll()
                 }
             }
+        }
+    }
+
+    private var profileButton: some View {
+        ZDProfileEntryButton {
+            showProfileSheet = true
         }
     }
 
@@ -325,6 +345,23 @@ struct CardManagementView: View {
             ForEach(groups, id: \.dateLabel) { group in
                 CardGroupSection(
                     title: group.dateLabel,
+                    cards: group.cards,
+                    isSelectionMode: isSelectionMode,
+                    selectedIDs: $selectedIDs,
+                    onCardTap: handleCardTap
+                )
+            }
+        }
+    }
+
+    // MARK: - Color Grouped View
+
+    private var colorGroupedView: some View {
+        let groups = cardsByColor
+        return LazyVStack(alignment: .leading, spacing: 20) {
+            ForEach(groups, id: \.colorLabel) { group in
+                CardGroupSection(
+                    title: group.colorLabel,
                     cards: group.cards,
                     isSelectionMode: isSelectionMode,
                     selectedIDs: $selectedIDs,
@@ -445,6 +482,28 @@ struct CardManagementView: View {
         }
 
         return result.map { (dateLabel: $0.dateLabel, cards: $0.cards) }
+    }
+
+    private var cardsByColor: [(colorLabel: String, cards: [KnowledgeCard])] {
+        var colorDict: [CardThemeColor: [KnowledgeCard]] = [:]
+        for card in displayCards {
+            let color = card.themeColor ?? .defaultTheme
+            colorDict[color, default: []].append(card)
+        }
+
+        var result = colorDict.map { color, cards in
+            (
+                colorLabel: "\(color.displayName)色",
+                sortKey: color.rawValue,
+                cards: cards.sorted { $0.createdAt < $1.createdAt }
+            )
+        }
+
+        result.sort { lhs, rhs in
+            lhs.sortKey.localizedLowercase < rhs.sortKey.localizedLowercase
+        }
+
+        return result.map { (colorLabel: $0.colorLabel, cards: $0.cards) }
     }
 
     // MARK: - Search Bar
@@ -815,15 +874,6 @@ struct CardTitleTile: View {
         return Color.white.opacity(colorScheme == .dark ? 0.1 : 0.46)
     }
 
-    private var punchedMetrics: (cornerRadius: CGFloat, holeSize: CGFloat, holeInset: CGFloat) {
-        let cornerRadius: CGFloat = 14
-        return (
-            cornerRadius: cornerRadius,
-            holeSize: cornerRadius * 0.6875,
-            holeInset: cornerRadius * 0.5833
-        )
-    }
-
     var body: some View {
         ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: 0) {
@@ -890,41 +940,11 @@ struct CardTitleTile: View {
             }
         }
         .frame(maxWidth: .infinity, minHeight: 100, alignment: .topLeading)
-        .background(
-            TitleCardPunchedShape(
-                cornerRadius: punchedMetrics.cornerRadius,
-                holeSize: punchedMetrics.holeSize,
-                holeInset: punchedMetrics.holeInset
-            )
-            .fill(theme.cardBackgroundGradient, style: FillStyle(eoFill: true))
+        .zdPunchedGlassBackground(
+            theme.cardBackgroundGradient,
+            metrics: ZDPunchedCardMetrics(cornerRadius: 14),
+            borderGradient: theme.cardBorderGradient
         )
-        .clipShape(RoundedRectangle(cornerRadius: punchedMetrics.cornerRadius, style: .continuous))
-        .overlay(
-            TitleCardPunchedShape(
-                cornerRadius: punchedMetrics.cornerRadius,
-                holeSize: punchedMetrics.holeSize,
-                holeInset: punchedMetrics.holeInset
-            )
-            .stroke(theme.cardBorderGradient.opacity(0.58), lineWidth: 0.78)
-        )
-        .overlay(
-            TitleCardPunchedShape(
-                cornerRadius: punchedMetrics.cornerRadius,
-                holeSize: punchedMetrics.holeSize,
-                holeInset: punchedMetrics.holeInset
-            )
-            .stroke(
-                colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.2),
-                lineWidth: 0.4
-            )
-            .padding(1)
-        )
-        .overlay(alignment: .topTrailing) {
-            KnowledgeCardPinHoleInnerShadow(size: punchedMetrics.holeSize)
-                .padding(.top, punchedMetrics.holeInset)
-                .padding(.trailing, punchedMetrics.holeInset)
-                .allowsHitTesting(false)
-        }
         .shadow(color: theme.primaryColor.opacity(0.14), radius: 8, x: 0, y: 4)
         .opacity(isSelectionMode && !isSelected ? 0.92 : 1)
     }

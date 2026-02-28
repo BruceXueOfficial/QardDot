@@ -380,41 +380,39 @@ struct KnowledgeSquareRecommendationTests {
 
 struct ListRenderModeTests {
     @Test
-    func listRenderModeFallsBackToBalancedForUnknownValue() {
-        #expect(ZDListRenderMode.resolve(rawValue: "unknown") == .balanced)
+    func listRenderModeFallsBackToDefaultForUnknownValue() {
+        #expect(ZDListRenderMode.resolve(rawValue: "unknown") == .defaultSelection)
         #expect(ZDListRenderMode.resolve(rawValue: "visual") == .visual)
+        #expect(ZDListRenderMode.resolve(rawValue: "performance") == .performance)
     }
 
     @Test
     func listRenderProfilePerformanceIntensityIsMonotonic() {
         let visual = ZDListRenderMode.visual.profile
-        let balanced = ZDListRenderMode.balanced.profile
         let performance = ZDListRenderMode.performance.profile
 
-        #expect(performance.materialStrength <= balanced.materialStrength)
-        #expect(balanced.materialStrength <= visual.materialStrength)
-        #expect(performance.blurStrength <= balanced.blurStrength)
-        #expect(balanced.blurStrength <= visual.blurStrength)
-        #expect(performance.primaryShadowStrength <= balanced.primaryShadowStrength)
-        #expect(balanced.primaryShadowStrength <= visual.primaryShadowStrength)
+        #expect(performance.materialStrength <= visual.materialStrength)
+        #expect(performance.blurStrength <= visual.blurStrength)
+        #expect(performance.primaryShadowStrength <= visual.primaryShadowStrength)
     }
 
     @Test
     func listRenderModeScopeSpecificBehaviorMatchesDesign() {
-        let balancedSquare = ZDListRenderMode.balanced.profile(for: .knowledgeSquare)
-        let balancedWarehouse = ZDListRenderMode.balanced.profile(for: .warehouse)
+        let visualSquare = ZDListRenderMode.visual.profile(for: .knowledgeSquare)
+        let visualWarehouse = ZDListRenderMode.visual.profile(for: .warehouse)
         let performanceSquare = ZDListRenderMode.performance.profile(for: .knowledgeSquare)
         let performanceWarehouse = ZDListRenderMode.performance.profile(for: .warehouse)
 
-        #expect(balancedSquare.glassQuality == .full)
-        #expect(balancedSquare.showsQuestionIcon)
-
-        #expect(balancedWarehouse.glassQuality == .off)
-        #expect(!balancedWarehouse.showsQuestionIcon)
+        #expect(visualSquare.glassQuality == .full)
+        #expect(visualSquare.showsQuestionIcon)
+        #expect(visualWarehouse.glassQuality == .full)
+        #expect(visualWarehouse.showsQuestionIcon)
 
         #expect(performanceSquare.glassQuality == .off)
-        #expect(!performanceSquare.showsQuestionIcon)
+        #expect(performanceSquare.showsQuestionIcon)
+        #expect(performanceSquare.questionPlacement == .bottomTrailing)
         #expect(performanceWarehouse.glassQuality == .off)
-        #expect(!performanceWarehouse.showsQuestionIcon)
+        #expect(performanceWarehouse.showsQuestionIcon)
+        #expect(performanceWarehouse.questionPlacement == .bottomTrailing)
     }
 }

@@ -47,13 +47,6 @@ struct AppRootTabShell: View {
                     Image(systemName: selectedTab == .manage ? "archivebox.fill" : "archivebox")
                     Text("仓库")
                 }
-
-            ProfileView()
-                .tag(AppTab.profile)
-                .tabItem {
-                    Image(systemName: selectedTab == .profile ? "person.circle.fill" : "person.circle")
-                    Text("个人")
-                }
         }
         .tint(ZDThemeTokens.default.accent.opacity(0.94))
         .toolbarBackground(.visible, for: .tabBar)

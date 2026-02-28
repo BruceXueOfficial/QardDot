@@ -125,7 +125,7 @@ struct KnowledgeCardLView: View {
     }
 
     private var palette: ZDSplitCardPalette {
-        theme.recommendationSplitPalette(in: colorScheme)
+        theme.recommendationSplitPalette(in: colorScheme, renderMode: renderProfile.mode)
     }
 
     private var questionAssetName: String {
@@ -290,4 +290,55 @@ private struct KnowledgeCardLViewPreviewGallery: View {
 #Preview("KnowledgeCard-LView Themes - Dark") {
     KnowledgeCardLViewPreviewGallery(themes: [.blue, .green, .orange, .purple])
         .preferredColorScheme(.dark)
+}
+
+#Preview("KnowledgeCard-LView Themes - 性能优先（Light）") {
+    KnowledgeCardLViewPreviewGallery(themes: [.blue, .green, .orange, .purple])
+        .preferredColorScheme(.light)
+        .environment(\.zdListRenderMode, .performance)
+}
+
+#Preview("KnowledgeCard-LView Themes - 性能优先（Dark）") {
+    KnowledgeCardLViewPreviewGallery(themes: [.blue, .green, .orange, .purple])
+        .preferredColorScheme(.dark)
+        .environment(\.zdListRenderMode, .performance)
+}
+
+private struct KnowledgeCardLViewModePreview: View {
+    let mode: ZDListRenderMode
+
+    private var sampleCard: KnowledgeCard {
+        KnowledgeCard(
+            title: "维生素 C 的作用是什么？",
+            content: "维生素 C 可参与抗氧化反应，帮助胶原蛋白合成并支持免疫功能。",
+            tags: ["健康", "营养"],
+            themeColor: .blue,
+            modules: [
+                CardBlock(
+                    kind: .text,
+                    moduleTitle: "正文",
+                    text: "维生素 C 可参与抗氧化反应，帮助胶原蛋白合成并支持免疫功能。"
+                )
+            ]
+        )
+    }
+
+    var body: some View {
+        ZStack {
+            Color.zdPageBase.ignoresSafeArea()
+            KnowledgeCardLView(card: sampleCard, viewCount: 36)
+        }
+        .padding()
+        .environment(\.zdListRenderMode, mode)
+    }
+}
+
+#Preview("KnowledgeCard-LView - 视效优先") {
+    KnowledgeCardLViewModePreview(mode: .visual)
+        .preferredColorScheme(.light)
+}
+
+#Preview("KnowledgeCard-LView - 性能优先") {
+    KnowledgeCardLViewModePreview(mode: .performance)
+        .preferredColorScheme(.light)
 }

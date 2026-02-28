@@ -31,6 +31,7 @@ enum KnowledgeCardSViewTokens {
 
 struct KnowledgeCardSView: View {
     @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.zdListRenderProfile) private var renderProfile
 
     let card: KnowledgeCard
 
@@ -39,7 +40,7 @@ struct KnowledgeCardSView: View {
     }
 
     private var palette: ZDSplitCardPalette {
-        theme.recommendationSplitPalette(in: colorScheme)
+        theme.recommendationSplitPalette(in: colorScheme, renderMode: renderProfile.mode)
     }
 
     private var questionAssetName: String {
@@ -141,4 +142,48 @@ private struct KnowledgeCardSViewPreviewPanel: View {
 #Preview("KnowledgeCard-SView - Dark") {
     KnowledgeCardSViewPreviewPanel(themes: [.blue, .green, .orange, .purple])
         .preferredColorScheme(.dark)
+}
+
+#Preview("KnowledgeCard-SView Themes - 性能优先（Light）") {
+    KnowledgeCardSViewPreviewPanel(themes: [.blue, .green, .orange, .purple])
+        .preferredColorScheme(.light)
+        .environment(\.zdListRenderMode, .performance)
+}
+
+#Preview("KnowledgeCard-SView Themes - 性能优先（Dark）") {
+    KnowledgeCardSViewPreviewPanel(themes: [.blue, .green, .orange, .purple])
+        .preferredColorScheme(.dark)
+        .environment(\.zdListRenderMode, .performance)
+}
+
+private struct KnowledgeCardSViewModePreview: View {
+    let mode: ZDListRenderMode
+
+    private var sampleCard: KnowledgeCard {
+        KnowledgeCard(
+            title: "Git 中的 Add 命令是什么？",
+            content: "git add 用于把工作区变更放入暂存区，为下一次提交做准备。",
+            tags: ["Git", "编程"],
+            themeColor: .blue
+        )
+    }
+
+    var body: some View {
+        ZStack {
+            Color.zdPageBase.ignoresSafeArea()
+            KnowledgeCardSView(card: sampleCard)
+        }
+        .padding()
+        .environment(\.zdListRenderMode, mode)
+    }
+}
+
+#Preview("KnowledgeCard-SView - 视效优先") {
+    KnowledgeCardSViewModePreview(mode: .visual)
+        .preferredColorScheme(.light)
+}
+
+#Preview("KnowledgeCard-SView - 性能优先") {
+    KnowledgeCardSViewModePreview(mode: .performance)
+        .preferredColorScheme(.light)
 }

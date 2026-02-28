@@ -2,12 +2,13 @@ import SwiftUI
 
 // MARK: - Page And Surface Containers
 
-struct ZDPageScaffold<Content: View>: View {
+struct ZDPageScaffold<Content: View, TitleTrailing: View>: View {
     let title: String?
     let bottomPadding: CGFloat
     let topInset: CGFloat
     let horizontalPadding: CGFloat
     let contentSpacing: CGFloat
+    let titleTrailing: () -> TitleTrailing
     let content: () -> Content
 
     init(
@@ -16,6 +17,7 @@ struct ZDPageScaffold<Content: View>: View {
         topInset: CGFloat = ZDMainPageLayout.contentTopInset,
         horizontalPadding: CGFloat = ZDSpacingScale.default.pageHorizontal,
         contentSpacing: CGFloat = ZDSpacingScale.default.section,
+        @ViewBuilder titleTrailing: @escaping () -> TitleTrailing,
         @ViewBuilder content: @escaping () -> Content
     ) {
         self.title = title
@@ -23,6 +25,7 @@ struct ZDPageScaffold<Content: View>: View {
         self.topInset = topInset
         self.horizontalPadding = horizontalPadding
         self.contentSpacing = contentSpacing
+        self.titleTrailing = titleTrailing
         self.content = content
     }
 
@@ -30,10 +33,14 @@ struct ZDPageScaffold<Content: View>: View {
         ScrollView {
             VStack(alignment: .leading, spacing: contentSpacing) {
                 if let title {
-                    Text(title)
-                        .font(ZDTypographyScale.default.pageTitle)
-                        .foregroundStyle(.primary)
-                        .padding(.top, 4)
+                    HStack(alignment: .center, spacing: 10) {
+                        Text(title)
+                            .font(ZDTypographyScale.default.pageTitle)
+                            .foregroundStyle(.primary)
+                        Spacer(minLength: 8)
+                        titleTrailing()
+                    }
+                    .padding(.top, 4)
                 }
 
                 content()
@@ -45,6 +52,27 @@ struct ZDPageScaffold<Content: View>: View {
         .zdPageBackground()
         .zdTopScrollBlurFade()
         .toolbar(.hidden, for: .navigationBar)
+    }
+}
+
+extension ZDPageScaffold where TitleTrailing == EmptyView {
+    init(
+        title: String? = nil,
+        bottomPadding: CGFloat = 12,
+        topInset: CGFloat = ZDMainPageLayout.contentTopInset,
+        horizontalPadding: CGFloat = ZDSpacingScale.default.pageHorizontal,
+        contentSpacing: CGFloat = ZDSpacingScale.default.section,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.init(
+            title: title,
+            bottomPadding: bottomPadding,
+            topInset: topInset,
+            horizontalPadding: horizontalPadding,
+            contentSpacing: contentSpacing,
+            titleTrailing: { EmptyView() },
+            content: content
+        )
     }
 }
 
@@ -155,6 +183,15 @@ struct ZDIconButton: View {
         active
             ? Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16)
             : .clear
+    }
+}
+
+struct ZDProfileEntryButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        ZDIconButton(systemName: "person.crop.circle", active: false, action: action)
+            .accessibilityIdentifier("app.profile.button")
     }
 }
 

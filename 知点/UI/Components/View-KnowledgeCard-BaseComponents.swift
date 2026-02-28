@@ -7,7 +7,8 @@ private enum ZDQuestionMarkStyleTokens {
     static let widthScale: CGFloat = 0.54
     static let heightScale: CGFloat = 0.78
     static let xOffsetScale: CGFloat = 0.012
-    static let yOffsetScale: CGFloat = 0.05
+    static let topYOffsetScale: CGFloat = 0.05
+    static let bottomYOffsetScale: CGFloat = -0.045
 }
 
 struct ZDCardQuestionMarkLayer: View {
@@ -17,17 +18,20 @@ struct ZDCardQuestionMarkLayer: View {
     let gradient: LinearGradient
     let canvasSize: CGSize
     let localAssetName: String?
+    let placement: ZDQuestionIconPlacement
 
     init(
         symbol: String,
         gradient: LinearGradient,
         canvasSize: CGSize,
-        localAssetName: String? = nil
+        localAssetName: String? = nil,
+        placement: ZDQuestionIconPlacement = .topTrailing
     ) {
         self.symbol = symbol
         self.gradient = gradient
         self.canvasSize = canvasSize
         self.localAssetName = localAssetName
+        self.placement = placement
     }
 
     var body: some View {
@@ -39,6 +43,10 @@ struct ZDCardQuestionMarkLayer: View {
         let baseOpacity = usesLocalAsset ? 1.0 : (colorScheme == .dark ? 0.90 : 0.80)
         let highlightOpacity = usesLocalAsset ? 0.0 : (colorScheme == .dark ? 0.22 : 0.18)
         let shadowOpacity = usesLocalAsset ? 0.18 : (colorScheme == .dark ? 0.30 : 0.14)
+        let alignment: Alignment = placement == .topTrailing ? .topTrailing : .bottomTrailing
+        let yOffsetScale = placement == .topTrailing
+            ? ZDQuestionMarkStyleTokens.topYOffsetScale
+            : ZDQuestionMarkStyleTokens.bottomYOffsetScale
 
         return baseGlyph(size: symbolSize)
             .opacity(baseOpacity)
@@ -55,10 +63,10 @@ struct ZDCardQuestionMarkLayer: View {
                         .blendMode(.screen)
                 }
             }
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: alignment)
             .offset(
                 x: canvasSize.width * ZDQuestionMarkStyleTokens.xOffsetScale,
-                y: canvasSize.height * ZDQuestionMarkStyleTokens.yOffsetScale
+                y: canvasSize.height * yOffsetScale
             )
             .allowsHitTesting(false)
     }
@@ -273,20 +281,17 @@ struct KnowledgeCardPinHoleInnerShadow: View {
     var size: CGFloat = 13
 
     var body: some View {
-        // 底部基底，确保是一个圆形区域
         Circle()
-            // 1. 设置填充色为透明，我们只需要边框阴影
             .fill(.clear)
             .frame(width: size, height: size)
             .overlay {
-                // 2. 绘制阴影层
                 Circle()
                     .stroke(
-                        Color.black.opacity(colorScheme == .dark ? 0.9 : 0.85), // 增加不透明度
-                        lineWidth: 1.95 // 3. 增加线宽，让阴影更显眼 (原来是 1.95)
+                        Color.black.opacity(colorScheme == .dark ? 0.48 : 0.38),
+                        lineWidth: min(1.4, size * 0.10)
                     )
-                    .blur(radius: 0.2) // 4. 关键：设为 0，让边缘像刀切一样硬
-                    .offset(y: 1.5)  // 5. 关键：增大偏移 (原来是 0.24)，制造深度感
+                    .blur(radius: max(0.8, size * 0.07))
+                    .offset(y: size * 0.08)
             }
             .clipShape(Circle())
     }
@@ -361,6 +366,23 @@ private struct ZDPunchedGlassSurfaceModifier: ViewModifier {
         .allowsHitTesting(false)
     }
 
+    @ViewBuilder
+    private var pinHoleInnerShadowOverlay: some View {
+        GeometryReader { proxy in
+            let holeSize = snapped(metrics.holeSize)
+            let holeInset = snapped(metrics.holeInset)
+            let originX = proxy.size.width - holeInset - holeSize
+            let originY = holeInset
+
+            KnowledgeCardPinHoleInnerShadow(size: holeSize)
+                .position(
+                    x: originX + holeSize * 0.5,
+                    y: originY + holeSize * 0.5
+                )
+        }
+        .allowsHitTesting(false)
+    }
+
     func body(content: Content) -> some View {
         content
             .mask(punchedShape.fill(style: FillStyle(eoFill: true, antialiased: false)))
@@ -383,6 +405,9 @@ private struct ZDPunchedGlassSurfaceModifier: ViewModifier {
                 transparentPinHoleCleanupOverlay
             }
             .compositingGroup()
+            .overlay {
+                pinHoleInnerShadowOverlay
+            }
     }
 }
 

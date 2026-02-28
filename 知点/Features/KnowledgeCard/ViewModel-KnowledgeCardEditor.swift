@@ -555,6 +555,8 @@ private extension KnowledgeCardViewModel {
             )
         case .link:
             return CardBlock(kind: .link, moduleTitle: defaultModuleTitle(for: .link))
+        case .formula:
+            return CardBlock(kind: .formula, moduleTitle: defaultModuleTitle(for: .formula), text: "")
         }
     }
 
@@ -687,6 +689,7 @@ private extension KnowledgeCardViewModel {
         case .image: return "图片"
         case .code: return "代码"
         case .link: return "链接"
+        case .formula: return "公式"
         }
     }
 
@@ -708,6 +711,10 @@ private extension KnowledgeCardViewModel {
             }
         case .link:
             if trimmed == "链接模块" {
+                return defaultModuleTitle(for: kind)
+            }
+        case .formula:
+            if trimmed == "公式模块" {
                 return defaultModuleTitle(for: kind)
             }
         }
