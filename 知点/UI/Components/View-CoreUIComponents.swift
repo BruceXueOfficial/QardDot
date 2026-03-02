@@ -339,7 +339,7 @@ struct ZDFloatingActionBar<Content: View>: View {
         HStack(spacing: 12) {
             content()
         }
-        .padding(.horizontal, 6)
+        .padding(.horizontal, 8)
         .padding(.vertical, 8)
         .frame(maxWidth: .infinity)
         .zdSurfaceCardStyle(.elevated, cornerRadius: 32, lineWidth: 1.05)

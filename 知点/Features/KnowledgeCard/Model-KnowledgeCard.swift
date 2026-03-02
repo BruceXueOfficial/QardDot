@@ -193,6 +193,34 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
         }
     }
 
+    // 标签折叠视图顶部：左侧折叠块主色（更深）
+    var tagFolderTopDeepColor: Color {
+        switch self {
+        case .blue:
+            Self.dynamicColor(lightHex: 0x168DE8, darkHex: 0x245D9B)
+        case .green:
+            Self.dynamicColor(lightHex: 0x2AA87C, darkHex: 0x2D7A60)
+        case .orange:
+            Self.dynamicColor(lightHex: 0xE28E3D, darkHex: 0x955D2C)
+        case .purple:
+            Self.dynamicColor(lightHex: 0x7469DA, darkHex: 0x5844A2)
+        }
+    }
+
+    // 标签折叠视图顶部：右侧背景块主色（更浅）
+    var tagFolderTopLightColor: Color {
+        switch self {
+        case .blue:
+            Self.dynamicColor(lightHex: 0x9CCFE8, darkHex: 0x5C79A3)
+        case .green:
+            Self.dynamicColor(lightHex: 0xA8DDCA, darkHex: 0x4F7A6A)
+        case .orange:
+            Self.dynamicColor(lightHex: 0xF1CFAB, darkHex: 0x8A6A4D)
+        case .purple:
+            Self.dynamicColor(lightHex: 0xC9C1F4, darkHex: 0x6F62A7)
+        }
+    }
+
     var gradient: LinearGradient {
         LinearGradient(
             colors: [primaryColor, secondaryColor],

@@ -40,8 +40,7 @@ struct AddCardHubView: View {
                 AddEntryCard(
                     icon: "sparkles",
                     title: "智能对话",
-                    subtitle: "AI 辅助生成知识卡片",
-                    badge: "即将上线"
+                    subtitle: "AI 辅助生成知识卡片"
                 ) {
                     showSmartChat = true
                 }
@@ -72,7 +71,7 @@ struct AddCardHubView: View {
                 .environmentObject(library)
         }
         .sheet(isPresented: $showSmartChat) {
-            SmartChatPlaceholderView()
+            AiChatPage()
         }
         .sheet(isPresented: $showCreateGraph) {
             GraphCreationSheet { graphID in

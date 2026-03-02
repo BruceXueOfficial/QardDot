@@ -440,6 +440,12 @@ struct NotionLikeTextEditor: UIViewRepresentable {
     }
 
     private final class MarkdownTextView: UITextView {
+        override func layoutSubviews() {
+            super.layoutSubviews()
+            // Quote bar geometry depends on current line wrapping width.
+            setNeedsDisplay()
+        }
+
         override func caretRect(for position: UITextPosition) -> CGRect {
             var rect = super.caretRect(for: position)
 
@@ -540,6 +546,50 @@ struct NotionLikeTextEditor: UIViewRepresentable {
                 quoteSegments.append((top: top, bottom: bottom))
             }
 
+            func lineHasQuoteStyle(_ rawLineRange: NSRange) -> Bool {
+                guard rawLineRange.length > 0 else {
+                    return false
+                }
+
+                var hasMarker = false
+                storage.enumerateAttribute(
+                    NotionLikeTextEditor.quoteMarkerAttribute,
+                    in: rawLineRange
+                ) { value, _, stop in
+                    if (value as? Bool) == true {
+                        hasMarker = true
+                        stop.pointee = true
+                    }
+                }
+                if hasMarker {
+                    return true
+                }
+
+                var location = rawLineRange.location
+                let upperBound = rawLineRange.location + rawLineRange.length
+                while location < upperBound {
+                    var effective = NSRange(location: 0, length: 0)
+                    let paragraph = storage.attribute(
+                        .paragraphStyle,
+                        at: location,
+                        effectiveRange: &effective
+                    ) as? NSParagraphStyle
+                    let firstIndent = paragraph?.firstLineHeadIndent ?? 0
+                    let headIndent = paragraph?.headIndent ?? 0
+                    if firstIndent >= 9, headIndent >= 9 {
+                        return true
+                    }
+                    let next = effective.location + effective.length
+                    if next <= location {
+                        location += 1
+                    } else {
+                        location = next
+                    }
+                }
+
+                return false
+            }
+
             var location = 0
 
             while location < nsString.length {
@@ -549,24 +599,27 @@ struct NotionLikeTextEditor: UIViewRepresentable {
                 guard rawLineRange.length > 0 else {
                     continue
                 }
-                let probe = rawLineRange.location
-                let isQuoteLine = (storage.attribute(
-                    NotionLikeTextEditor.quoteMarkerAttribute,
-                    at: probe,
-                    effectiveRange: nil
-                ) as? Bool) == true
+                let isQuoteLine = lineHasQuoteStyle(rawLineRange)
                 guard isQuoteLine else {
                     continue
                 }
 
-                let glyphRange = layoutManager.glyphRange(forCharacterRange: rawLineRange, actualCharacterRange: nil)
+                layoutManager.ensureLayout(forCharacterRange: rawLineRange)
+                let glyphRange = layoutManager.glyphRange(
+                    forCharacterRange: rawLineRange,
+                    actualCharacterRange: nil
+                )
                 guard glyphRange.length > 0 else {
                     continue
                 }
-                let usedRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
-                let top = textContainerInset.top + usedRect.minY + 1
-                let bottom = top + max(usedRect.height - 2, 12)
-                appendQuoteSegment(top: top, bottom: bottom)
+
+                layoutManager.enumerateLineFragments(
+                    forGlyphRange: glyphRange
+                ) { _, usedRect, _, _, _ in
+                    let top = self.textContainerInset.top + usedRect.minY + 1
+                    let bottom = self.textContainerInset.top + usedRect.maxY - 1
+                    appendQuoteSegment(top: top, bottom: bottom)
+                }
             }
 
             // 当前为空引用行时（还未输入内容），也即时绘制灰色引用条。
@@ -1949,7 +2002,12 @@ struct NotionLikeTextEditor: UIViewRepresentable {
                 )
                 let content = (storage.string as NSString).substring(with: contentRange)
 
-                let replacement = NSAttributedString(string: content, attributes: attributes)
+                let mergedAttributes = mergedInlineAttributes(
+                    in: storage,
+                    at: contentRange.location,
+                    inlineAttributes: attributes
+                )
+                let replacement = NSAttributedString(string: content, attributes: mergedAttributes)
                 storage.replaceCharacters(in: fullRange, with: replacement)
 
                 cursor = adjustCursorAfterReplacement(
@@ -1958,6 +2016,39 @@ struct NotionLikeTextEditor: UIViewRepresentable {
                     replacementLength: replacement.length
                 )
             }
+        }
+
+        private func mergedInlineAttributes(
+            in storage: NSTextStorage,
+            at location: Int,
+            inlineAttributes: [NSAttributedString.Key: Any]
+        ) -> [NSAttributedString.Key: Any] {
+            guard storage.length > 0 else {
+                return inlineAttributes
+            }
+
+            let probe = max(0, min(location, storage.length - 1))
+            var merged = inlineAttributes
+
+            if let paragraph = storage.attribute(.paragraphStyle, at: probe, effectiveRange: nil) {
+                merged[.paragraphStyle] = paragraph
+            }
+            if let quoteMarker = storage.attribute(
+                NotionLikeTextEditor.quoteMarkerAttribute,
+                at: probe,
+                effectiveRange: nil
+            ) {
+                merged[NotionLikeTextEditor.quoteMarkerAttribute] = quoteMarker
+            }
+            if let tableMarker = storage.attribute(
+                NotionLikeTextEditor.tableLineAttribute,
+                at: probe,
+                effectiveRange: nil
+            ) {
+                merged[NotionLikeTextEditor.tableLineAttribute] = tableMarker
+            }
+
+            return merged
         }
 
         // 基于当前光标定位当前行，保证前缀渲染只影响本行。
@@ -3219,7 +3310,11 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
             customClass.wrapLines = wrapLines
         }
         context.coordinator.parent = self
-        context.coordinator.configureWrapBehavior(for: uiView, wrapLines: wrapLines)
+        let wrapChanged = context.coordinator.configureWrapBehavior(for: uiView, wrapLines: wrapLines)
+        if wrapChanged {
+            context.coordinator.applyHighlight(in: uiView, preservingSelection: false)
+            context.coordinator.forceLayoutRefresh(in: uiView)
+        }
         context.coordinator.syncTextIfNeeded(in: uiView)
         uiView.isEditable = true
         uiView.isSelectable = true
@@ -3265,6 +3360,7 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
         private var isApplyingProgrammaticChange = false
         private var lastReportedHeight: CGFloat = 0
         private var lastHeightCappedState = false
+        private var lastWrapLinesState: Bool?
 
         init(parent: InlineHighlightedCodeEditor) {
             self.parent = parent
@@ -3308,7 +3404,9 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
             reportContentHeight(for: textView)
         }
 
-        func configureWrapBehavior(for textView: UITextView, wrapLines: Bool) {
+        @discardableResult
+        func configureWrapBehavior(for textView: UITextView, wrapLines: Bool) -> Bool {
+            let didWrapModeChange = lastWrapLinesState != wrapLines
             textView.alwaysBounceVertical = parent.isHeightCapped
             textView.showsVerticalScrollIndicator = parent.isHeightCapped
 
@@ -3320,24 +3418,36 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
                 textView.showsHorizontalScrollIndicator = false
                 textView.alwaysBounceHorizontal = false
                 textView.isDirectionalLockEnabled = false
+                textView.setContentOffset(CGPoint(x: 0, y: textView.contentOffset.y), animated: false)
             } else {
                 textView.isScrollEnabled = true
+                let minimumContainerWidth = max(textView.bounds.width, 320)
+                if textView.textContainer.widthTracksTextView
+                    || textView.textContainer.size.width < minimumContainerWidth {
+                    textView.textContainer.size = CGSize(
+                        width: minimumContainerWidth,
+                        height: CGFloat.greatestFiniteMagnitude
+                    )
+                }
                 textView.textContainer.widthTracksTextView = false
                 textView.textContainer.lineBreakMode = .byClipping
-                let maxLen: CGFloat = 100000
-                textView.textContainer.size = CGSize(
-                    width: maxLen,
-                    height: maxLen
-                )
                 textView.showsHorizontalScrollIndicator = true
-                textView.alwaysBounceHorizontal = false
+                textView.alwaysBounceHorizontal = true
                 textView.isDirectionalLockEnabled = false
+                if didWrapModeChange {
+                    textView.setContentOffset(CGPoint(x: 0, y: textView.contentOffset.y), animated: false)
+                }
+            }
+            if let layoutAwareTextView = textView as? LayoutAwareTextView {
+                layoutAwareTextView.refreshHorizontalOverflowMetricsIfNeeded()
             }
 
             if parent.isHeightCapped && !lastHeightCappedState {
                 textView.setContentOffset(.zero, animated: false)
             }
             lastHeightCappedState = parent.isHeightCapped
+            lastWrapLinesState = wrapLines
+            return didWrapModeChange
         }
 
         func syncTextIfNeeded(in textView: UITextView) {
@@ -3366,9 +3476,37 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
                 )
                 textView.selectedRange = bounded
             } else {
-                textView.selectedRange = NSRange(location: highlighted.length, length: 0)
+                let targetLocation: Int
+                if textView.isFirstResponder {
+                    // Keep editing behaviour: move caret to the latest text tail.
+                    targetLocation = highlighted.length
+                } else {
+                    // In view mode, always reset to the head to avoid stale selection offsets.
+                    targetLocation = 0
+                }
+                textView.selectedRange = NSRange(location: targetLocation, length: 0)
             }
             isApplyingProgrammaticChange = false
+            if let layoutAwareTextView = textView as? LayoutAwareTextView {
+                layoutAwareTextView.refreshHorizontalOverflowMetricsIfNeeded()
+            }
+            if !parent.wrapLines, !textView.isFirstResponder, !preservingSelection {
+                textView.setContentOffset(CGPoint(x: 0, y: textView.contentOffset.y), animated: false)
+            }
+            if parent.wrapLines, !textView.isFirstResponder {
+                textView.setContentOffset(CGPoint(x: 0, y: textView.contentOffset.y), animated: false)
+            }
+        }
+
+        func forceLayoutRefresh(in textView: UITextView) {
+            let fullRange = NSRange(location: 0, length: textView.textStorage.length)
+            textView.layoutManager.invalidateLayout(forCharacterRange: fullRange, actualCharacterRange: nil)
+            textView.layoutManager.ensureLayout(for: textView.textContainer)
+            textView.setNeedsLayout()
+            textView.layoutIfNeeded()
+            if let layoutAwareTextView = textView as? LayoutAwareTextView {
+                layoutAwareTextView.refreshHorizontalOverflowMetricsIfNeeded()
+            }
         }
 
         func reportContentHeight(for textView: UITextView) {
@@ -3405,6 +3543,7 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
 private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate {
     var onLayout: (() -> Void)?
     var wrapLines: Bool = true
+    private weak var prioritisedAncestorScrollView: UIScrollView?
 
     override init(frame: CGRect, textContainer: NSTextContainer?) {
         super.init(frame: frame, textContainer: textContainer)
@@ -3479,38 +3618,79 @@ private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate
     }
 
     override func layoutSubviews() {
-        if !wrapLines {
-            textContainer.size = CGSize(width: 100_000, height: 100_000)
-        }
         super.layoutSubviews()
         onLayout?()
+        refreshHorizontalOverflowMetricsIfNeeded()
+    }
 
-        // Keep horizontal scroll metrics in sync so long lines are really reachable.
-        if !wrapLines {
-            let fullCharacterRange = NSRange(location: 0, length: textStorage.length)
-            layoutManager.ensureLayout(forCharacterRange: fullCharacterRange)
-            let glyphRange = layoutManager.glyphRange(
-                forCharacterRange: fullCharacterRange,
-                actualCharacterRange: nil
-            )
-            let usedRect = layoutManager.boundingRect(forGlyphRange: glyphRange, in: textContainer)
-            let requiredWidth = ceil(usedRect.width + textContainerInset.left + textContainerInset.right + 2)
-            let requiredHeight = ceil(usedRect.height + textContainerInset.top + textContainerInset.bottom)
-            let targetSize = CGSize(
-                width: max(bounds.width, requiredWidth),
-                height: max(bounds.height, requiredHeight)
-            )
-            if abs(contentSize.width - targetSize.width) > 1 || abs(contentSize.height - targetSize.height) > 1 {
-                contentSize = targetSize
-            }
-
-            let hasHorizontalOverflow = contentSize.width > bounds.width + 0.5
-            showsHorizontalScrollIndicator = hasHorizontalOverflow
-            alwaysBounceHorizontal = hasHorizontalOverflow
-            if !hasHorizontalOverflow, contentOffset.x != 0 {
-                setContentOffset(CGPoint(x: 0, y: contentOffset.y), animated: false)
-            }
+    func refreshHorizontalOverflowMetricsIfNeeded() {
+        guard !wrapLines else {
+            showsHorizontalScrollIndicator = false
+            alwaysBounceHorizontal = false
+            return
         }
+
+        let targetContainerWidth = preferredContainerWidthForNoWrap()
+        if abs(textContainer.size.width - targetContainerWidth) > 1 {
+            textContainer.size = CGSize(
+                width: targetContainerWidth,
+                height: CGFloat.greatestFiniteMagnitude
+            )
+
+            let fullRange = NSRange(location: 0, length: textStorage.length)
+            layoutManager.invalidateLayout(forCharacterRange: fullRange, actualCharacterRange: nil)
+            layoutManager.ensureLayout(forCharacterRange: fullRange)
+        }
+
+        let hasHorizontalOverflow = contentSize.width > bounds.width + 0.5
+        showsHorizontalScrollIndicator = hasHorizontalOverflow
+        alwaysBounceHorizontal = hasHorizontalOverflow
+        if hasHorizontalOverflow {
+            prioritiseHorizontalPanAgainstAncestorScrollViewIfNeeded()
+        } else if contentOffset.x != 0 {
+            setContentOffset(CGPoint(x: 0, y: contentOffset.y), animated: false)
+        }
+    }
+
+    private func preferredContainerWidthForNoWrap() -> CGFloat {
+        let minimumWidth = max(bounds.width, 320)
+        let maximumWidth: CGFloat = 12_000
+        let horizontalSlack: CGFloat = 80
+        let currentFont = font ?? BasicCodeHighlighter.editorBaseFont
+
+        let nsText = textStorage.string as NSString
+        guard nsText.length > 0 else { return minimumWidth }
+
+        var widestLineWidth: CGFloat = 0
+        nsText.enumerateSubstrings(
+            in: NSRange(location: 0, length: nsText.length),
+            options: [.byLines, .substringNotRequired]
+        ) { _, lineRange, _, _ in
+            let line = nsText.substring(with: lineRange) as NSString
+            let lineWidth = ceil(line.size(withAttributes: [.font: currentFont]).width)
+            widestLineWidth = max(widestLineWidth, lineWidth)
+        }
+
+        let target = widestLineWidth + horizontalSlack
+        return min(max(minimumWidth, target), maximumWidth)
+    }
+
+    private func prioritiseHorizontalPanAgainstAncestorScrollViewIfNeeded() {
+        guard let ancestorScrollView = nearestAncestorScrollView() else { return }
+        guard ancestorScrollView !== prioritisedAncestorScrollView else { return }
+        ancestorScrollView.panGestureRecognizer.require(toFail: panGestureRecognizer)
+        prioritisedAncestorScrollView = ancestorScrollView
+    }
+
+    private func nearestAncestorScrollView() -> UIScrollView? {
+        var current = superview
+        while let view = current {
+            if let scrollView = view as? UIScrollView, scrollView !== self {
+                return scrollView
+            }
+            current = view.superview
+        }
+        return nil
     }
 }
 

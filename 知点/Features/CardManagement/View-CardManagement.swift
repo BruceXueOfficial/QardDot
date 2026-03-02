@@ -386,7 +386,7 @@ struct CardManagementView: View {
                     selectedIDs = visibleIDs
                 }
             }
-            .frame(width: actionButtonWidth)
+            .frame(width: actionButtonWidth, alignment: .leading)
 
             Text("已选 \(selectedIDs.count)")
                 .font(.subheadline.weight(.semibold))
@@ -396,7 +396,7 @@ struct CardManagementView: View {
             ZDPrimaryButton(text: "删除", isDisabled: selectedIDs.isEmpty, fullWidth: false) {
                 requestDelete(ids: selectedIDs, title: nil)
             }
-            .frame(width: actionButtonWidth)
+            .frame(width: actionButtonWidth, alignment: .trailing)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
@@ -771,7 +771,7 @@ struct FilteredCardsView: View {
                     selectedIDs = visibleIDs
                 }
             }
-            .frame(width: actionButtonWidth)
+            .frame(width: actionButtonWidth, alignment: .leading)
 
             Text("已选 \(selectedIDs.count)")
                 .font(.subheadline.weight(.semibold))
@@ -781,7 +781,7 @@ struct FilteredCardsView: View {
             ZDPrimaryButton(text: "删除", isDisabled: selectedIDs.isEmpty, fullWidth: false) {
                 requestDelete(ids: selectedIDs)
             }
-            .frame(width: actionButtonWidth)
+            .frame(width: actionButtonWidth, alignment: .trailing)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)

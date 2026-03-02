@@ -254,7 +254,7 @@ struct CardLinkPickerSheet: View {
             ZDSecondaryButton(text: "取消", fullWidth: false) {
                 dismiss()
             }
-            .frame(width: actionButtonWidth)
+            .frame(width: actionButtonWidth, alignment: .leading)
 
             Text("已选卡片 \(selectedIDs.count)")
                 .font(.subheadline.weight(.semibold))
@@ -265,7 +265,7 @@ struct CardLinkPickerSheet: View {
                 onLink(selectedIDs)
                 dismiss()
             }
-            .frame(width: actionButtonWidth)
+            .frame(width: actionButtonWidth, alignment: .trailing)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)

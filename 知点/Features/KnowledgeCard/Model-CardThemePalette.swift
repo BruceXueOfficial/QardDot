@@ -1,7 +1,22 @@
 import SwiftUI
 
+struct ZDTagFolderTopPalette: Equatable {
+    let deepBlock: Color
+    let lightBand: Color
+    let foldHighlight: Color
+    let divider: Color
+}
 
 extension CardThemeColor {
+    var tagFolderTopPalette: ZDTagFolderTopPalette {
+        ZDTagFolderTopPalette(
+            deepBlock: tagFolderTopDeepColor,
+            lightBand: tagFolderTopLightColor,
+            foldHighlight: tagFolderTopLightColor.opacity(0.42),
+            divider: tagFolderTopDeepColor.opacity(0.32)
+        )
+    }
+
     var recommendationQuestionAssetName: String {
         switch self {
         case .blue:
