@@ -259,6 +259,8 @@ struct TitleCardPunchedShape: Shape {
     let cornerRadius: CGFloat
     let holeSize: CGFloat
     let holeInset: CGFloat
+    var holeOffsetX: CGFloat = 0
+    var holeOffsetY: CGFloat = 0
 
     func path(in rect: CGRect) -> Path {
         var path = Path()
@@ -267,8 +269,8 @@ struct TitleCardPunchedShape: Shape {
             cornerSize: CGSize(width: cornerRadius, height: cornerRadius)
         )
 
-        let holeOriginX = rect.maxX - holeInset - holeSize
-        let holeOriginY = rect.minY + holeInset
+        let holeOriginX = rect.maxX - holeInset - holeSize + holeOffsetX
+        let holeOriginY = rect.minY + holeInset + holeOffsetY
         let holeRect = CGRect(x: holeOriginX, y: holeOriginY, width: holeSize, height: holeSize)
         path.addEllipse(in: holeRect)
         return path
@@ -301,11 +303,15 @@ struct ZDPunchedCardMetrics: Equatable {
     let cornerRadius: CGFloat
     let holeSize: CGFloat
     let holeInset: CGFloat
+    var holeOffsetX: CGFloat = 0
+    var holeOffsetY: CGFloat = 0
 
-    init(cornerRadius: CGFloat, holeScale: CGFloat = 1.0) {
+    init(cornerRadius: CGFloat, holeScale: CGFloat = 1.0, holeOffsetX: CGFloat = 0, holeOffsetY: CGFloat = 0) {
         self.cornerRadius = cornerRadius
         self.holeSize = max(5.4, cornerRadius * 0.6875 * holeScale)
         self.holeInset = max(4.4, cornerRadius * 0.5833 * holeScale)
+        self.holeOffsetX = holeOffsetX
+        self.holeOffsetY = holeOffsetY
     }
 }
 
@@ -333,7 +339,9 @@ private struct ZDPunchedGlassSurfaceModifier: ViewModifier {
         TitleCardPunchedShape(
             cornerRadius: metrics.cornerRadius,
             holeSize: snapped(metrics.holeSize),
-            holeInset: snapped(metrics.holeInset)
+            holeInset: snapped(metrics.holeInset),
+            holeOffsetX: snapped(metrics.holeOffsetX),
+            holeOffsetY: snapped(metrics.holeOffsetY)
         )
     }
 
@@ -351,8 +359,8 @@ private struct ZDPunchedGlassSurfaceModifier: ViewModifier {
         GeometryReader { proxy in
             let holeSize = snapped(metrics.holeSize)
             let holeInset = snapped(metrics.holeInset)
-            let centerX = proxy.size.width - holeInset - holeSize * 0.5
-            let centerY = holeInset + holeSize * 0.5
+            let centerX = proxy.size.width - holeInset - holeSize * 0.5 + snapped(metrics.holeOffsetX)
+            let centerY = holeInset + holeSize * 0.5 + snapped(metrics.holeOffsetY)
 
             Circle()
                 .fill(Color.black)
@@ -371,8 +379,8 @@ private struct ZDPunchedGlassSurfaceModifier: ViewModifier {
         GeometryReader { proxy in
             let holeSize = snapped(metrics.holeSize)
             let holeInset = snapped(metrics.holeInset)
-            let originX = proxy.size.width - holeInset - holeSize
-            let originY = holeInset
+            let originX = proxy.size.width - holeInset - holeSize + snapped(metrics.holeOffsetX)
+            let originY = holeInset + snapped(metrics.holeOffsetY)
 
             KnowledgeCardPinHoleInnerShadow(size: holeSize)
                 .position(

@@ -96,9 +96,9 @@ struct AddCardHubView: View {
         .onReceive(NotificationCenter.default.publisher(for: .init("AddTabDoubleTapped"))) { _ in
             // Double tapping 'Add' tab directly launches the AI import (smart chat) page
             showManualCreation = false
-            showSmartChat = false
+            showImportCard = false
             showCreateGraph = false
-            showImportCard = true
+            showSmartChat = true
         }
     }
 

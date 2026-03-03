@@ -135,6 +135,9 @@ struct KnowledgeCardDetailScreen: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             keyboardIsVisible = false
         }
+        .onAppear {
+            library.recordView(for: viewModel.card)
+        }
         .onDisappear {
             library.updateCard(viewModel.card)
             undoDeleteStack.removeAll()

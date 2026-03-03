@@ -6,9 +6,12 @@ final class KnowledgeCardLibraryStore: ObservableObject {
     @Published private(set) var cards: [KnowledgeCard]
     @Published private(set) var viewCounts: [UUID: Int]
     @Published private(set) var lastViewedAt: [UUID: Date]
+    @Published private(set) var tagColors: [String: CardThemeColor]
 
     private static let cardsFileName = "knowledge_cards.json"
     private static let viewCountsFileName = "view_counts.json"
+    private static let tagColorsFileName = "tag_colors.json"
+    private static let lastViewedFileName = "last_viewed.json"
     private static let bundledSeedVersionKey = "knowledge_card_bundled_seed_version"
     private static let bundledSeedVersion = "2026-02-formula-structured-v5"
 
@@ -22,6 +25,7 @@ final class KnowledgeCardLibraryStore: ObservableObject {
             self.cards = cards
             self.viewCounts = [:]
             self.lastViewedAt = [:]
+            self.tagColors = [:]
             for (index, card) in cards.enumerated() {
                 let seeded = [36, 25, 18, 14, 12, 8, 4, 2]
                 viewCounts[card.id] = seeded[safe: index] ?? max(1, 10 - index)
@@ -34,13 +38,15 @@ final class KnowledgeCardLibraryStore: ObservableObject {
            !loaded.isEmpty {
             self.cards = loaded
             self.viewCounts = Self.loadViewCountsFromDisk() ?? [:]
-            self.lastViewedAt = [:]
+            self.lastViewedAt = Self.loadLastViewedFromDisk() ?? [:]
+            self.tagColors = Self.loadTagColorsFromDisk() ?? [:]
         } else {
             // 首次安装：使用内置种子数据
             let seed = KnowledgeCardLibrarySeed.makeCards()
             self.cards = seed
             self.viewCounts = [:]
             self.lastViewedAt = [:]
+            self.tagColors = [:]
             for (index, card) in seed.enumerated() {
                 let seeded = [36, 25, 18, 14, 12, 8, 4, 2, 6, 5, 4, 3, 2, 1, 1, 1, 1, 1, 1]
                 viewCounts[card.id] = seeded[safe: index] ?? max(1, 20 - index)
@@ -58,6 +64,17 @@ final class KnowledgeCardLibraryStore: ObservableObject {
         viewCounts[card.id] = current + 1
         lastViewedAt[card.id] = Date()
         saveToDisk()
+    }
+
+    func updateTagColor(tag: String, color: CardThemeColor) {
+        let key = tag.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        tagColors[key] = color
+        saveToDisk()
+    }
+    
+    func tagColor(for tag: String) -> CardThemeColor {
+        let key = tag.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return tagColors[key] ?? .defaultTheme
     }
 
     func recordView(forCardID id: UUID) {
@@ -108,6 +125,21 @@ final class KnowledgeCardLibraryStore: ObservableObject {
                     return lhs.updatedAt > rhs.updatedAt
                 }
                 return lhs.createdAt > rhs.createdAt
+            }
+            .prefix(limit)
+            .map { $0 }
+    }
+
+    func recentlyViewed(limit: Int) -> [KnowledgeCard] {
+        cards
+            .filter { lastViewedAt[$0.id] != nil }
+            .sorted { lhs, rhs in
+                let lhsDate = lastViewedAt[lhs.id] ?? Date.distantPast
+                let rhsDate = lastViewedAt[rhs.id] ?? Date.distantPast
+                if lhsDate == rhsDate {
+                    return lhs.updatedAt > rhs.updatedAt
+                }
+                return lhsDate > rhsDate
             }
             .prefix(limit)
             .map { $0 }
@@ -499,6 +531,21 @@ final class KnowledgeCardLibraryStore: ObservableObject {
             let url = Self.documentsDirectory.appendingPathComponent(Self.viewCountsFileName)
             try? data.write(to: url, options: .atomic)
         }
+
+        // 保存标签颜色
+        if let data = try? encoder.encode(tagColors) {
+            let url = Self.documentsDirectory.appendingPathComponent(Self.tagColorsFileName)
+            try? data.write(to: url, options: .atomic)
+        }
+
+        // 保存最近查看记录
+        let lastViewedDict = lastViewedAt.reduce(into: [String: Date]()) { result, pair in
+            result[pair.key.uuidString] = pair.value
+        }
+        if let data = try? encoder.encode(lastViewedDict) {
+            let url = Self.documentsDirectory.appendingPathComponent(Self.lastViewedFileName)
+            try? data.write(to: url, options: .atomic)
+        }
     }
 
     private static func loadCardsFromDisk() -> [KnowledgeCard]? {
@@ -514,6 +561,25 @@ final class KnowledgeCardLibraryStore: ObservableObject {
         guard let data = try? Data(contentsOf: url) else { return nil }
         guard let dict = try? JSONDecoder().decode([String: Int].self, from: data) else { return nil }
         return dict.reduce(into: [UUID: Int]()) { result, pair in
+            if let uuid = UUID(uuidString: pair.key) {
+                result[uuid] = pair.value
+            }
+        }
+    }
+
+    private static func loadTagColorsFromDisk() -> [String: CardThemeColor]? {
+        let url = documentsDirectory.appendingPathComponent(tagColorsFileName)
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        return try? JSONDecoder().decode([String: CardThemeColor].self, from: data)
+    }
+
+    private static func loadLastViewedFromDisk() -> [UUID: Date]? {
+        let url = documentsDirectory.appendingPathComponent(lastViewedFileName)
+        guard let data = try? Data(contentsOf: url) else { return nil }
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        guard let dict = try? decoder.decode([String: Date].self, from: data) else { return nil }
+        return dict.reduce(into: [UUID: Date]()) { result, pair in
             if let uuid = UUID(uuidString: pair.key) {
                 result[uuid] = pair.value
             }

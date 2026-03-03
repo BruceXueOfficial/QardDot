@@ -1,8 +1,11 @@
 import SwiftUI
 
-// MARK: - Theme Picker
-struct CardThemeColorPicker: View {
-    @ObservedObject var viewModel: KnowledgeCardViewModel
+// MARK: - Tag Folder Theme Picker
+struct TagFolderThemeColorPicker: View {
+    let tagFolderModel: ZDTagCollectionFolderModel
+    let currentTheme: CardThemeColor
+    let onThemeSelected: (CardThemeColor) -> Void
+
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
 
@@ -17,16 +20,16 @@ struct CardThemeColorPicker: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 24) {
-                    // Preview card
-                    previewMiniCard
-                        .padding(.top, 8)
+                    // Preview Folder
+                    previewFolderCard
+                        .padding(.top, 16)
 
                     // Color grid
                     LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(CardThemeColor.allCases) { color in
                             Button {
                                 withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                                    viewModel.updateThemeColor(color)
+                                    onThemeSelected(color)
                                 }
                             } label: {
                                 colorCircle(color)
@@ -40,7 +43,7 @@ struct CardThemeColorPicker: View {
                 .padding(.top, 16)
             }
             .background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("自定义样式")
+            .navigationTitle("标签样式")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
@@ -54,18 +57,20 @@ struct CardThemeColorPicker: View {
         .presentationDetents([.medium, .large])
     }
 
-    private var previewMiniCard: some View {
+    private var previewFolderCard: some View {
         HStack {
             Spacer()
-            KnowledgeCardSView(card: viewModel.card)
-                .frame(width: 170)
+            ZDTagCollectionFolderStyleCard(
+                model: tagFolderModel,
+                theme: currentTheme
+            )
             Spacer()
         }
     }
 
     @ViewBuilder
     private func colorCircle(_ color: CardThemeColor) -> some View {
-        let isSelected = (viewModel.card.themeColor ?? .defaultTheme) == color
+        let isSelected = currentTheme == color
         VStack(spacing: 6) {
             ZStack {
                 Circle()
@@ -91,7 +96,10 @@ struct CardThemeColorPicker: View {
     }
 }
 
-#Preview("KnowledgeCard Detail Screen - Theme Entry") {
-    let previewCard = KnowledgeCard.previewShort
-    KnowledgeCardDetailDrawerPreviewHost(card: previewCard)
+#Preview("Tag Folder Theme Picker") {
+    TagFolderThemeColorPicker(
+        tagFolderModel: .demo,
+        currentTheme: .defaultTheme,
+        onThemeSelected: { _ in }
+    )
 }

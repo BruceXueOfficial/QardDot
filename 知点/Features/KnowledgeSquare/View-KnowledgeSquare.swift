@@ -48,6 +48,12 @@ struct KnowledgeSquareView: View {
     @State private var bannerViewportWidth: CGFloat = 0
     @State private var recentContentFrame: CGRect = .zero
     @State private var recentViewportWidth: CGFloat = 0
+    @State private var recentlyViewedCardMeasuredHeight: CGFloat = 110 + 38
+    @State private var recentlyViewedContentFrame: CGRect = .zero
+    @State private var recentlyViewedViewportWidth: CGFloat = 0
+    @State private var tagCollectionCardMeasuredHeight: CGFloat = KnowledgeCardMViewTokens.surfaceSize.height + 10
+    @State private var tagCollectionContentFrame: CGRect = .zero
+    @State private var tagCollectionViewportWidth: CGFloat = 0
     @State private var imageTruthContentFrame: CGRect = .zero
     @State private var imageTruthViewportWidth: CGFloat = 0
 
@@ -72,6 +78,8 @@ struct KnowledgeSquareView: View {
             ) {
                 bannerSection
                 recentSection
+                recentlyViewedSection
+                tagCollectionSection
                 imageTruthSection
                 popularSection
                 yesterdaySection
@@ -327,6 +335,299 @@ struct KnowledgeSquareView: View {
             }
             .scrollClipDisabled()
             .frame(height: frameHeight)
+        }
+    }
+
+    @ViewBuilder
+    private var recentlyViewedSection: some View {
+        let cards = library.recentlyViewed(limit: 6)
+        if !cards.isEmpty {
+            let frameHeight = horizontalSectionFrameHeight(for: recentlyViewedCardMeasuredHeight)
+
+            VStack(alignment: .leading, spacing: KnowledgeSquareSpacing.moduleHeaderToContent) {
+                ZDSectionHeader("最近查看")
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    if renderProfile.tracksEdgeFade {
+                        HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
+                            ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
+                                Button {
+                                    openCard(card)
+                                } label: {
+                                    KnowledgeCardSView(card: card)
+                                        .frame(width: KnowledgeSquareLayoutTuning.recentCardWidth)
+                                }
+                                .buttonStyle(.plain)
+                                .background(
+                                    Group {
+                                        if index == 0 {
+                                            GeometryReader { proxy in
+                                                Color.clear.preference(
+                                                    key: RecentlyViewedCardHeightKey.self,
+                                                    value: proxy.size.height
+                                                )
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                        .background(
+                            GeometryReader { proxy in
+                                Color.clear.preference(
+                                    key: HorizontalContentFrameKey.self,
+                                    value: proxy.frame(in: .named("recentlyViewedScrollSpace"))
+                                )
+                            }
+                        )
+                    } else {
+                        HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
+                            ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
+                                Button {
+                                    openCard(card)
+                                } label: {
+                                    KnowledgeCardSView(card: card)
+                                        .frame(width: KnowledgeSquareLayoutTuning.recentCardWidth)
+                                }
+                                .buttonStyle(.plain)
+                                .background(
+                                    Group {
+                                        if index == 0 {
+                                            GeometryReader { proxy in
+                                                Color.clear.preference(
+                                                    key: RecentlyViewedCardHeightKey.self,
+                                                    value: proxy.size.height
+                                                )
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+                        }
+                    }
+                }
+                .padding(.bottom, horizontalSectionBottomInset)
+                .coordinateSpace(name: "recentlyViewedScrollSpace")
+                .background(
+                    Group {
+                        if renderProfile.tracksEdgeFade {
+                            GeometryReader { proxy in
+                                Color.clear.preference(key: HorizontalViewportWidthKey.self, value: proxy.size.width)
+                            }
+                        }
+                    }
+                )
+                .onPreferenceChange(HorizontalContentFrameKey.self) { frame in
+                    if renderProfile.tracksEdgeFade {
+                        recentlyViewedContentFrame = frame
+                    }
+                }
+                .onPreferenceChange(HorizontalViewportWidthKey.self) { width in
+                    if renderProfile.tracksEdgeFade {
+                        recentlyViewedViewportWidth = width
+                    }
+                }
+                .onPreferenceChange(RecentlyViewedCardHeightKey.self) { height in
+                    if height > 1 {
+                        recentlyViewedCardMeasuredHeight = height
+                    }
+                }
+                .overlay(alignment: .leading) {
+                    if renderProfile.tracksEdgeFade, recentlyViewedContentFrame.minX < -1 {
+                        edgeFadeOverlay(leading: true, style: renderProfile.edgeFadeStyle)
+                    }
+                }
+                .overlay(alignment: .trailing) {
+                    if renderProfile.tracksEdgeFade, recentlyViewedContentFrame.maxX > recentlyViewedViewportWidth + 1 {
+                        edgeFadeOverlay(leading: false, style: renderProfile.edgeFadeStyle)
+                    }
+                }
+                .scrollClipDisabled()
+                .frame(height: frameHeight)
+            }
+        }
+    }
+
+    private var tagCollectionGroups: [(model: ZDTagCollectionFolderModel, cards: [KnowledgeCard])] {
+        var tagDict: [String: [KnowledgeCard]] = [:]
+        for card in library.cards {
+            let tags = (card.tags ?? []).filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+            if tags.isEmpty {
+                // Ignore empty tags for collection
+            } else {
+                for tag in tags {
+                    tagDict[tag, default: []].append(card)
+                }
+            }
+        }
+        
+        let groups = tagDict.map { (tag: $0.key, cards: $0.value.sorted { $0.createdAt < $1.createdAt }) }
+        return groups.map { (model: modelForTagFolder(tag: $0.tag, cards: $0.cards), cards: $0.cards) }
+                     .sorted { $0.model.cardCount > $1.model.cardCount }
+    }
+
+    private func modelForTagFolder(tag: String, cards: [KnowledgeCard]) -> ZDTagCollectionFolderModel {
+        var textCount = 0
+        var imageCount = 0
+        var codeCount = 0
+        var linkCount = 0
+        var formulaCount = 0
+        var viewCount = 0
+
+        for card in cards {
+            let cardViewCount = library.viewCounts[card.id] ?? 0
+            viewCount += cardViewCount
+            if let modules = card.modules ?? card.blocks {
+                for module in modules {
+                    switch module.kind {
+                    case .text: textCount += 1
+                    case .image: imageCount += 1
+                    case .code: codeCount += 1
+                    case .link: linkCount += 1
+                    case .formula: formulaCount += 1
+                    case .linkedCard: break
+                    }
+                }
+            } else {
+                if !card.content.isEmpty { textCount += 1 }
+                imageCount += card.images?.count ?? 0
+                codeCount += card.codeSnippets?.count ?? 0
+                linkCount += card.links?.count ?? 0
+            }
+        }
+
+        var addedDateText = "无"
+        if let latestCard = cards.max(by: { $0.createdAt < $1.createdAt }) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d, yyyy"
+            formatter.locale = Locale(identifier: "en_US")
+            addedDateText = formatter.string(from: latestCard.createdAt)
+        }
+
+        return ZDTagCollectionFolderModel(
+            tagName: tag,
+            cardCount: cards.count,
+            textModuleCount: textCount,
+            imageModuleCount: imageCount,
+            codeModuleCount: codeCount,
+            linkModuleCount: linkCount,
+            formulaModuleCount: formulaCount,
+            addedDateText: addedDateText,
+            viewCount: viewCount
+        )
+    }
+
+    @ViewBuilder
+    private var tagCollectionSection: some View {
+        let groups = tagCollectionGroups
+        if !groups.isEmpty {
+            let frameHeight = horizontalSectionFrameHeight(for: tagCollectionCardMeasuredHeight)
+
+            VStack(alignment: .leading, spacing: KnowledgeSquareSpacing.moduleHeaderToContent) {
+                ZDSectionHeader("标签荟萃")
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    if renderProfile.tracksEdgeFade {
+                        HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
+                            ForEach(Array(groups.enumerated()), id: \.element.model.tagName) { index, group in
+                                NavigationLink {
+                                    TagFolderDetailCardsView(title: group.model.tagName, originalCards: group.cards, folderModel: group.model)
+                                } label: {
+                                    ZDTagCollectionFolderStyleCard(
+                                        model: group.model,
+                                        theme: library.tagColor(for: group.model.tagName)
+                                    )
+                                    .background(
+                                        Group {
+                                            if index == 0 {
+                                                GeometryReader { proxy in
+                                                    Color.clear.preference(
+                                                        key: TagCollectionCardHeightKey.self,
+                                                        value: proxy.size.height
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .background(
+                            GeometryReader { proxy in
+                                Color.clear.preference(
+                                    key: HorizontalContentFrameKey.self,
+                                    value: proxy.frame(in: .named("tagCollectionScrollSpace"))
+                                )
+                            }
+                        )
+                    } else {
+                        HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
+                            ForEach(Array(groups.enumerated()), id: \.element.model.tagName) { index, group in
+                                NavigationLink {
+                                    TagFolderDetailCardsView(title: group.model.tagName, originalCards: group.cards, folderModel: group.model)
+                                } label: {
+                                    ZDTagCollectionFolderStyleCard(
+                                        model: group.model,
+                                        theme: library.tagColor(for: group.model.tagName)
+                                    )
+                                    .background(
+                                        Group {
+                                            if index == 0 {
+                                                GeometryReader { proxy in
+                                                    Color.clear.preference(
+                                                        key: TagCollectionCardHeightKey.self,
+                                                        value: proxy.size.height
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+                }
+                .padding(.bottom, horizontalSectionBottomInset)
+                .coordinateSpace(name: "tagCollectionScrollSpace")
+                .background(
+                    Group {
+                        if renderProfile.tracksEdgeFade {
+                            GeometryReader { proxy in
+                                Color.clear.preference(key: HorizontalViewportWidthKey.self, value: proxy.size.width)
+                            }
+                        }
+                    }
+                )
+                .onPreferenceChange(HorizontalContentFrameKey.self) { frame in
+                    if renderProfile.tracksEdgeFade {
+                        tagCollectionContentFrame = frame
+                    }
+                }
+                .onPreferenceChange(HorizontalViewportWidthKey.self) { width in
+                    if renderProfile.tracksEdgeFade {
+                        tagCollectionViewportWidth = width
+                    }
+                }
+                .onPreferenceChange(TagCollectionCardHeightKey.self) { height in
+                    if height > 1 {
+                        tagCollectionCardMeasuredHeight = height
+                    }
+                }
+                .overlay(alignment: .leading) {
+                    if renderProfile.tracksEdgeFade, tagCollectionContentFrame.minX < -1 {
+                        edgeFadeOverlay(leading: true, style: renderProfile.edgeFadeStyle)
+                    }
+                }
+                .overlay(alignment: .trailing) {
+                    if renderProfile.tracksEdgeFade, tagCollectionContentFrame.maxX > tagCollectionViewportWidth + 1 {
+                        edgeFadeOverlay(leading: false, style: renderProfile.edgeFadeStyle)
+                    }
+                }
+                .scrollClipDisabled()
+                .frame(height: frameHeight)
+            }
         }
     }
 
@@ -629,7 +930,6 @@ struct KnowledgeSquareView: View {
     }
 
     private func openCard(_ card: KnowledgeCard) {
-        library.recordView(for: card)
         selectedCard = card
     }
 
@@ -683,6 +983,20 @@ private struct BannerCardHeightKey: PreferenceKey {
 }
 
 private struct RecentCardHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct RecentlyViewedCardHeightKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
+private struct TagCollectionCardHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())

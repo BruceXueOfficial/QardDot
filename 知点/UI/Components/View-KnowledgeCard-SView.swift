@@ -112,7 +112,7 @@ private struct KnowledgeCardSViewPreviewPanel: View {
     let themes: [CardThemeColor]
 
     var body: some View {
-        VStack(spacing: 10) {
+        LazyVGrid(columns: [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)], spacing: 14) {
             ForEach(Array(themes.enumerated()), id: \.offset) { index, theme in
                 let card = KnowledgeCard(
                     title: "卡片标题",

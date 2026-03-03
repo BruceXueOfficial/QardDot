@@ -5,6 +5,7 @@ import SwiftUI
 enum CardSortMode: Equatable, RawRepresentable {
     case defaultSort
     case byTag(ascending: Bool)
+    case byTagFolder
     case byDate(ascending: Bool)
     case byColor
 
@@ -12,6 +13,7 @@ enum CardSortMode: Equatable, RawRepresentable {
         switch self {
         case .defaultSort: return "defaultSort"
         case .byTag(let asc): return "byTag:\(asc)"
+        case .byTagFolder: return "byTagFolder"
         case .byDate(let asc): return "byDate:\(asc)"
         case .byColor: return "byColor"
         }
@@ -22,6 +24,7 @@ enum CardSortMode: Equatable, RawRepresentable {
         else if rawValue.hasPrefix("byTag:") {
             self = .byTag(ascending: rawValue.hasSuffix("true"))
         }
+        else if rawValue == "byTagFolder" { self = .byTagFolder }
         else if rawValue.hasPrefix("byDate:") {
             self = .byDate(ascending: rawValue.hasSuffix("true"))
         } else if rawValue == "byColor" {
@@ -116,6 +119,8 @@ struct CardManagementView: View {
                 defaultGridView
             case .byTag:
                 tagGroupedView
+            case .byTagFolder:
+                tagFolderGroupedView
             case .byDate:
                 dateGroupedView
             case .byColor:
@@ -264,6 +269,14 @@ struct CardManagementView: View {
 
             Button {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.84)) {
+                    sortMode = .byTagFolder
+                }
+            } label: {
+                Label("按标签分组", systemImage: sortMode == .byTagFolder ? "checkmark" : "folder")
+            }
+
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.84)) {
                     sortMode = .byColor
                 }
             } label: {
@@ -335,6 +348,80 @@ struct CardManagementView: View {
                 )
             }
         }
+    }
+
+    // MARK: - Tag Folder Grouped View
+
+    private var tagFolderGroupedView: some View {
+        let groups = cardsByTag
+        return LazyVGrid(columns: columns, spacing: 12) {
+            ForEach(groups, id: \.tag) { group in
+                let model = convertToTagFolderModel(tag: group.tag, cards: group.cards)
+                NavigationLink {
+                    TagFolderDetailCardsView(title: group.tag, originalCards: group.cards, folderModel: model)
+                        .environmentObject(library)
+                        .environmentObject(graphStore)
+                } label: {
+                    ZDTagCollectionFolderSView(
+                        model: model,
+                        theme: library.tagColor(for: group.tag)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+    }
+
+    private func convertToTagFolderModel(tag: String, cards: [KnowledgeCard]) -> ZDTagCollectionFolderModel {
+        var textCount = 0
+        var imageCount = 0
+        var codeCount = 0
+        var linkCount = 0
+        var formulaCount = 0
+        var viewCount = 0
+
+        for card in cards {
+            let cardViewCount = library.viewCounts[card.id] ?? 0
+            viewCount += cardViewCount
+            
+            if let modules = card.modules ?? card.blocks {
+                for module in modules {
+                    switch module.kind {
+                    case .text: textCount += 1
+                    case .image: imageCount += 1
+                    case .code: codeCount += 1
+                    case .link: linkCount += 1
+                    case .formula: formulaCount += 1
+                    case .linkedCard: break
+                    }
+                }
+            } else {
+                if !card.content.isEmpty { textCount += 1 }
+                imageCount += card.images?.count ?? 0
+                codeCount += card.codeSnippets?.count ?? 0
+                linkCount += card.links?.count ?? 0
+            }
+        }
+
+        var addedDateText = "无"
+        if let latestCard = cards.max(by: { $0.createdAt < $1.createdAt }) {
+            let formatter = DateFormatter()
+            formatter.dateFormat = "MMM d, yyyy"
+            formatter.locale = Locale(identifier: "en_US")
+            addedDateText = formatter.string(from: latestCard.createdAt)
+        }
+
+        return ZDTagCollectionFolderModel(
+            tagName: tag,
+            cardCount: cards.count,
+            textModuleCount: textCount,
+            imageModuleCount: imageCount,
+            codeModuleCount: codeCount,
+            linkModuleCount: linkCount,
+            formulaModuleCount: formulaCount,
+            addedDateText: addedDateText,
+            viewCount: viewCount
+        )
     }
 
     // MARK: - Date Grouped View
@@ -925,6 +1012,256 @@ struct CardTitleTile: View {
         )
         .shadow(color: theme.primaryColor.opacity(0.14), radius: 8, x: 0, y: 4)
         .opacity(isSelectionMode && !isSelected ? 0.92 : 1)
+    }
+}
+
+// MARK: - Tag Folder Detail Sub-Page
+
+struct TagFolderDetailCardsView: View {
+    @EnvironmentObject private var library: KnowledgeCardLibraryStore
+    @Environment(\.colorScheme) private var colorScheme
+    @Environment(\.dismiss) private var dismiss
+
+    let title: String
+    let originalCards: [KnowledgeCard]
+    let folderModel: ZDTagCollectionFolderModel
+
+    @State private var selectedCard: KnowledgeCard?
+    @State private var isSelectionMode = false
+    @State private var selectedIDs: Set<UUID> = []
+    @State private var deleteRequest: DeleteRequest?
+    @State private var showThemePicker = false
+
+    enum LocalSortMode: Equatable {
+        case defaultSort
+        case byDate(ascending: Bool)
+        case byColor
+    }
+    @State private var localSortMode: LocalSortMode = .defaultSort
+
+    private let columns = [
+        GridItem(.flexible(), spacing: 12),
+        GridItem(.flexible(), spacing: 12)
+    ]
+
+    var body: some View {
+        ZDPageScaffold(
+            title: nil,
+            bottomPadding: isSelectionMode ? 98 : 12,
+            contentSpacing: 14
+        ) {
+            headerRow
+            LazyVGrid(columns: columns, spacing: 12) {
+                ForEach(displayCards) { card in
+                    CardManagementSViewTile(
+                        card: card,
+                        isSelectionMode: isSelectionMode,
+                        isSelected: selectedIDs.contains(card.id)
+                    )
+                    .onTapGesture {
+                        handleCardTap(card)
+                    }
+                }
+            }
+        }
+        .overlay(alignment: .bottom) {
+            if isSelectionMode {
+                selectionToolbar
+            }
+        }
+        .sheet(item: $selectedCard) { card in
+            KnowledgeCardDetailScreen(card: card)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(30)
+        }
+        .sheet(isPresented: $showThemePicker) {
+            TagFolderThemeColorPicker(
+                tagFolderModel: folderModel,
+                currentTheme: library.tagColor(for: title)
+            ) { color in
+                library.updateTagColor(tag: title, color: color)
+            }
+        }
+        .alert(
+            "确认删除",
+            isPresented: showDeleteAlert,
+            presenting: deleteRequest
+        ) { request in
+            Button("取消", role: .cancel) { }
+            Button("删除", role: .destructive) {
+                library.deleteCards(ids: request.ids)
+                selectedIDs.subtract(request.ids)
+            }
+        } message: { request in
+            Text(request.message)
+        }
+    }
+
+    private var displayCards: [KnowledgeCard] {
+        var list = originalCards
+        switch localSortMode {
+        case .defaultSort:
+            list.sort { $0.createdAt > $1.createdAt }
+        case .byDate(let asc):
+            list.sort { asc ? $0.createdAt < $1.createdAt : $0.createdAt > $1.createdAt }
+        case .byColor:
+            list.sort { 
+                let c1 = $0.themeColor?.rawValue ?? ""
+                let c2 = $1.themeColor?.rawValue ?? ""
+                return c1.localizedLowercase < c2.localizedLowercase 
+            }
+        }
+        return list
+    }
+
+    private var showDeleteAlert: Binding<Bool> {
+        Binding(
+            get: { deleteRequest != nil },
+            set: { if !$0 { deleteRequest = nil } }
+        )
+    }
+
+    private var sortMenuButton: some View {
+        Menu {
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.84)) {
+                    localSortMode = .defaultSort
+                }
+            } label: {
+                Label("默认排列", systemImage: localSortMode == .defaultSort ? "checkmark" : "")
+            }
+
+            Menu {
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.84)) {
+                        localSortMode = .byDate(ascending: true)
+                    }
+                } label: {
+                    Label("升序排列", systemImage: localSortMode == .byDate(ascending: true) ? "checkmark" : "")
+                }
+                Button {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.84)) {
+                        localSortMode = .byDate(ascending: false)
+                    }
+                } label: {
+                    Label("降序排列", systemImage: localSortMode == .byDate(ascending: false) ? "checkmark" : "")
+                }
+            } label: {
+                Label("按照时间", systemImage: "clock")
+            }
+
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.84)) {
+                    localSortMode = .byColor
+                }
+            } label: {
+                Label("按照颜色", systemImage: localSortMode == .byColor ? "checkmark" : "paintpalette")
+            }
+        } label: {
+            Image(systemName: "arrow.up.arrow.down")
+                .font(.system(size: 14, weight: .semibold))
+                .foregroundStyle(localSortMode == .defaultSort ? .primary.opacity(0.85) : Color.zdAccentDeep)
+                .frame(width: 36, height: 36)
+                .background(
+                    localSortMode == .defaultSort
+                        ? Color.clear
+                        : Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16)
+                )
+                .zdInteractiveControlStyle(cornerRadius: 999)
+        }
+    }
+
+    private var headerRow: some View {
+        HStack(spacing: 12) {
+            Button {
+                dismiss()
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.primary.opacity(0.85))
+            }
+            .buttonStyle(.plain)
+
+            Text(title)
+                .font(.system(size: 28, weight: .bold))
+                .foregroundStyle(.primary)
+                .lineLimit(1)
+
+            Spacer(minLength: 8)
+
+            HStack(spacing: 8) {
+                sortMenuButton
+                ZDIconButton(
+                    systemName: isSelectionMode ? "xmark" : "checkmark.circle",
+                    active: isSelectionMode
+                ) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.84)) {
+                        isSelectionMode.toggle()
+                        if !isSelectionMode {
+                            selectedIDs.removeAll()
+                        }
+                    }
+                }
+                ZDIconButton(
+                    systemName: "paintpalette",
+                    active: showThemePicker
+                ) {
+                    showThemePicker = true
+                }
+            }
+        }
+        .padding(.top, 4)
+    }
+
+    private var selectionToolbar: some View {
+        let actionButtonWidth: CGFloat = 96
+        let allSelected = !displayCards.isEmpty && selectedIDs.count == displayCards.count
+
+        return ZDFloatingActionBar {
+            ZDSecondaryButton(text: allSelected ? "取消全选" : "全选", fullWidth: false) {
+                let visibleIDs = Set(displayCards.map(\.id))
+                if !visibleIDs.isEmpty && selectedIDs == visibleIDs {
+                    selectedIDs.removeAll()
+                } else {
+                    selectedIDs = visibleIDs
+                }
+            }
+            .frame(width: actionButtonWidth, alignment: .leading)
+
+            Text("已选 \(selectedIDs.count)")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+                .frame(maxWidth: .infinity, alignment: .center)
+
+            ZDPrimaryButton(text: "删除", isDisabled: selectedIDs.isEmpty, fullWidth: false) {
+                requestDelete(ids: selectedIDs)
+            }
+            .frame(width: actionButtonWidth, alignment: .trailing)
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 12)
+    }
+
+    private func handleCardTap(_ card: KnowledgeCard) {
+        if isSelectionMode {
+            if selectedIDs.contains(card.id) {
+                selectedIDs.remove(card.id)
+            } else {
+                selectedIDs.insert(card.id)
+            }
+        } else {
+            library.recordView(for: card)
+            selectedCard = card
+        }
+    }
+
+    private func requestDelete(ids: Set<UUID>) {
+        guard !ids.isEmpty else { return }
+        deleteRequest = DeleteRequest(
+            ids: ids,
+            message: "将删除 \(ids.count) 张卡片，删除后无法恢复，确认继续？"
+        )
     }
 }
 

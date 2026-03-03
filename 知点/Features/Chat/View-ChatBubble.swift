@@ -29,12 +29,18 @@ struct ChatBubbleView: View {
     private var messageContent: some View {
         VStack(alignment: .leading, spacing: 8) {
             // Text Content
-            Text(message.content.isEmpty ? " " : message.content)
-                .font(.system(size: 16))
-                .lineSpacing(6)
-                .kerning(0.5)
-                .foregroundColor(message.type == .user ? .white : .primary.opacity(0.9))
-                .animation(.linear(duration: 0.1), value: message.content)
+            Group {
+                if let attr = try? AttributedString(markdown: message.content.isEmpty ? " " : message.content, options: AttributedString.MarkdownParsingOptions(allowsExtendedAttributes: true, interpretedSyntax: .full, failurePolicy: .returnPartiallyParsedIfPossible)) {
+                    Text(attr)
+                } else {
+                    Text(LocalizedStringKey(message.content.isEmpty ? " " : message.content))
+                }
+            }
+            .font(.system(size: 16))
+            .lineSpacing(6)
+            .kerning(0.5)
+            .foregroundColor(message.type == .user ? .white : .primary.opacity(0.9))
+            .animation(.linear(duration: 0.1), value: message.content)
             
             // Disclaimer (AI Only)
             if message.type != .user && !message.isTyping {

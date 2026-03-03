@@ -3274,7 +3274,14 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
     }
 
     func makeUIView(context: Context) -> UITextView {
-        let textView = LayoutAwareTextView()
+        // Force TextKit 1 to bypass iOS 16+ horizontal scrolling and clipping bugs (keeps text visible off-screen)
+        let textStorage = NSTextStorage()
+        let layoutManager = NSLayoutManager()
+        textStorage.addLayoutManager(layoutManager)
+        let textContainer = NSTextContainer(size: .zero)
+        layoutManager.addTextContainer(textContainer)
+
+        let textView = LayoutAwareTextView(frame: .zero, textContainer: textContainer)
         textView.wrapLines = wrapLines
         textView.delegate = context.coordinator
         textView.clipsToBounds = true
@@ -3414,21 +3421,17 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
                 textView.isScrollEnabled = parent.isHeightCapped
                 textView.textContainer.widthTracksTextView = true
                 textView.textContainer.lineBreakMode = .byWordWrapping
-                textView.textContainer.size = .zero
+                textView.textContainer.size = CGSize(width: 0, height: CGFloat.greatestFiniteMagnitude)
                 textView.showsHorizontalScrollIndicator = false
                 textView.alwaysBounceHorizontal = false
                 textView.isDirectionalLockEnabled = false
                 textView.setContentOffset(CGPoint(x: 0, y: textView.contentOffset.y), animated: false)
             } else {
                 textView.isScrollEnabled = true
-                let minimumContainerWidth = max(textView.bounds.width, 320)
-                if textView.textContainer.widthTracksTextView
-                    || textView.textContainer.size.width < minimumContainerWidth {
-                    textView.textContainer.size = CGSize(
-                        width: minimumContainerWidth,
-                        height: CGFloat.greatestFiniteMagnitude
-                    )
-                }
+                textView.textContainer.size = CGSize(
+                    width: CGFloat.greatestFiniteMagnitude,
+                    height: CGFloat.greatestFiniteMagnitude
+                )
                 textView.textContainer.widthTracksTextView = false
                 textView.textContainer.lineBreakMode = .byClipping
                 textView.showsHorizontalScrollIndicator = true
@@ -3461,14 +3464,24 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
 
         func applyHighlight(in textView: UITextView, preservingSelection: Bool) {
             let selection = textView.selectedRange
-            let highlighted = BasicCodeHighlighter.highlightedNSAttributedString(
+            let highlighted = NSMutableAttributedString(attributedString: BasicCodeHighlighter.highlightedNSAttributedString(
                 code: parent.text,
                 language: parent.language
+            ))
+
+            let paragraph = NSMutableParagraphStyle()
+            paragraph.lineBreakMode = parent.wrapLines ? .byWordWrapping : .byClipping
+            highlighted.addAttribute(
+                .paragraphStyle,
+                value: paragraph,
+                range: NSRange(location: 0, length: highlighted.length)
             )
 
             isApplyingProgrammaticChange = true
             textView.attributedText = highlighted
-            textView.typingAttributes = BasicCodeHighlighter.editorTypingAttributes
+            var typingAttributes = BasicCodeHighlighter.editorTypingAttributes
+            typingAttributes[.paragraphStyle] = paragraph
+            textView.typingAttributes = typingAttributes
             if preservingSelection {
                 let bounded = NSRange(
                     location: max(0, min(selection.location, highlighted.length)),
@@ -3559,28 +3572,32 @@ private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate
     // ensure horizontal pans are recognised by this text view rather than
     // being swallowed by an ancestor SwiftUI ScrollView.
     override func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
-        guard gestureRecognizer == panGestureRecognizer, !wrapLines else {
+        guard gestureRecognizer == panGestureRecognizer else {
             return true
         }
-        let hasHorizontalOverflow = contentSize.width > bounds.width + 0.5
-        guard hasHorizontalOverflow else { return true }
+
+        // In wrap mode, text view only handles vertical drags when it can actually scroll.
+        if wrapLines {
+            let hasVerticalOverflow = contentSize.height > bounds.height + 0.5
+            if !hasVerticalOverflow { return false }
+            let velocity = panGestureRecognizer.velocity(in: self)
+            return abs(velocity.y) >= abs(velocity.x)
+        }
 
         let velocity = panGestureRecognizer.velocity(in: self)
-        let isHorizontalPan = abs(velocity.x) > abs(velocity.y)
-        if isHorizontalPan {
-            // Check if there is room to scroll in the panned direction.
-            let atLeadingEdge = contentOffset.x <= 0
-            let atTrailingEdge = contentOffset.x >= contentSize.width - bounds.width
-            let panningRight = velocity.x > 0  // finger moves right = scroll left
-            let panningLeft  = velocity.x < 0  // finger moves left  = scroll right
+        let hasHorizontalOverflow = contentSize.width > bounds.width + 0.5
+        let hasVerticalOverflow = contentSize.height > bounds.height + 0.5
+        guard hasHorizontalOverflow || hasVerticalOverflow else { return false }
 
-            // If already at the edge in the panned direction, let parent handle it.
-            if panningRight && atLeadingEdge { return true }
-            if panningLeft  && atTrailingEdge { return true }
-
+        // Velocity can be near-zero at pan-begin; don't reject too early.
+        if abs(velocity.x) < 1, abs(velocity.y) < 1 {
             return true
         }
-        return true
+
+        if abs(velocity.x) > abs(velocity.y) {
+            return hasHorizontalOverflow
+        }
+        return hasVerticalOverflow
     }
 
     // Ask UIKit to let us scroll simultaneously with the outer ScrollView
@@ -3630,18 +3647,6 @@ private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate
             return
         }
 
-        let targetContainerWidth = preferredContainerWidthForNoWrap()
-        if abs(textContainer.size.width - targetContainerWidth) > 1 {
-            textContainer.size = CGSize(
-                width: targetContainerWidth,
-                height: CGFloat.greatestFiniteMagnitude
-            )
-
-            let fullRange = NSRange(location: 0, length: textStorage.length)
-            layoutManager.invalidateLayout(forCharacterRange: fullRange, actualCharacterRange: nil)
-            layoutManager.ensureLayout(forCharacterRange: fullRange)
-        }
-
         let hasHorizontalOverflow = contentSize.width > bounds.width + 0.5
         showsHorizontalScrollIndicator = hasHorizontalOverflow
         alwaysBounceHorizontal = hasHorizontalOverflow
@@ -3650,29 +3655,6 @@ private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate
         } else if contentOffset.x != 0 {
             setContentOffset(CGPoint(x: 0, y: contentOffset.y), animated: false)
         }
-    }
-
-    private func preferredContainerWidthForNoWrap() -> CGFloat {
-        let minimumWidth = max(bounds.width, 320)
-        let maximumWidth: CGFloat = 12_000
-        let horizontalSlack: CGFloat = 80
-        let currentFont = font ?? BasicCodeHighlighter.editorBaseFont
-
-        let nsText = textStorage.string as NSString
-        guard nsText.length > 0 else { return minimumWidth }
-
-        var widestLineWidth: CGFloat = 0
-        nsText.enumerateSubstrings(
-            in: NSRange(location: 0, length: nsText.length),
-            options: [.byLines, .substringNotRequired]
-        ) { _, lineRange, _, _ in
-            let line = nsText.substring(with: lineRange) as NSString
-            let lineWidth = ceil(line.size(withAttributes: [.font: currentFont]).width)
-            widestLineWidth = max(widestLineWidth, lineWidth)
-        }
-
-        let target = widestLineWidth + horizontalSlack
-        return min(max(minimumWidth, target), maximumWidth)
     }
 
     private func prioritiseHorizontalPanAgainstAncestorScrollViewIfNeeded() {

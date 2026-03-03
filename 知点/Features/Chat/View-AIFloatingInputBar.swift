@@ -18,6 +18,10 @@ struct AiFloatingInputBar: View {
     var onStartVoice: () -> Void
     var onEndVoice: () -> Void
     var onCancelVoice: () -> Void
+    var onOpenDrawer: () -> Void
+    
+    // New Feature State
+    var recognizedCardCount: Int
     
     // Internal State
     @State private var inputMode: AiInputMode = .text
@@ -28,6 +32,33 @@ struct AiFloatingInputBar: View {
     
     var body: some View {
         HStack(alignment: .bottom, spacing: 10) {
+            
+            if recognizedCardCount > 0 {
+                Button(action: onOpenDrawer) {
+                    ZStack(alignment: .topTrailing) {
+                        Circle()
+                            .fill(Color(uiColor: .systemBackground))
+                            .frame(width: 48, height: 48)
+                            .overlay(
+                                Image(systemName: "square.stack.3d.up.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(.zdAccentDeep)
+                            )
+                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.15), radius: 8, x: 0, y: 4)
+                        
+                        Text("\(recognizedCardCount)")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(Capsule().fill(Color.red))
+                            .offset(x: 4, y: -4)
+                    }
+                }
+                .transition(.scale.combined(with: .opacity))
+                .padding(.bottom, 4)
+            }
+
             ZStack {
                 if inputMode == .text {
                     textInputView
@@ -220,7 +251,9 @@ struct AiFloatingInputBar: View {
                     onStop: {},
                     onStartVoice: {},
                     onEndVoice: {},
-                    onCancelVoice: {}
+                    onCancelVoice: {},
+                    onOpenDrawer: {},
+                    recognizedCardCount: 3
                 )
             }
         }

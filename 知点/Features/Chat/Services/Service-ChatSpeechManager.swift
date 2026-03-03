@@ -91,6 +91,10 @@ class ChatSpeechManager: NSObject, ObservableObject, SFSpeechRecognizerDelegate 
         recognitionRequest = SFSpeechAudioBufferRecognitionRequest()
         guard let recognitionRequest = recognitionRequest else { return }
         recognitionRequest.shouldReportPartialResults = true
+        if #available(iOS 13.0, *) {
+            // 启用自动标点符号功能（苹果原生提供的黑科技）
+            recognitionRequest.addsPunctuation = true
+        }
         
         // 配置识别任务
         recognitionTask = speechRecognizer?.recognitionTask(with: recognitionRequest) { [weak self] result, error in

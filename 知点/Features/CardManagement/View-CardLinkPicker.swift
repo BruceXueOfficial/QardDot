@@ -148,7 +148,7 @@ struct CardLinkPickerSheet: View {
         switch sortMode {
         case .defaultSort:
             defaultGridView
-        case .byTag:
+        case .byTag, .byTagFolder:
             tagGroupedView
         case .byDate:
             dateGroupedView
