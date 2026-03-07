@@ -6,6 +6,8 @@ enum AiInputMode {
 }
 
 struct AiFloatingInputBar: View {
+    private let inputBarHeight: CGFloat = 56
+
     @Binding var text: String
     
     // States
@@ -38,13 +40,20 @@ struct AiFloatingInputBar: View {
                     ZStack(alignment: .topTrailing) {
                         Circle()
                             .fill(Color(uiColor: .systemBackground))
-                            .frame(width: 48, height: 48)
+                            .frame(width: inputBarHeight, height: inputBarHeight)
+                            .glassEffect(.regular, in: Circle())
+                            .overlay(
+                                Circle().strokeBorder(
+                                    Color.primary.opacity(colorScheme == .dark ? 0.12 : 0.08),
+                                    lineWidth: 1
+                                )
+                            )
                             .overlay(
                                 Image(systemName: "square.stack.3d.up.fill")
-                                    .font(.system(size: 20))
+                                    .font(.system(size: 22))
                                     .foregroundColor(.zdAccentDeep)
                             )
-                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.3 : 0.15), radius: 8, x: 0, y: 4)
+                            .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.15 : 0.08), radius: 12, x: 0, y: 6)
                         
                         Text("\(recognizedCardCount)")
                             .font(.system(size: 11, weight: .bold))
@@ -55,8 +64,8 @@ struct AiFloatingInputBar: View {
                             .offset(x: 4, y: -4)
                     }
                 }
+                .frame(width: inputBarHeight, height: inputBarHeight)
                 .transition(.scale.combined(with: .opacity))
-                .padding(.bottom, 4)
             }
 
             ZStack {
@@ -147,15 +156,26 @@ struct AiFloatingInputBar: View {
                 .fill(voiceButtonColor)
                 .animation(.easeInOut(duration: 0.2), value: isDragCanceling)
         )
+        .background(
+            Capsule()
+                .fill(isDragCanceling ? Color.orange : Color.zdAccentDeep)
+                .blur(radius: 16)
+                .opacity(isRecording ? 0.5 : 0.0)
+                .scaleEffect(isRecording ? 1.12 : 1.0)
+                .animation(
+                    isRecording ? Animation.easeInOut(duration: 1.0).repeatForever(autoreverses: true) : .easeOut(duration: 0.2),
+                    value: isRecording
+                )
+        )
         .glassEffect(.clear, in: Capsule())
         .overlay(Capsule().strokeBorder(Color.white.opacity(0.3), lineWidth: 1))
         .shadow(
-            color: isDragCanceling ? Color.orange.opacity(0.5) : Color.zdAccentDeep.opacity(0.3),
-            radius: 12,
+            color: isDragCanceling ? Color.orange.opacity(0.8) : Color.zdAccentDeep.opacity(isRecording ? 0.8 : 0.6),
+            radius: isRecording ? 32 : 20,
             x: 0,
-            y: 6
+            y: isRecording ? 8 : 4
         )
-        .scaleEffect(isRecording ? 1.02 : 1.0)
+        .scaleEffect(isRecording ? 1.06 : 1.0)
     }
     
     // MARK: - Logic & Helpers

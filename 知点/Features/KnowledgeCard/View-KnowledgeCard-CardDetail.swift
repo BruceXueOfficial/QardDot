@@ -197,11 +197,11 @@ private extension KnowledgeCardView {
     }
 
     var titleTagTextColor: Color {
-        useLightTitleCardText ? Color.white.opacity(0.9) : Color.zdAccentDeep.opacity(0.9)
+        .white
     }
 
     var titleTagBackgroundColor: Color {
-        Color.white.opacity(useLightTitleCardText ? 0.18 : 0.34)
+        resolvedTheme.primaryColor.opacity(0.9)
     }
 
     var titleModuleView: some View {
@@ -2876,10 +2876,10 @@ private extension KnowledgeCardView {
                 ForEach(tags, id: \.self) { tag in
                     Text("# \(tag)")
                         .font(.caption.weight(.medium))
-                        .foregroundStyle(Color.zdAccentDeep.opacity(0.86))
+                        .foregroundStyle(.white)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
-                        .background(Color.zdAccentSoft.opacity(0.18))
+                        .background(resolvedTheme.primaryColor.opacity(0.9))
                         .clipShape(Capsule())
                 }
             }

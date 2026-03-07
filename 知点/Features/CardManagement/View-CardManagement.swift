@@ -285,12 +285,12 @@ struct CardManagementView: View {
         } label: {
             Image(systemName: "arrow.up.arrow.down")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(sortMode == .defaultSort ? .primary.opacity(0.85) : Color.zdAccentDeep)
+                .foregroundStyle(sortMode == .defaultSort ? Color.primary.opacity(0.85) : Color.white)
                 .frame(width: 36, height: 36)
                 .background(
                     sortMode == .defaultSort
                         ? Color.clear
-                        : Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16)
+                        : Color.zdAccentDeep
                 )
                 .zdInteractiveControlStyle(cornerRadius: 999)
         }
@@ -461,29 +461,50 @@ struct CardManagementView: View {
     // MARK: - Selection Toolbar
 
     private var selectionToolbar: some View {
-        let actionButtonWidth: CGFloat = 96
+        let actionButtonWidth: CGFloat = 86
         let allSelected = !displayCards.isEmpty && selectedIDs.count == displayCards.count
 
         return ZDFloatingActionBar {
-            ZDSecondaryButton(text: allSelected ? "取消全选" : "全选", fullWidth: false) {
+            Button {
                 let visibleIDs = Set(displayCards.map(\.id))
                 if !visibleIDs.isEmpty && selectedIDs == visibleIDs {
                     selectedIDs.removeAll()
                 } else {
                     selectedIDs = visibleIDs
                 }
+            } label: {
+                Text(allSelected ? "取消全选" : "全选")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(allSelected ? Color.white : Color.zdAccentDeep)
+                    .frame(width: actionButtonWidth, height: 40)
+                    .background(
+                        allSelected ? Color.zdAccentDeep : Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16)
+                    )
+                    .clipShape(Capsule())
             }
-            .frame(width: actionButtonWidth, alignment: .leading)
+            .buttonStyle(.plain)
+            
+            Spacer()
 
             Text("已选 \(selectedIDs.count)")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
+            
+            Spacer()
 
-            ZDPrimaryButton(text: "删除", isDisabled: selectedIDs.isEmpty, fullWidth: false) {
+            Button {
                 requestDelete(ids: selectedIDs, title: nil)
+            } label: {
+                Text("删除")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.red)
+                    .frame(width: actionButtonWidth, height: 40)
+                    .background(Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16))
+                    .clipShape(Capsule())
             }
-            .frame(width: actionButtonWidth, alignment: .trailing)
+            .buttonStyle(.plain)
+            .disabled(selectedIDs.isEmpty)
+            .opacity(selectedIDs.isEmpty ? 0.4 : 1.0)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
@@ -846,29 +867,50 @@ struct FilteredCardsView: View {
     }
 
     private var selectionToolbar: some View {
-        let actionButtonWidth: CGFloat = 96
+        let actionButtonWidth: CGFloat = 86
         let allSelected = !cards.isEmpty && selectedIDs.count == cards.count
 
         return ZDFloatingActionBar {
-            ZDSecondaryButton(text: allSelected ? "取消全选" : "全选", fullWidth: false) {
+            Button {
                 let visibleIDs = Set(cards.map(\.id))
                 if !visibleIDs.isEmpty && selectedIDs == visibleIDs {
                     selectedIDs.removeAll()
                 } else {
                     selectedIDs = visibleIDs
                 }
+            } label: {
+                Text(allSelected ? "取消全选" : "全选")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(allSelected ? Color.white : Color.zdAccentDeep)
+                    .frame(width: actionButtonWidth, height: 40)
+                    .background(
+                        allSelected ? Color.zdAccentDeep : Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16)
+                    )
+                    .clipShape(Capsule())
             }
-            .frame(width: actionButtonWidth, alignment: .leading)
+            .buttonStyle(.plain)
+
+            Spacer()
 
             Text("已选 \(selectedIDs.count)")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
+            
+            Spacer()
 
-            ZDPrimaryButton(text: "删除", isDisabled: selectedIDs.isEmpty, fullWidth: false) {
+            Button {
                 requestDelete(ids: selectedIDs)
+            } label: {
+                Text("删除")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.red)
+                    .frame(width: actionButtonWidth, height: 40)
+                    .background(Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16))
+                    .clipShape(Capsule())
             }
-            .frame(width: actionButtonWidth, alignment: .trailing)
+            .buttonStyle(.plain)
+            .disabled(selectedIDs.isEmpty)
+            .opacity(selectedIDs.isEmpty ? 0.4 : 1.0)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
@@ -1161,12 +1203,12 @@ struct TagFolderDetailCardsView: View {
         } label: {
             Image(systemName: "arrow.up.arrow.down")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(localSortMode == .defaultSort ? .primary.opacity(0.85) : Color.zdAccentDeep)
+                .foregroundStyle(localSortMode == .defaultSort ? Color.primary.opacity(0.85) : Color.white)
                 .frame(width: 36, height: 36)
                 .background(
                     localSortMode == .defaultSort
                         ? Color.clear
-                        : Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16)
+                        : Color.zdAccentDeep
                 )
                 .zdInteractiveControlStyle(cornerRadius: 999)
         }
@@ -1215,29 +1257,50 @@ struct TagFolderDetailCardsView: View {
     }
 
     private var selectionToolbar: some View {
-        let actionButtonWidth: CGFloat = 96
+        let actionButtonWidth: CGFloat = 86
         let allSelected = !displayCards.isEmpty && selectedIDs.count == displayCards.count
 
         return ZDFloatingActionBar {
-            ZDSecondaryButton(text: allSelected ? "取消全选" : "全选", fullWidth: false) {
+            Button {
                 let visibleIDs = Set(displayCards.map(\.id))
                 if !visibleIDs.isEmpty && selectedIDs == visibleIDs {
                     selectedIDs.removeAll()
                 } else {
                     selectedIDs = visibleIDs
                 }
+            } label: {
+                Text(allSelected ? "取消全选" : "全选")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(allSelected ? Color.white : Color.zdAccentDeep)
+                    .frame(width: actionButtonWidth, height: 40)
+                    .background(
+                        allSelected ? Color.zdAccentDeep : Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16)
+                    )
+                    .clipShape(Capsule())
             }
-            .frame(width: actionButtonWidth, alignment: .leading)
+            .buttonStyle(.plain)
+
+            Spacer()
 
             Text("已选 \(selectedIDs.count)")
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
+            
+            Spacer()
 
-            ZDPrimaryButton(text: "删除", isDisabled: selectedIDs.isEmpty, fullWidth: false) {
+            Button {
                 requestDelete(ids: selectedIDs)
+            } label: {
+                Text("删除")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundStyle(.red)
+                    .frame(width: actionButtonWidth, height: 40)
+                    .background(Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16))
+                    .clipShape(Capsule())
             }
-            .frame(width: actionButtonWidth, alignment: .trailing)
+            .buttonStyle(.plain)
+            .disabled(selectedIDs.isEmpty)
+            .opacity(selectedIDs.isEmpty ? 0.4 : 1.0)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)

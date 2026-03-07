@@ -40,7 +40,7 @@ private enum ZDTagCollectionFolderStyleTokens {
 
     static let splitLayout: ZDSplitCardLayout = {
         let base = KnowledgeCardMViewTokens.splitLayout
-        let adjustedCornerRadius = base.cornerRadius * 0.8
+        let adjustedCornerRadius = base.cornerRadius
         return ZDSplitCardLayout(
             cornerRadius: adjustedCornerRadius,
             topRatio: 0.22,
@@ -124,7 +124,7 @@ struct ZDTagCollectionFolderStyleCard: View {
             ),
             border: palette.border,
             questionGradient: palette.questionGradient,
-            tagBackground: .white.opacity(0.3),
+            tagBackground: theme.primaryColor.opacity(0.9),
             tagText: .white,
             titleText: .white,
             bodyText: .white.opacity(colorScheme == .dark ? 0.90 : 0.96),
@@ -277,14 +277,22 @@ struct ZDTagCollectionFolderStyleCard: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         } body: {
-            VStack(alignment: .leading, spacing: 0) {
+            VStack(alignment: .leading, spacing: 8) {
                 Text("标签包含 \(model.cardCount) 张卡片")
-                    .padding(.horizontal, 14)
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(foldBodyTextColor)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("文字模块 \(model.textModuleCount)")
+                    Text("代码模块 \(model.codeModuleCount)")
+                    Text("链接模块 \(model.linkModuleCount)")
+                }
+                .font(.caption.weight(.medium))
+                .foregroundStyle(Color.white.opacity(colorScheme == .dark ? 0.80 : 0.90))
 
                 Spacer(minLength: 0)
             }
-            .font(.subheadline.weight(.semibold))
-            .foregroundStyle(foldBodyTextColor)
+            .padding(.horizontal, 14)
             .lineLimit(1)
             .frame(maxWidth: .infinity, alignment: .topLeading)
         } footer: {

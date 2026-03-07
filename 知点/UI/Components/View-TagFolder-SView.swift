@@ -89,7 +89,7 @@ struct ZDTagCollectionFolderSView: View {
             ),
             border: palette.border,
             questionGradient: palette.questionGradient,
-            tagBackground: .white.opacity(0.3),
+            tagBackground: theme.primaryColor.opacity(0.9),
             tagText: .white,
             titleText: .white,
             bodyText: .white,

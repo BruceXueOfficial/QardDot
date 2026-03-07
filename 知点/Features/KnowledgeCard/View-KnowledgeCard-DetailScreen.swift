@@ -2,6 +2,7 @@ import SwiftUI
 
 struct KnowledgeCardDetailScreen: View {
     let card: KnowledgeCard
+    var onCardUpdated: ((KnowledgeCard) -> Void)?
 
     @Environment(\.dismiss) private var dismiss
     @Environment(\.colorScheme) private var colorScheme
@@ -16,8 +17,9 @@ struct KnowledgeCardDetailScreen: View {
     @State private var pendingLinkedCardPickerModuleID: UUID?
     @State private var keyboardIsVisible = false
 
-    init(card: KnowledgeCard) {
+    init(card: KnowledgeCard, onCardUpdated: ((KnowledgeCard) -> Void)? = nil) {
         self.card = card
+        self.onCardUpdated = onCardUpdated
         _viewModel = StateObject(wrappedValue: KnowledgeCardViewModel(card: card))
     }
 
@@ -140,6 +142,7 @@ struct KnowledgeCardDetailScreen: View {
         }
         .onDisappear {
             library.updateCard(viewModel.card)
+            onCardUpdated?(viewModel.card)
             undoDeleteStack.removeAll()
         }
         .onChange(of: viewModel.card.themeColor) { _, _ in

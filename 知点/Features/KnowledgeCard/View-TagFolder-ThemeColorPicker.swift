@@ -74,11 +74,24 @@ struct TagFolderThemeColorPicker: View {
         VStack(spacing: 6) {
             ZStack {
                 Circle()
-                    .fill(color.cardBackgroundStyle)
+                    .fill(
+                        LinearGradient(
+                            colors: [
+                                color.tagFolderTopDeepColor.opacity(colorScheme == .dark ? 0.90 : 0.82),
+                                color.tagFolderTopDeepColor,
+                                color.tagFolderTopDeepColor.opacity(colorScheme == .dark ? 0.96 : 0.88)
+                            ],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
                     .frame(width: 48, height: 48)
                     .overlay(
                         Circle()
-                            .stroke(color.cardBorderGradient, lineWidth: isSelected ? 3 : 1.2)
+                            .stroke(
+                                color.tagFolderTopLightColor.opacity(0.8),
+                                lineWidth: isSelected ? 3 : 1.2
+                            )
                     )
                     .shadow(color: color.primaryColor.opacity(0.35), radius: 6, x: 0, y: 3)
 

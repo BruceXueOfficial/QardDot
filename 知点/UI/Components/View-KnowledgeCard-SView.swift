@@ -6,11 +6,11 @@ enum KnowledgeCardSViewTokens {
     static let surfaceHeight: CGFloat = 110
 
     static let splitLayout = ZDSplitCardLayout(
-        cornerRadius: 14,
+        cornerRadius: 18,
         topRatio: 0.675,
         contentPaddingTop: EdgeInsets(top: 10, leading: 10, bottom: 8, trailing: 14),
         contentPaddingBottom: EdgeInsets(top: 5, leading: 10, bottom: 8, trailing: 10),
-        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 14, holeScale: 0.98),
+        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 18, holeScale: 0.98),
         footerTopSpacerMin: 0
     )
 
