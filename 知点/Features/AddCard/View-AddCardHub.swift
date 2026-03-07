@@ -143,13 +143,9 @@ private struct AddEntryCard: View {
             HStack(spacing: 14) {
                 Image(systemName: icon)
                     .font(.system(size: 24, weight: .semibold))
-                    .foregroundStyle(ZDThemeTokens.default.interactiveFill)
+                    .foregroundStyle(.white)
                     .frame(width: 48, height: 48)
-                    .background(
-                        colorScheme == .dark
-                            ? Color.zdAccentDeep.opacity(0.2)
-                            : Color.zdAccentSoft.opacity(0.16)
-                    )
+                    .background(Color.zdAccentDeep)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 4) {
@@ -179,10 +175,10 @@ private struct AddEntryCard: View {
             .frame(maxWidth: .infinity, alignment: .leading)
             .zdSurfaceCardStyle(.regular, cornerRadius: 20, lineWidth: 1.2)
             .shadow(
-                color: colorScheme == .dark ? Color.black.opacity(0.28) : Color.zdAccentDeep.opacity(0.12),
-                radius: colorScheme == .dark ? 14 : 10,
+                color: colorScheme == .dark ? Color.black.opacity(0.35) : Color.zdAccentDeep.opacity(0.15),
+                radius: colorScheme == .dark ? 4 : 3,
                 x: 0,
-                y: colorScheme == .dark ? 6 : 4
+                y: colorScheme == .dark ? 3 : 2
             )
         }
         .buttonStyle(.plain)

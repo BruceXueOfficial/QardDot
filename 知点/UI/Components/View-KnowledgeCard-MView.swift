@@ -6,11 +6,11 @@ enum KnowledgeCardMViewTokens {
     static let surfaceSize = CGSize(width: 220, height: 160)
 
     static let splitLayout = ZDSplitCardLayout(
-        cornerRadius: 24,
+        cornerRadius: 18,
         topRatio: 0.70,
         contentPaddingTop: EdgeInsets(top: 12, leading: 14, bottom: 8, trailing: 24),
         contentPaddingBottom: EdgeInsets(top: 4, leading: 14, bottom: 18, trailing: 14),
-        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 24, holeScale: 0.75),
+        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 18, holeScale: 0.75),
         footerTopSpacerMin: 0
     )
 
@@ -69,7 +69,7 @@ struct KnowledgeCardMView: View {
     }
 
     private var metaTextColor: Color {
-        swappedPalette.metaText
+        .white.opacity(0.95)
     }
 
     private var tagSummary: String {

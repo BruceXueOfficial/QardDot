@@ -842,17 +842,17 @@ struct KnowledgeSquareView: View {
                 ]
 
                 LazyVGrid(columns: columns, spacing: 10) {
-                    KnowledgeSquareStatTile(title: "卡片总量", value: "\(library.cards.count)")
-                    KnowledgeSquareStatTile(title: "累计浏览", value: "\(library.totalViews)")
-                    KnowledgeSquareStatTile(title: "文字模块", value: "\(library.textModuleCount)")
-                    KnowledgeSquareStatTile(title: "图片模块", value: "\(library.imageModuleCount)")
-                    KnowledgeSquareStatTile(title: "代码模块", value: "\(library.codeModuleCount)")
-                    KnowledgeSquareStatTile(title: "链接模块", value: "\(library.linkModuleCount)")
-                    KnowledgeSquareStatTile(
+                    ZDStatTile(title: "卡片总量", value: "\(library.cards.count)")
+                    ZDStatTile(title: "累计浏览", value: "\(library.totalViews)")
+                    ZDStatTile(title: "文字模块", value: "\(library.textModuleCount)")
+                    ZDStatTile(title: "图片模块", value: "\(library.imageModuleCount)")
+                    ZDStatTile(title: "代码模块", value: "\(library.codeModuleCount)")
+                    ZDStatTile(title: "链接模块", value: "\(library.linkModuleCount)")
+                    ZDStatTile(
                         title: "最早收集",
                         value: formattedDay(library.firstCollectDate)
                     )
-                    KnowledgeSquareStatTile(
+                    ZDStatTile(
                         title: "最近收集",
                         value: formattedDay(library.latestCollectDate)
                     )
@@ -864,9 +864,9 @@ struct KnowledgeSquareView: View {
     }
 
     private var moduleSurface: some View {
-        RoundedRectangle(cornerRadius: 14, style: .continuous)
+        RoundedRectangle(cornerRadius: 18, style: .continuous)
             .fill(Color.clear)
-            .zdGlassSurface(cornerRadius: 14, lineWidth: 0.84)
+            .zdGlassSurface(cornerRadius: 18, lineWidth: 0.84)
     }
 
     private func refreshFeaturedCardsIfNeeded() {
@@ -1054,9 +1054,9 @@ private struct KnowledgeSquareImageTruthCard: View {
                     width: KnowledgeSquareLayoutTuning.imageTruthCardWidth,
                     height: KnowledgeSquareLayoutTuning.imageTruthCoverHeight
                 )
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    RoundedRectangle(cornerRadius: 18, style: .continuous)
                         .stroke(Color.black.opacity(colorScheme == .dark ? 0.18 : 0.08), lineWidth: 0.8)
                 )
 
@@ -1083,7 +1083,7 @@ private struct KnowledgeSquareImageCover: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
+            RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .fill(Color.secondary.opacity(0.1))
 
             imageLayer
@@ -1400,29 +1400,7 @@ private struct KnowledgeSquareRankRow: View {
     }
 }
 
-// MARK: - Stat Tile
-
-private struct KnowledgeSquareStatTile: View {
-    @Environment(\.colorScheme) private var colorScheme
-
-    let title: String
-    let value: String
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(title)
-                .font(.caption)
-                .foregroundStyle(.secondary)
-            Text(value)
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(.primary.opacity(0.9))
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
-        .zdGlassSurface(cornerRadius: 10, lineWidth: 1.12)
-    }
-}
+// MARK: - Previews
 
 #Preview("Knowledge Square") {
     KnowledgeSquareView()

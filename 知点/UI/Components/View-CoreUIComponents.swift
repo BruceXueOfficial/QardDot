@@ -137,13 +137,11 @@ struct ZDPrimaryButton: View {
                 Text(text)
                     .font(.footnote.weight(.bold))
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(Color.zdAccentDeep)
             .frame(maxWidth: fullWidth ? .infinity : nil)
             .padding(.vertical, 10)
             .padding(.horizontal, 16)
-            .background(ZDThemeTokens.default.interactiveFill)
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
-            .shadow(color: Color.zdAccentDeep.opacity(0.18), radius: 8, x: 0, y: 4)
+            .zdInteractiveControlStyle(cornerRadius: 24)
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
@@ -188,8 +186,7 @@ struct ZDSecondaryButton: View {
             .frame(maxWidth: fullWidth ? .infinity : nil)
             .padding(.vertical, 10)
             .padding(.horizontal, 16)
-            .background(Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.18 : 0.12))
-            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+            .zdInteractiveControlStyle(cornerRadius: 24)
         }
         .buttonStyle(.plain)
         .disabled(isDisabled)
@@ -212,8 +209,13 @@ struct ZDIconButton: View {
                 .font(.system(size: 14, weight: .semibold))
                 .foregroundStyle(iconColor)
                 .frame(width: size, height: size)
-                .background(activeBackground)
-                .zdSurfaceCardStyle(active ? .elevated : .clear, cornerRadius: 999, lineWidth: 1.15)
+                .background {
+                    if active {
+                        Color.zdAccentDeep
+                    }
+                }
+                .modifier(ZDIconButtonBackground(active: active))
+                .clipShape(RoundedRectangle(cornerRadius: 999, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -222,13 +224,19 @@ struct ZDIconButton: View {
         if destructive {
             return .red
         }
-        return active ? Color.zdAccentDeep : .primary.opacity(0.85)
+        return active ? .white : Color.zdAccentDeep
     }
 
-    private var activeBackground: Color {
-        active
-            ? Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16)
-            : .clear
+    private struct ZDIconButtonBackground: ViewModifier {
+        let active: Bool
+
+        func body(content: Content) -> some View {
+            if active {
+                content
+            } else {
+                content.zdSurfaceCardStyle(.elevated, cornerRadius: 999, lineWidth: 1.15)
+            }
+        }
     }
 }
 
@@ -336,13 +344,13 @@ struct ZDFloatingActionBar<Content: View>: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 8) {
             content()
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 8)
-        .frame(maxWidth: .infinity)
-        .zdSurfaceCardStyle(.elevated, cornerRadius: 32, lineWidth: 1.05)
+        .padding(.horizontal, 14)
+        .frame(width: 320, height: 64)
+        .background(Color.white.opacity(0.1))
+        .zdGlassSurface(cornerRadius: 32, lineWidth: 1.2)
     }
 }
 
@@ -360,28 +368,29 @@ struct ZDStatTile: View {
     }
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(alignment: .top, spacing: 10) {
             if let icon {
                 Image(systemName: icon)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.zdAccentDeep.opacity(0.78))
-                    .frame(width: 20)
+                    .font(.system(size: 14))
+                    .foregroundStyle(Color.white.opacity(0.85))
+                    .frame(width: 20, alignment: .leading)
+                    .padding(.top, 2)
             }
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 6) {
                 Text(title)
                     .font(.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.white.opacity(0.85))
                 Text(value)
                     .font(.subheadline.weight(.bold))
-                    .foregroundStyle(.primary.opacity(0.9))
+                    .foregroundStyle(.white)
                     .lineLimit(1)
             }
-
-            Spacer(minLength: 0)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .padding(10)
-        .zdSurfaceCardStyle(.regular, cornerRadius: 10, lineWidth: 1.0)
+        .background(Color.zdAccentDeep)
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 

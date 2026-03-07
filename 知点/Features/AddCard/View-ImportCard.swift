@@ -77,7 +77,7 @@ struct ImportCardView: View {
                 Text("导入说明")
                     .font(assistTitleFont)
                     .foregroundStyle(assistTitleColor)
-                Text("将知识卡片的 JSON 粘贴到下方输入框，即可快速导入。支持从外部 AI 整理后的标准格式。")
+                Text("支持导入外部 AI 输出的知识内容并存储为卡片")
                     .font(assistSubtitleFont)
                     .foregroundStyle(assistSubtitleColor)
                     .lineSpacing(2)
@@ -703,7 +703,7 @@ struct ImportTagPreviewScreen: View {
                     .autocorrectionDisabled()
                     .padding(.horizontal, 12)
                     .padding(.vertical, 10)
-                    .background(Color.zdSurface)
+                    .background(colorScheme == .dark ? Color.white.opacity(0.12) : Color.white)
                     .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                     .onSubmit(addInputTags)
 
@@ -711,9 +711,10 @@ struct ImportTagPreviewScreen: View {
                     addInputTags()
                 }
                 .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.white)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
-                .background(Color.zdAccentSoft.opacity(0.22))
+                .background(Color.zdAccentDeep)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .disabled(tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -814,19 +815,11 @@ struct ImportTagPreviewScreen: View {
                             .font(.system(size: 9, weight: .bold))
                     }
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(
-                        useLightPreviewText
-                            ? Color.white.opacity(0.88)
-                            : theme.primaryColor.opacity(0.88)
-                    )
+                    .foregroundStyle(.white)
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(
-                        useLightPreviewText
-                            ? Color.white.opacity(0.12)
-                            : Color.zdAccentSoft.opacity(0.16)
-                    )
+                    .background(Color.zdAccentDeep)
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)

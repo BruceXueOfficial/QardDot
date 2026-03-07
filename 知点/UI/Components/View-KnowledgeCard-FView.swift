@@ -6,12 +6,12 @@ enum KnowledgeCardFViewTokens {
     static let surfaceHeight: CGFloat = 158
 
     static let splitLayout = ZDSplitCardLayout(
-        cornerRadius: 14,
+        cornerRadius: 18,
         topRatio: 0.30,
         contentPaddingTop: EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 16),
         contentPaddingBottom: EdgeInsets(top: 6, leading: 12, bottom: 10, trailing: 6),
         // Align punch-hole size/inset with LView while keeping FView's own corner radius.
-        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 14, holeScale: 1.312),
+        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 18, holeScale: 1.312),
         footerTopSpacerMin: 6
     )
 
@@ -56,9 +56,7 @@ struct KnowledgeCardFView: View {
         colorScheme == .dark ? Color.white.opacity(0.72) : Color.black.opacity(0.50)
     }
 
-    private var titleTextColor: Color {
-        colorScheme == .dark ? Color.white.opacity(0.94) : Color.black.opacity(0.90)
-    }
+
 
     private var tags: [String] {
         (card.tags ?? [])
@@ -76,7 +74,7 @@ struct KnowledgeCardFView: View {
         ) {
             Text(card.title)
                 .font(.headline.weight(.semibold))
-                .foregroundStyle(titleTextColor)
+                .foregroundStyle(palette.titleText)
                 .lineLimit(1)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)

@@ -267,8 +267,8 @@ private struct ZDBorderOverlay: View {
     private var borderGradient: LinearGradient {
         LinearGradient(
             colors: [
-                Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.5 : 0.3),
-                Color.zdAccentSoft.opacity(colorScheme == .dark ? 0.5 : 0.3)
+                Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.9 : 0.8),
+                Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.4 : 0.3)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -306,69 +306,10 @@ private struct ZDSurfaceCardStyleModifier: ViewModifier {
 
     @ViewBuilder
     private func materialOverlay(in shape: RoundedRectangle) -> some View {
-        switch renderProfile.glassQuality {
-        case .off:
-            if renderProfile.mode == .performance, style != .clear {
-                performanceLiquidOverlay(in: shape)
-            } else {
-                Color.clear
-            }
-        case .simplified:
-            shape
-                .fill(.ultraThinMaterial)
-                .opacity(fallbackMaterialOpacity * renderProfile.materialStrength)
-        case .full:
-            if #available(iOS 26.0, *) {
-                Color.white.opacity(materialOpacity * renderProfile.materialStrength)
-                    .glassEffect(in: shape)
-            } else {
-                shape
-                    .fill(.ultraThinMaterial)
-                    .opacity(fallbackMaterialOpacity * renderProfile.materialStrength)
-            }
-        }
-    }
-
-    @ViewBuilder
-    private func performanceLiquidOverlay(in shape: RoundedRectangle) -> some View {
-        ZStack {
-            if #available(iOS 26.0, *) {
-                Color.white
-                    .opacity(performanceGlassOpacity)
-                    .glassEffect(in: shape)
-            } else {
-                shape
-                    .fill(.ultraThinMaterial)
-                    .opacity(performanceFallbackMaterialOpacity)
-            }
-
-            shape
-                .fill(
-                    LinearGradient(
-                        colors: [
-                            Color.white.opacity(performanceSheenTopOpacity),
-                            Color.white.opacity(performanceSheenMidOpacity),
-                            .clear
-                        ],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
-                .blendMode(.screen)
-
-            shape
-                .fill(
-                    RadialGradient(
-                        colors: [
-                            Color.white.opacity(performanceCornerGlowOpacity),
-                            .clear
-                        ],
-                        center: .topLeading,
-                        startRadius: max(1, cornerRadius * 0.24),
-                        endRadius: max(18, cornerRadius * 3.4)
-                    )
-                )
-                .blendMode(.screen)
+        if #available(iOS 26.0, *) {
+            Color.clear.glassEffect(.regular, in: shape)
+        } else {
+            shape.fill(.ultraThinMaterial).opacity(fallbackMaterialOpacity)
         }
     }
 
@@ -438,34 +379,16 @@ private struct ZDSurfaceCardStyleModifier: ViewModifier {
 
     private var surfaceGradient: LinearGradient {
         switch style {
-        case .regular:
+        case .regular, .elevated:
             return LinearGradient(
                 colors: colorScheme == .dark
                     ? [
-                        Color.zdSurface.opacity(0.92),
-                        Color.zdSurfaceElevated.opacity(0.9),
-                        Color.zdAccentDeep.opacity(0.14)
+                        Color(white: 0.16).opacity(0.4),
+                        Color(white: 0.08).opacity(0.6)
                     ]
                     : [
-                        Color.white.opacity(0.88),
-                        Color.zdAccentSoft.opacity(0.2),
-                        Color.zdAccentMist.opacity(0.3)
-                    ],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        case .elevated:
-            return LinearGradient(
-                colors: colorScheme == .dark
-                    ? [
-                        Color.zdSurfaceElevated.opacity(0.95),
-                        Color.zdSurface.opacity(0.92),
-                        Color.zdAccentSoft.opacity(0.12)
-                    ]
-                    : [
-                        Color.white.opacity(0.94),
-                        Color.zdSurfaceElevated.opacity(0.92),
-                        Color.zdAccentSoft.opacity(0.16)
+                        Color.white.opacity(0.5),
+                        Color.white.opacity(0.1)
                     ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
@@ -476,14 +399,12 @@ private struct ZDSurfaceCardStyleModifier: ViewModifier {
             return LinearGradient(
                 colors: colorScheme == .dark
                     ? [
-                        Color.zdSurface.opacity(0.92),
-                        Color.zdSurfaceElevated.opacity(0.88),
+                        Color(white: 0.16).opacity(0.4),
                         Color.red.opacity(0.2)
                     ]
                     : [
-                        Color.white.opacity(0.88),
-                        Color.zdAccentSoft.opacity(0.18),
-                        Color.red.opacity(0.1)
+                        Color.white.opacity(0.5),
+                        Color.red.opacity(0.15)
                     ],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing

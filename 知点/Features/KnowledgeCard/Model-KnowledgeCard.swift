@@ -144,52 +144,52 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
     var primaryColor: Color {
         switch self {
         case .blue:
-            Self.dynamicColor(lightHex: 0x4AACE3, darkHex: 0x5C98E2)
+            Self.dynamicColor(lightHex: 0x0052D4, darkHex: 0x003A99)
         case .green:
-            Self.dynamicColor(lightHex: 0x5EBA9E, darkHex: 0x6EBF9D)
+            Self.dynamicColor(lightHex: 0x008A27, darkHex: 0x00661A)
         case .orange:
-            Self.dynamicColor(lightHex: 0xE29A4C, darkHex: 0xF0A964)
+            Self.dynamicColor(lightHex: 0xE65C00, darkHex: 0xCC4400)
         case .purple:
-            Self.dynamicColor(lightHex: 0x8E86E8, darkHex: 0xA295F4)
+            Self.dynamicColor(lightHex: 0x6100E6, darkHex: 0x4700B3)
         }
     }
 
     var secondaryColor: Color {
         switch self {
         case .blue:
-            Self.dynamicColor(lightHex: 0x7ACEF0, darkHex: 0x3E6CBB)
+            Self.dynamicColor(lightHex: 0x0088FF, darkHex: 0x0066CC)
         case .green:
-            Self.dynamicColor(lightHex: 0x8CD7B9, darkHex: 0x448E71)
+            Self.dynamicColor(lightHex: 0x00C23A, darkHex: 0x00992B)
         case .orange:
-            Self.dynamicColor(lightHex: 0xF4C18B, darkHex: 0xC7793C)
+            Self.dynamicColor(lightHex: 0xFF9500, darkHex: 0xE67300)
         case .purple:
-            Self.dynamicColor(lightHex: 0xB9AFF6, darkHex: 0x6F61CB)
+            Self.dynamicColor(lightHex: 0xA233FF, darkHex: 0x7A00E6)
         }
     }
 
     var fillPrimaryColor: Color {
         switch self {
         case .blue:
-            Self.dynamicColor(lightHex: 0xBCEAFF, darkHex: 0x21396C)
+            Self.dynamicColor(lightHex: 0xEAF5FF, darkHex: 0x1A2E4C)
         case .green:
-            Self.dynamicColor(lightHex: 0xCFF1E4, darkHex: 0x1C543F)
+            Self.dynamicColor(lightHex: 0xECFAEF, darkHex: 0x194025)
         case .orange:
-            Self.dynamicColor(lightHex: 0xFFE8CC, darkHex: 0x6A411E)
+            Self.dynamicColor(lightHex: 0xFFF3EA, darkHex: 0x4C2915)
         case .purple:
-            Self.dynamicColor(lightHex: 0xE9E4FF, darkHex: 0x31276E)
+            Self.dynamicColor(lightHex: 0xF5EDFF, darkHex: 0x331E54)
         }
     }
 
     var fillSecondaryColor: Color {
         switch self {
         case .blue:
-            Self.dynamicColor(lightHex: 0xD1F3FF, darkHex: 0x31508E)
+            Self.dynamicColor(lightHex: 0xF2F9FF, darkHex: 0x203A60)
         case .green:
-            Self.dynamicColor(lightHex: 0xE0F9EF, darkHex: 0x2B6B52)
+            Self.dynamicColor(lightHex: 0xF3FCF5, darkHex: 0x1E4F2E)
         case .orange:
-            Self.dynamicColor(lightHex: 0xFFF2DF, darkHex: 0x8B5428)
+            Self.dynamicColor(lightHex: 0xFFF7F1, darkHex: 0x59311A)
         case .purple:
-            Self.dynamicColor(lightHex: 0xF5F2FF, darkHex: 0x493A96)
+            Self.dynamicColor(lightHex: 0xF9F4FF, darkHex: 0x43276B)
         }
     }
 
@@ -197,13 +197,13 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
     var tagFolderTopDeepColor: Color {
         switch self {
         case .blue:
-            Self.dynamicColor(lightHex: 0x168DE8, darkHex: 0x245D9B)
+            Color(uiColor: UIColor(hex: 0x21396C))
         case .green:
-            Self.dynamicColor(lightHex: 0x2AA87C, darkHex: 0x2D7A60)
+            Color(uiColor: UIColor(hex: 0x1C543F))
         case .orange:
-            Self.dynamicColor(lightHex: 0xE28E3D, darkHex: 0x955D2C)
+            Color(uiColor: UIColor(hex: 0x6A411E))
         case .purple:
-            Self.dynamicColor(lightHex: 0x7469DA, darkHex: 0x5844A2)
+            Color(uiColor: UIColor(hex: 0x31276E))
         }
     }
 
@@ -211,13 +211,13 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
     var tagFolderTopLightColor: Color {
         switch self {
         case .blue:
-            Self.dynamicColor(lightHex: 0x9CCFE8, darkHex: 0x5C79A3)
+            Color(uiColor: UIColor(hex: 0x31508E))
         case .green:
-            Self.dynamicColor(lightHex: 0xA8DDCA, darkHex: 0x4F7A6A)
+            Color(uiColor: UIColor(hex: 0x2B6B52))
         case .orange:
-            Self.dynamicColor(lightHex: 0xF1CFAB, darkHex: 0x8A6A4D)
+            Color(uiColor: UIColor(hex: 0x8B5428))
         case .purple:
-            Self.dynamicColor(lightHex: 0xC9C1F4, darkHex: 0x6F62A7)
+            Color(uiColor: UIColor(hex: 0x493A96))
         }
     }
 
@@ -243,7 +243,7 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
 
     var cardBorderGradient: LinearGradient {
         LinearGradient(
-            colors: [primaryColor.opacity(0.5), secondaryColor.opacity(0.5)],
+            colors: [primaryColor.opacity(0.8), secondaryColor.opacity(0.4)],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
