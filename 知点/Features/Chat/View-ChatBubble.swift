@@ -17,15 +17,7 @@ struct ChatBubbleView: View {
         return min(screenWidth * 0.72, 320)
     }
 
-    private var renderedText: NSAttributedString {
-        ChatBubbleTextRenderer.renderedText(
-            for: message,
-            colorScheme: colorScheme
-        )
-    }
-
     var body: some View {
-        HStack(alignment: .top, spacing: 0) {
             if message.type == .user { Spacer() }
 
             messageContent
@@ -56,21 +48,13 @@ struct ChatBubbleView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .animation(.linear(duration: 0.1), value: message.content)
             } else {
-                // AI bubble: streaming = plain UITextView, done = rich renderer
-                if message.isTyping {
-                    SelectableChatTextView(
-                        attributedText: renderedText,
-                        maxWidth: bubbleTextMaxWidth
-                    )
-                    .animation(.linear(duration: 0.1), value: message.content)
-                } else {
-                    RichChatContentView(
-                        text: message.content,
-                        maxWidth: bubbleTextMaxWidth,
-                        colorScheme: colorScheme
-                    )
-                    .transition(.opacity)
-                }
+                // AI bubble: always use rich renderer (live rendering of markdown and LaTeX while sliding in)
+                RichChatContentView(
+                    text: message.content,
+                    maxWidth: bubbleTextMaxWidth,
+                    colorScheme: colorScheme
+                )
+                .animation(.linear(duration: 0.1), value: message.content)
             }
 
             // Disclaimer (AI Only)
@@ -307,148 +291,6 @@ private struct MarkdownChatBlock: UIViewRepresentable {
             return Self.baseFont
         }
         return UIFont(descriptor: descriptor, size: Self.baseFont.pointSize)
-    }
-}
-
-// MARK: - ChatBubbleTextRenderer (streaming / fallback)
-
-enum ChatBubbleTextRenderer {
-    private static let baseFont = UIFont.systemFont(ofSize: 16)
-    private static let fullParsingOptions = AttributedString.MarkdownParsingOptions(
-        allowsExtendedAttributes: true,
-        interpretedSyntax: .full,
-        failurePolicy: .returnPartiallyParsedIfPossible
-    )
-
-    static func renderedText(for message: ChatMessage, colorScheme: ColorScheme) -> NSAttributedString {
-        let source = message.content.isEmpty ? " " : message.content
-        let parsed = parsedText(for: message, source: source)
-
-        return styledText(
-            from: parsed,
-            textColor: foregroundColor(for: message, colorScheme: colorScheme)
-        )
-    }
-
-    static func measuredWidth(for text: NSAttributedString, maxWidth: CGFloat) -> CGFloat {
-        let constrainedSize = CGSize(width: maxWidth, height: .greatestFiniteMagnitude)
-        let boundingRect = text.boundingRect(
-            with: constrainedSize,
-            options: [.usesLineFragmentOrigin, .usesFontLeading],
-            context: nil
-        )
-        return min(maxWidth, max(ceil(boundingRect.width), 1))
-    }
-
-    private static func parsedText(for message: ChatMessage, source: String) -> NSAttributedString {
-        switch message.type {
-        case .user:
-            return NSAttributedString(string: source)
-        case .ai:
-            // During streaming, render as plain text for smooth typewriter effect.
-            return NSAttributedString(string: source)
-        }
-    }
-
-    private static func foregroundColor(for message: ChatMessage, colorScheme: ColorScheme) -> UIColor {
-        if message.type == .user { return .white }
-        return UIColor.label.withAlphaComponent(colorScheme == .dark ? 0.94 : 0.9)
-    }
-
-    private static func styledText(from text: NSAttributedString, textColor: UIColor) -> NSAttributedString {
-        let mutable = NSMutableAttributedString(attributedString: text)
-        let fullRange = NSRange(location: 0, length: mutable.length)
-
-        guard fullRange.length > 0 else {
-            return NSAttributedString(
-                string: " ",
-                attributes: [
-                    .font: baseFont,
-                    .foregroundColor: textColor,
-                    .kern: 0.5
-                ]
-            )
-        }
-
-        mutable.addAttribute(.foregroundColor, value: textColor, range: fullRange)
-        mutable.addAttribute(.kern, value: 0.5, range: fullRange)
-
-        let resolvedBaseFont = baseFont
-        mutable.addAttribute(.font, value: resolvedBaseFont, range: fullRange)
-
-        let paragraphStyle = NSMutableParagraphStyle()
-        paragraphStyle.lineSpacing = 6
-        paragraphStyle.lineBreakMode = .byWordWrapping
-        mutable.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
-
-        return mutable
-    }
-}
-
-// MARK: - SelectableChatTextView (streaming only)
-
-private struct SelectableChatTextView: UIViewRepresentable {
-    let attributedText: NSAttributedString
-    let maxWidth: CGFloat
-
-    func makeUIView(context: Context) -> UITextView {
-        let textView = UITextView()
-        textView.isEditable = false
-        textView.isSelectable = true
-        textView.isScrollEnabled = false
-        textView.isUserInteractionEnabled = true
-        textView.backgroundColor = .clear
-        textView.textContainerInset = .zero
-        textView.textContainer.lineFragmentPadding = 0
-        textView.textContainer.maximumNumberOfLines = 0
-        textView.textContainer.lineBreakMode = .byWordWrapping
-        textView.adjustsFontForContentSizeCategory = true
-        textView.setContentHuggingPriority(.defaultHigh, for: .horizontal)
-        textView.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
-        textView.setContentHuggingPriority(.required, for: .vertical)
-        textView.setContentCompressionResistancePriority(.required, for: .vertical)
-        textView.showsVerticalScrollIndicator = false
-        textView.showsHorizontalScrollIndicator = false
-        textView.tintColor = .systemBlue
-        textView.textDragInteraction?.isEnabled = false
-        textView.linkTextAttributes = [
-            .underlineStyle: NSUnderlineStyle.single.rawValue
-        ]
-        textView.attributedText = attributedText
-        return textView
-    }
-
-    func updateUIView(_ uiView: UITextView, context: Context) {
-        guard !uiView.attributedText.isEqual(to: attributedText) else {
-            return
-        }
-
-        let selectedRange = uiView.selectedRange
-        uiView.attributedText = attributedText
-        uiView.textContainer.size = CGSize(width: maxWidth, height: .greatestFiniteMagnitude)
-        uiView.invalidateIntrinsicContentSize()
-        uiView.setNeedsLayout()
-
-        guard selectedRange.location != NSNotFound else {
-            return
-        }
-
-        let safeLocation = min(selectedRange.location, attributedText.length)
-        let safeLength = min(selectedRange.length, max(0, attributedText.length - safeLocation))
-        uiView.selectedRange = NSRange(location: safeLocation, length: safeLength)
-    }
-
-    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
-        let targetWidth = max(maxWidth, 1)
-
-        let fittingSize = CGSize(width: targetWidth, height: .greatestFiniteMagnitude)
-        uiView.textContainer.size = fittingSize
-        uiView.layoutManager.ensureLayout(for: uiView.textContainer)
-
-        let measured = uiView.sizeThatFits(fittingSize)
-        let measuredWidth = ChatBubbleTextRenderer.measuredWidth(for: attributedText, maxWidth: targetWidth)
-
-        return CGSize(width: measuredWidth, height: ceil(measured.height))
     }
 }
 
