@@ -55,7 +55,6 @@ struct ChatBubbleView: View {
                     maxWidth: bubbleTextMaxWidth,
                     colorScheme: colorScheme
                 )
-                .animation(.linear(duration: 0.1), value: message.content)
             }
 
             // Disclaimer (AI Only)
@@ -150,6 +149,7 @@ private struct RichChatContentView: View {
         )
         .kerning(0.5)
         .textSelection(.enabled)
+        .frame(maxWidth: maxWidth, alignment: .leading)
     }
 }
 
