@@ -56,6 +56,13 @@ struct AddCardHubView: View {
                 }
             }
         }
+        .sheet(isPresented: $showSmartChat) {
+            NavigationStack {
+                AiChatPage()
+            }
+            .presentationDetents([.large])
+            .presentationCornerRadius(30)
+        }
         .sheet(isPresented: $showProfileSheet) {
             ProfileView()
                 .presentationDetents([.large])
@@ -69,9 +76,6 @@ struct AddCardHubView: View {
         .sheet(isPresented: $showImportCard) {
             ImportCardView(onCreate: handleCreation)
                 .environmentObject(library)
-        }
-        .sheet(isPresented: $showSmartChat) {
-            AiChatPage()
         }
         .sheet(isPresented: $showCreateGraph) {
             GraphCreationSheet { graphID in

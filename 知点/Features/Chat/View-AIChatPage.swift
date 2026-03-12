@@ -1,7 +1,10 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct AiChatPage: View {
-    @StateObject private var viewModel = AiChatViewModel()
+    @EnvironmentObject private var viewModel: AiChatViewModel
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var library: KnowledgeCardLibraryStore
     
@@ -10,177 +13,208 @@ struct AiChatPage: View {
     @State private var previewCard: KnowledgeCard?
     @State private var isCardSelectionMode = false
     @State private var selectedRecognizedCardIDs: Set<UUID> = []
+    @State private var showBatchTagEditor = false
+    @State private var showBatchColorEditor = false
 
     var body: some View {
-        NavigationStack {
-            ZStack(alignment: .bottom) {
-                // Background
-                Color.clear.zdPageBackground()
-                
-                // Content
-                ScrollViewReader { proxy in
-                    ScrollView {
-                        VStack(spacing: 24) {
-                            // Intro header
-                            VStack(spacing: 8) {
-                                Image(systemName: "sparkles")
-                                    .font(.system(size: 42))
-                                    .foregroundStyle(Color.zdAccentDeep)
-                                    .padding(.bottom, 6)
-                                Text("智能助手")
-                                    .font(.title2.weight(.bold))
-                                Text("在知点里遇到不懂的卡片知识，随时问我")
-                                    .font(.subheadline)
+        ZStack(alignment: .bottom) {
+            // Background
+            Color.clear.zdPageBackground()
+
+            // Content
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 24) {
+                        // Intro header
+                        VStack(spacing: 8) {
+                            Image(systemName: "sparkles")
+                                .font(.system(size: 42))
+                                .foregroundStyle(Color.zdAccentDeep)
+                                .padding(.bottom, 6)
+                            Text("智能助手")
+                                .font(.title2.weight(.bold))
+                            Text("在知点里遇到不懂的卡片知识，随时问我")
+                                .font(.subheadline)
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 60)
+                        .padding(.bottom, 20)
+
+                        // Message List
+                        ForEach(viewModel.messages) { message in
+                            ChatBubbleView(message: message)
+                                .id(message.id)
+                        }
+
+                        // The Voice Bubble represents itself exactly inside `viewModel.messages` now.
+
+                        // AI Thinking Info
+                        if viewModel.isThinking {
+                            HStack(spacing: 8) {
+                                ProgressView()
+                                Text("思考中...")
+                                    .font(.system(size: 13, weight: .medium))
                                     .foregroundColor(.secondary)
                             }
-                            .frame(maxWidth: .infinity)
-                            .padding(.top, 60)
-                            .padding(.bottom, 20)
-                            
-                            // Message List
-                            ForEach(viewModel.messages) { message in
-                                ChatBubbleView(message: message)
-                                    .id(message.id)
-                            }
-                            
-                            // The Voice Bubble represents itself exactly inside `viewModel.messages` now.
-                            
-                            // AI Thinking Info
-                            if viewModel.isThinking {
-                                HStack(spacing: 8) {
-                                    ProgressView()
-                                    Text("思考中...")
-                                        .font(.system(size: 13, weight: .medium))
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.vertical, 12)
-                                .padding(.horizontal, 24)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                                .transition(.opacity)
-                            }
-                            
-                            // Bottom Marker
-                            Color.clear
-                                .frame(height: 120)
-                                .id("BottomMarker")
+                            .padding(.vertical, 12)
+                            .padding(.horizontal, 24)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .transition(.opacity)
                         }
+
+                        // Bottom Marker
+                        Color.clear
+                            .frame(height: 120)
+                            .id("BottomMarker")
                     }
-                    .scrollDismissesKeyboard(.interactively)
-                    .onTapGesture {
-                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
+                .onAppear {
+                    DispatchQueue.main.async {
+                        proxy.scrollTo("BottomMarker", anchor: .bottom)
                     }
-                    .onChange(of: viewModel.messages) { _, _ in
+                }
+                .scrollDismissesKeyboard(.interactively)
+                .onTapGesture {
+                    UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                }
+                .onChange(of: viewModel.messages) { _, _ in
+                    withAnimation {
+                        proxy.scrollTo("BottomMarker", anchor: .bottom)
+                    }
+                }
+                .onChange(of: viewModel.isThinking) { _, isThinking in
+                    if isThinking {
                         withAnimation {
                             proxy.scrollTo("BottomMarker", anchor: .bottom)
                         }
                     }
-                    .onChange(of: viewModel.isThinking) { _, isThinking in
-                        if isThinking {
-                            withAnimation {
-                                proxy.scrollTo("BottomMarker", anchor: .bottom)
-                            }
-                        }
-                    }
-                    .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                            withAnimation {
-                                proxy.scrollTo("BottomMarker", anchor: .bottom)
-                            }
+                }
+                .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                        withAnimation {
+                            proxy.scrollTo("BottomMarker", anchor: .bottom)
                         }
                     }
                 }
-                .zdTopScrollBlurFade()
-                
-                // Overlay for recording UI or floating input
-                VStack(spacing: 0) {
-                    Spacer()
-                    
-                    AiFloatingInputBar(
-                        text: $viewModel.inputText,
-                        isRecording: viewModel.isRecording,
-                        isGenerating: viewModel.isResponding,
-                        onSend: { viewModel.sendMessage() },
-                        onStop: { viewModel.stopGeneration(isInterrupt: true) },
-                        onStartVoice: { viewModel.startVoiceRecording() },
-                        onEndVoice: { viewModel.endVoiceRecording() },
-                        onCancelVoice: { viewModel.cancelVoiceRecording() },
-                        onOpenDrawer: {
-                            selectedRecognizedCardIDs.removeAll()
-                            isCardSelectionMode = false
-                            withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
-                                showCardDrawer = true
-                            }
-                        },
-                        recognizedCardCount: viewModel.recognizedCards.count
-                    )
-                }
-                .animation(.spring(response: 0.35, dampingFraction: 0.82), value: viewModel.isRecording)
-                
             }
-            .overlay(alignment: .bottom) {
-                ZStack(alignment: .bottom) {
-                    if showCardDrawer {
-                        Color.black.opacity(0.2)
-                            .ignoresSafeArea()
-                            .onTapGesture { closeCardDrawer() }
-                            .transition(.opacity)
-                    }
+            .zdTopScrollBlurFade()
 
-                    cardDrawerView
-                        .offset(y: showCardDrawer ? 0 : 440)
-                        .opacity(showCardDrawer ? 1 : 0)
-                        .allowsHitTesting(showCardDrawer)
-                }
-                .ignoresSafeArea(.container, edges: .bottom)
-                .animation(.spring(response: 0.36, dampingFraction: 0.86), value: showCardDrawer)
+            // Overlay for recording UI or floating input
+            VStack(spacing: 0) {
+                Spacer()
+
+                AiFloatingInputBar(
+                    text: $viewModel.inputText,
+                    isRecording: viewModel.isRecording,
+                    isGenerating: viewModel.isResponding,
+                    onSend: { viewModel.sendMessage() },
+                    onStop: { viewModel.stopGeneration(isInterrupt: true) },
+                    onStartVoice: { viewModel.startVoiceRecording() },
+                    onEndVoice: { viewModel.endVoiceRecording() },
+                    onCancelVoice: { viewModel.cancelVoiceRecording() },
+                    onOpenDrawer: {
+                        selectedRecognizedCardIDs.removeAll()
+                        isCardSelectionMode = false
+                        withAnimation(.spring(response: 0.4, dampingFraction: 0.8)) {
+                            showCardDrawer = true
+                        }
+                    },
+                    recognizedCardCount: viewModel.recognizedCards.count
+                )
             }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Button { dismiss() } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.primary)
-                    }
-                }
-                ToolbarItem(placement: .principal) {
-                    Text("有问必答")
-                        .font(.headline)
-                        .foregroundStyle(.primary)
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showClearAlert = true } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(viewModel.messages.isEmpty ? .secondary.opacity(0.3) : .primary)
-                    }
-                    .disabled(viewModel.messages.isEmpty)
-                }
-            }
-            .alert("您确定要清除对话内容吗？", isPresented: $showClearAlert) {
-                Button("取消", role: .cancel) { }
-                Button("清除", role: .destructive) { viewModel.clearMessages() }
-            }
-            .sheet(item: $previewCard) { card in
-                KnowledgeCardDetailScreen(card: card) { updatedCard in
-                    if let idx = viewModel.recognizedCards.firstIndex(where: { $0.id == updatedCard.id }) {
-                        viewModel.recognizedCards[idx] = updatedCard
-                    }
-                }
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(30)
-            }
-            .onChange(of: viewModel.recognizedCards.map(\.id)) { _, ids in
-                let validIDs = Set(ids)
-                selectedRecognizedCardIDs.formIntersection(validIDs)
-                if validIDs.isEmpty {
-                    isCardSelectionMode = false
-                    showCardDrawer = false
-                }
-            }
-            .navigationBarBackButtonHidden()
-            .toolbarBackground(.hidden, for: .navigationBar)
+            .animation(.spring(response: 0.35, dampingFraction: 0.82), value: viewModel.isRecording)
         }
+        .overlay(alignment: .bottom) {
+            ZStack(alignment: .bottom) {
+                if showCardDrawer {
+                    Color.black.opacity(0.2)
+                        .ignoresSafeArea()
+                        .onTapGesture { closeCardDrawer() }
+                        .transition(.opacity)
+                }
+
+                cardDrawerView
+                    .offset(y: showCardDrawer ? 0 : 440)
+                    .opacity(showCardDrawer ? 1 : 0)
+                    .allowsHitTesting(showCardDrawer)
+            }
+            .ignoresSafeArea(.container, edges: .bottom)
+            .animation(.spring(response: 0.36, dampingFraction: 0.86), value: showCardDrawer)
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button { dismiss() } label: {
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.primary)
+                }
+            }
+            ToolbarItem(placement: .principal) {
+                Text("有问必答")
+                    .font(.headline)
+                    .foregroundStyle(.primary)
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showClearAlert = true } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(viewModel.messages.isEmpty ? .secondary.opacity(0.3) : .primary)
+                }
+                .disabled(viewModel.messages.isEmpty)
+            }
+        }
+        .alert("您确定要清除对话内容吗？", isPresented: $showClearAlert) {
+            Button("取消", role: .cancel) { }
+            Button("清除", role: .destructive) { viewModel.clearMessages() }
+        }
+        .sheet(item: $previewCard) { card in
+            KnowledgeCardDetailScreen(card: card) { updatedCard in
+                if let idx = viewModel.recognizedCards.firstIndex(where: { $0.id == updatedCard.id }) {
+                    viewModel.recognizedCards[idx] = updatedCard
+                }
+            }
+            .presentationDetents([.large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(30)
+        }
+        .sheet(isPresented: $showBatchTagEditor) {
+            let selectedCards = viewModel.recognizedCards.filter { selectedRecognizedCardIDs.contains($0.id) }
+            CardManagementBatchTagEditorScreen(
+                cards: selectedCards,
+                existingTags: library.allUniqueTags()
+            ) { finalSelectedIDs, updatedTags in
+                for i in viewModel.recognizedCards.indices {
+                    if finalSelectedIDs.contains(viewModel.recognizedCards[i].id) {
+                        viewModel.recognizedCards[i].tags = updatedTags.isEmpty ? nil : updatedTags
+                    }
+                }
+                selectedRecognizedCardIDs.removeAll()
+            }
+            .environmentObject(library)
+        }
+        .sheet(isPresented: $showBatchColorEditor) {
+            let selectedCards = viewModel.recognizedCards.filter { selectedRecognizedCardIDs.contains($0.id) }
+            CardManagementBatchColorEditorScreen(cards: selectedCards) { finalSelectedIDs, color in
+                for i in viewModel.recognizedCards.indices {
+                    if finalSelectedIDs.contains(viewModel.recognizedCards[i].id) {
+                        viewModel.recognizedCards[i].themeColor = color
+                    }
+                }
+                selectedRecognizedCardIDs.removeAll()
+            }
+        }
+        .onChange(of: viewModel.recognizedCards.map(\.id)) { _, ids in
+            let validIDs = Set(ids)
+            selectedRecognizedCardIDs.formIntersection(validIDs)
+            if validIDs.isEmpty {
+                isCardSelectionMode = false
+                showCardDrawer = false
+            }
+        }
+        .navigationBarBackButtonHidden()
+        .toolbarBackground(.hidden, for: .navigationBar)
+        .toolbar(.hidden, for: .tabBar)
     }
     
     // MARK: - Card Collector Drawer
@@ -216,12 +250,12 @@ struct AiChatPage: View {
                         Button(action: {
                             handleRecognizedCardTap(card)
                         }) {
-                            KnowledgeCardSView(card: card)
+                            KnowledgeCardSView(card: card, hidesTrailingMeta: isCardSelectionMode)
                                 .frame(width: 164)
-                                .overlay(alignment: .topTrailing) {
+                                .overlay(alignment: .bottomTrailing) {
                                     if isCardSelectionMode {
                                         selectionIndicator(for: card.id)
-                                            .padding(.top, 8)
+                                            .padding(.bottom, 8)
                                             .padding(.trailing, 8)
                                     }
                                 }
@@ -244,6 +278,15 @@ struct AiChatPage: View {
                                 .animation(.spring(response: 0.24, dampingFraction: 0.85), value: selectedRecognizedCardIDs)
                         }
                         .buttonStyle(.plain)
+                        .contextMenu {
+                            if !isCardSelectionMode {
+                                Button(role: .destructive) {
+                                    removeRecognizedCards([card.id])
+                                } label: {
+                                    ZDDestructiveMenuLabel(title: "删除卡片")
+                                }
+                            }
+                        }
                     }
                 }
                 .padding(.horizontal, 20)
@@ -252,9 +295,10 @@ struct AiChatPage: View {
             .frame(height: 160)
             
             Divider()
-            
+
             // Bottom Action
             HStack {
+                // 左：切换选择模式
                 ZDIconButton(
                     systemName: isCardSelectionMode ? "xmark" : "checkmark.circle",
                     active: isCardSelectionMode
@@ -264,16 +308,70 @@ struct AiChatPage: View {
 
                 Spacer()
 
-                Button(action: { handleDrawerPrimaryAction() }) {
-                    Text(drawerPrimaryButtonTitle)
-                        .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 24)
-                        .padding(.vertical, 10)
-                        .background(Capsule().fill(drawerPrimaryButtonColor))
-                        .shadow(color: drawerPrimaryButtonColor.opacity(0.3), radius: 5, y: 3)
+                if isCardSelectionMode {
+                    let hasSelection = !selectedRecognizedCardIDs.isEmpty
+
+                    HStack(spacing: 10) {
+                        drawerActionCircleButton(
+                            systemName: "trash",
+                            isEnabled: hasSelection,
+                            activeBackground: Color.red
+                        ) {
+                            guard hasSelection else { return }
+                            removeRecognizedCards(selectedRecognizedCardIDs)
+                            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                        }
+
+                        drawerActionCircleButton(
+                            systemName: "tray.and.arrow.down.fill",
+                            isEnabled: hasSelection,
+                            activeBackground: Color.zdAccentDeep
+                        ) {
+                            guard hasSelection else { return }
+                            handleStoreSelectedCards()
+                        }
+
+                        Menu {
+                        Button {
+                            showBatchTagEditor = true
+                        } label: {
+                            Label("编辑标签", systemImage: "tag")
+                        }
+
+                        Button {
+                            showBatchColorEditor = true
+                        } label: {
+                            Label("编辑颜色", systemImage: "paintpalette")
+                        }
+                        } label: {
+                            Text("编辑")
+                                .font(.system(size: 15, weight: .bold))
+                                .foregroundColor(hasSelection ? .white : Color.primary.opacity(0.4))
+                                .padding(.horizontal, 28)
+                                .padding(.vertical, 10)
+                                .background(
+                                    Capsule().fill(
+                                        hasSelection
+                                            ? Color.zdAccentDeep
+                                            : Color.secondary.opacity(0.15)
+                                    )
+                                )
+                        }
+                        .disabled(!hasSelection)
+                    }
+                } else {
+                    // 收纳卡片（非选择模式）
+                    Button(action: { handleStoreCards() }) {
+                        Text("收纳卡片")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 24)
+                            .padding(.vertical, 10)
+                            .background(Capsule().fill(Color.zdAccentDeep))
+                            .shadow(color: Color.zdAccentDeep.opacity(0.3), radius: 5, y: 3)
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
             .padding(20)
         }
@@ -297,22 +395,6 @@ struct AiChatPage: View {
             return .red
         }
         return .secondary
-    }
-
-    private var drawerPrimaryButtonTitle: String {
-        if isCardSelectionMode {
-            return selectedRecognizedCardIDs.isEmpty ? "选择卡片" : "删除卡片"
-        }
-        return "收纳卡片"
-    }
-
-    private var drawerPrimaryButtonColor: Color {
-        if isCardSelectionMode {
-            return selectedRecognizedCardIDs.isEmpty
-                ? Color.gray.opacity(0.72)
-                : Color.red
-        }
-        return Color.zdAccentDeep
     }
 
     @ViewBuilder
@@ -366,21 +448,17 @@ struct AiChatPage: View {
         previewCard = card
     }
 
-    private func handleDrawerPrimaryAction() {
-        if isCardSelectionMode {
-            guard !selectedRecognizedCardIDs.isEmpty else {
-                UINotificationFeedbackGenerator().notificationOccurred(.warning)
-                return
-            }
+    private func removeRecognizedCards<S: Sequence>(_ ids: S) where S.Element == UUID {
+        let idSet = Set(ids)
+        guard !idSet.isEmpty else { return }
 
-            withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
-                viewModel.recognizedCards.removeAll { selectedRecognizedCardIDs.contains($0.id) }
-                selectedRecognizedCardIDs.removeAll()
-            }
-            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
-            return
+        withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
+            viewModel.recognizedCards.removeAll { idSet.contains($0.id) }
+            selectedRecognizedCardIDs.subtract(idSet)
         }
+    }
 
+    private func handleStoreCards() {
         for card in viewModel.recognizedCards {
             library.addCard(card)
         }
@@ -390,8 +468,48 @@ struct AiChatPage: View {
         closeCardDrawer()
         UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
     }
+
+    private func handleStoreSelectedCards() {
+        let selectedCards = viewModel.recognizedCards.filter { selectedRecognizedCardIDs.contains($0.id) }
+        guard !selectedCards.isEmpty else { return }
+
+        for card in selectedCards {
+            library.addCard(card)
+        }
+        removeRecognizedCards(selectedRecognizedCardIDs)
+        UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+    }
+
+    @ViewBuilder
+    private func drawerActionCircleButton(
+        systemName: String,
+        isEnabled: Bool,
+        activeBackground: Color,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 14, weight: .bold))
+                .foregroundStyle(isEnabled ? Color.white : Color.secondary.opacity(0.88))
+                .frame(width: 36, height: 36)
+                .background(
+                    Circle().fill(
+                        isEnabled
+                            ? activeBackground
+                            : Color.secondary.opacity(0.16)
+                    )
+                )
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
+    }
+
 }
 
 #Preview {
     AiChatPage()
+        .environmentObject(AiChatViewModel())
+        .environmentObject(
+            KnowledgeCardLibraryStore(cards: KnowledgeCardLibraryStore.bundledSeedCardsForPreview())
+        )
 }

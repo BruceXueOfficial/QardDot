@@ -1,18 +1,35 @@
 import SwiftUI
+import UIKit
+import LaTeXSwiftUI
+
+// MARK: - ChatBubbleView
 
 struct ChatBubbleView: View {
-    // Properties
     let message: ChatMessage
     @Environment(\.colorScheme) private var colorScheme
     @State private var scale: CGFloat = 0.95
     @State private var opacity: Double = 0
-    
+
+    private var bubbleTextMaxWidth: CGFloat {
+        let screenWidth = UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.screen.bounds.width }
+            .first ?? 390
+        return min(screenWidth * 0.72, 320)
+    }
+
+    private var renderedText: NSAttributedString {
+        ChatBubbleTextRenderer.renderedText(
+            for: message,
+            colorScheme: colorScheme
+        )
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
             if message.type == .user { Spacer() }
-            
+
             messageContent
-            
+
             if message.type != .user { Spacer() }
         }
         .padding(.horizontal, 24)
@@ -23,42 +40,39 @@ struct ChatBubbleView: View {
             }
         }
     }
-    
+
     // MARK: - Subviews
-    
+
     private var messageContent: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Text Content
             if message.type == .user {
-                Group {
-                    if let attr = try? AttributedString(markdown: message.content.isEmpty ? " " : message.content, options: AttributedString.MarkdownParsingOptions(allowsExtendedAttributes: true, interpretedSyntax: .full, failurePolicy: .returnPartiallyParsedIfPossible)) {
-                        Text(attr)
-                    } else {
-                        Text(LocalizedStringKey(message.content.isEmpty ? " " : message.content))
-                    }
-                }
-                .textSelection(.enabled)
-                .font(.system(size: 16))
-                .lineSpacing(6)
-                .kerning(0.5)
-                .foregroundColor(.white)
-                .animation(.linear(duration: 0.1), value: message.content)
+                // User bubble: plain verbatim text
+                Text(verbatim: message.content.isEmpty ? " " : message.content)
+                    .textSelection(.enabled)
+                    .font(.system(size: 16))
+                    .lineSpacing(6)
+                    .kerning(0.5)
+                    .foregroundColor(.white)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .animation(.linear(duration: 0.1), value: message.content)
             } else {
-                Group {
-                    if let attr = try? AttributedString(markdown: message.content.isEmpty ? " " : message.content, options: AttributedString.MarkdownParsingOptions(allowsExtendedAttributes: true, interpretedSyntax: .inlineOnlyPreservingWhitespace, failurePolicy: .returnPartiallyParsedIfPossible)) {
-                        Text(attr)
-                    } else {
-                        Text(message.content)
-                    }
+                // AI bubble: streaming = plain UITextView, done = rich renderer
+                if message.isTyping {
+                    SelectableChatTextView(
+                        attributedText: renderedText,
+                        maxWidth: bubbleTextMaxWidth
+                    )
+                    .animation(.linear(duration: 0.1), value: message.content)
+                } else {
+                    RichChatContentView(
+                        text: message.content,
+                        maxWidth: bubbleTextMaxWidth,
+                        colorScheme: colorScheme
+                    )
+                    .transition(.opacity)
                 }
-                .textSelection(.enabled)
-                .font(.system(size: 16))
-                .lineSpacing(6)
-                .kerning(0.5)
-                .foregroundColor(Color(uiColor: UIColor.label.withAlphaComponent(0.9)))
-                .animation(.linear(duration: 0.1), value: message.content)
             }
-            
+
             // Disclaimer (AI Only)
             if message.type != .user && !message.isTyping {
                 Text("回​​答​​由​​A​​I​​生​​成​​，​​仅​​供​​参​​考")
@@ -82,9 +96,9 @@ struct ChatBubbleView: View {
         .scaleEffect(scale)
         .opacity(opacity)
     }
-    
+
     // MARK: - Styles & Shapes
-    
+
     @ViewBuilder
     private var backgroundLayer: some View {
         if message.type == .user {
@@ -100,7 +114,7 @@ struct ChatBubbleView: View {
             Color.clear
         }
     }
-    
+
     private var borderOverlay: some View {
         bubbleShape
             .strokeBorder(
@@ -115,7 +129,7 @@ struct ChatBubbleView: View {
                 lineWidth: 1
             )
     }
-    
+
     private var bubbleShape: UnevenRoundedRectangle {
         UnevenRoundedRectangle(
             topLeadingRadius: message.type == .user ? 18 : 6,
@@ -127,17 +141,330 @@ struct ChatBubbleView: View {
     }
 }
 
+// MARK: - Rich Chat Content (LaTeX + Markdown)
+
+/// Used for completed (non-streaming) AI responses.
+/// Renders using MixedTextRenderer to ensure inline LaTeX formatting mirroring the text module.
+private struct RichChatContentView: View {
+    let text: String
+    let maxWidth: CGFloat
+    let colorScheme: ColorScheme
+
+    private var textColor: Color {
+        colorScheme == .dark
+            ? Color(uiColor: UIColor.label.withAlphaComponent(0.94))
+            : Color(uiColor: UIColor.label.withAlphaComponent(0.9))
+    }
+
+    var body: some View {
+        MixedTextRenderer(
+            text: MarkdownChatBlock.preprocessMarkdown(text),
+            fontSize: 16,
+            textColor: textColor,
+            lineSpacing: 6
+        )
+        .kerning(0.5)
+        .textSelection(.enabled)
+    }
+}
+
+// MARK: - Markdown Chat Block (handles bullets + blockquotes)
+
+/// Renders a chunk of Markdown text that may contain `*`/`-` bullets and `>` blockquotes.
+/// Converts these to proper Markdown syntax understood by AttributedString, then
+/// falls back to a UITextView for selection support.
+private struct MarkdownChatBlock: UIViewRepresentable {
+    let markdown: String
+    let maxWidth: CGFloat
+    let colorScheme: ColorScheme
+
+    private static let baseFont = UIFont.systemFont(ofSize: 16)
+    private static let fullParsingOptions = AttributedString.MarkdownParsingOptions(
+        allowsExtendedAttributes: true,
+        interpretedSyntax: .full,
+        failurePolicy: .returnPartiallyParsedIfPossible
+    )
+
+    func makeUIView(context: Context) -> UITextView {
+        let tv = UITextView()
+        tv.isEditable = false
+        tv.isSelectable = true
+        tv.isScrollEnabled = false
+        tv.isUserInteractionEnabled = true
+        tv.backgroundColor = .clear
+        tv.textContainerInset = .zero
+        tv.textContainer.lineFragmentPadding = 0
+        tv.textContainer.maximumNumberOfLines = 0
+        tv.textContainer.lineBreakMode = .byWordWrapping
+        tv.adjustsFontForContentSizeCategory = true
+        tv.setContentHuggingPriority(.required, for: .vertical)
+        tv.setContentCompressionResistancePriority(.required, for: .vertical)
+        tv.textDragInteraction?.isEnabled = false
+        tv.linkTextAttributes = [.underlineStyle: NSUnderlineStyle.single.rawValue]
+        tv.attributedText = buildAttributedText()
+        return tv
+    }
+
+    func updateUIView(_ uiView: UITextView, context: Context) {
+        let built = buildAttributedText()
+        guard !uiView.attributedText.isEqual(to: built) else { return }
+        uiView.attributedText = built
+        uiView.invalidateIntrinsicContentSize()
+        uiView.setNeedsLayout()
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+        let w = max(maxWidth, 1)
+        let fit = CGSize(width: w, height: .greatestFiniteMagnitude)
+        uiView.textContainer.size = fit
+        uiView.layoutManager.ensureLayout(for: uiView.textContainer)
+        let measured = uiView.sizeThatFits(fit)
+        return CGSize(width: w, height: ceil(measured.height))
+    }
+
+    // MARK: - Build
+
+    private func buildAttributedText() -> NSAttributedString {
+        let converted = Self.preprocessMarkdown(markdown)
+        let textColor = UIColor.label.withAlphaComponent(colorScheme == .dark ? 0.94 : 0.9)
+
+        let attributed: NSAttributedString
+        if let attrStr = try? AttributedString(markdown: converted, options: Self.fullParsingOptions) {
+            attributed = NSAttributedString(attrStr)
+        } else {
+            attributed = NSAttributedString(string: converted)
+        }
+
+        return styled(attributed, textColor: textColor)
+    }
+
+    /// Converts `* item` / `- item` bullets and `> quote` lines to GitHub-Flavored Markdown
+    /// syntax accepted by Apple's AttributedString parser.
+    static func preprocessMarkdown(_ raw: String) -> String {
+        let lines = raw.components(separatedBy: "\n")
+        var result: [String] = []
+
+        for line in lines {
+            let trimmed = line.trimmingCharacters(in: .init(charactersIn: " \t"))
+
+            // Bullet point: * item or - item (but not ** bold or --- hr)
+            if (trimmed.hasPrefix("* ") || trimmed.hasPrefix("- ")) && !trimmed.hasPrefix("---") {
+                let content = String(trimmed.dropFirst(2))
+                // Markdown list item with a bullet
+                result.append("• \(content)")
+                continue
+            }
+
+            // Blockquote: > text
+            if trimmed.hasPrefix("> ") {
+                let content = String(trimmed.dropFirst(2))
+                // Use italic + gray tint via markdown (italic is what AttributedString supports)
+                result.append("*\(content)*")
+                continue
+            }
+
+            result.append(line)
+        }
+
+        return result.joined(separator: "\n")
+    }
+
+    private func styled(_ text: NSAttributedString, textColor: UIColor) -> NSAttributedString {
+        let mutable = NSMutableAttributedString(attributedString: text)
+        let fullRange = NSRange(location: 0, length: mutable.length)
+        guard fullRange.length > 0 else {
+            return NSAttributedString(string: " ", attributes: [
+                .font: Self.baseFont,
+                .foregroundColor: textColor,
+                .kern: 0.5
+            ])
+        }
+
+        mutable.addAttribute(.foregroundColor, value: textColor, range: fullRange)
+        mutable.addAttribute(.kern, value: 0.5, range: fullRange)
+
+        text.enumerateAttribute(.font, in: fullRange) { value, range, _ in
+            let resolved = resolvedFont(from: value as? UIFont)
+            mutable.addAttribute(.font, value: resolved, range: range)
+        }
+
+        text.enumerateAttribute(.paragraphStyle, in: fullRange) { value, range, _ in
+            let para = ((value as? NSParagraphStyle)?.mutableCopy() as? NSMutableParagraphStyle)
+                ?? NSMutableParagraphStyle()
+            para.lineSpacing = 6
+            para.lineBreakMode = .byWordWrapping
+            mutable.addAttribute(.paragraphStyle, value: para, range: range)
+        }
+
+        return mutable
+    }
+
+    private func resolvedFont(from font: UIFont?) -> UIFont {
+        guard let font else { return Self.baseFont }
+        let allowedTraits: UIFontDescriptor.SymbolicTraits = [.traitBold, .traitItalic, .traitMonoSpace]
+        let traits = font.fontDescriptor.symbolicTraits.intersection(allowedTraits)
+        guard let descriptor = Self.baseFont.fontDescriptor.withSymbolicTraits(traits) else {
+            return Self.baseFont
+        }
+        return UIFont(descriptor: descriptor, size: Self.baseFont.pointSize)
+    }
+}
+
+// MARK: - ChatBubbleTextRenderer (streaming / fallback)
+
+enum ChatBubbleTextRenderer {
+    private static let baseFont = UIFont.systemFont(ofSize: 16)
+    private static let fullParsingOptions = AttributedString.MarkdownParsingOptions(
+        allowsExtendedAttributes: true,
+        interpretedSyntax: .full,
+        failurePolicy: .returnPartiallyParsedIfPossible
+    )
+
+    static func renderedText(for message: ChatMessage, colorScheme: ColorScheme) -> NSAttributedString {
+        let source = message.content.isEmpty ? " " : message.content
+        let parsed = parsedText(for: message, source: source)
+
+        return styledText(
+            from: parsed,
+            textColor: foregroundColor(for: message, colorScheme: colorScheme)
+        )
+    }
+
+    static func measuredWidth(for text: NSAttributedString, maxWidth: CGFloat) -> CGFloat {
+        let constrainedSize = CGSize(width: maxWidth, height: .greatestFiniteMagnitude)
+        let boundingRect = text.boundingRect(
+            with: constrainedSize,
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            context: nil
+        )
+        return min(maxWidth, max(ceil(boundingRect.width), 1))
+    }
+
+    private static func parsedText(for message: ChatMessage, source: String) -> NSAttributedString {
+        switch message.type {
+        case .user:
+            return NSAttributedString(string: source)
+        case .ai:
+            // During streaming, render as plain text for smooth typewriter effect.
+            return NSAttributedString(string: source)
+        }
+    }
+
+    private static func foregroundColor(for message: ChatMessage, colorScheme: ColorScheme) -> UIColor {
+        if message.type == .user { return .white }
+        return UIColor.label.withAlphaComponent(colorScheme == .dark ? 0.94 : 0.9)
+    }
+
+    private static func styledText(from text: NSAttributedString, textColor: UIColor) -> NSAttributedString {
+        let mutable = NSMutableAttributedString(attributedString: text)
+        let fullRange = NSRange(location: 0, length: mutable.length)
+
+        guard fullRange.length > 0 else {
+            return NSAttributedString(
+                string: " ",
+                attributes: [
+                    .font: baseFont,
+                    .foregroundColor: textColor,
+                    .kern: 0.5
+                ]
+            )
+        }
+
+        mutable.addAttribute(.foregroundColor, value: textColor, range: fullRange)
+        mutable.addAttribute(.kern, value: 0.5, range: fullRange)
+
+        let resolvedBaseFont = baseFont
+        mutable.addAttribute(.font, value: resolvedBaseFont, range: fullRange)
+
+        let paragraphStyle = NSMutableParagraphStyle()
+        paragraphStyle.lineSpacing = 6
+        paragraphStyle.lineBreakMode = .byWordWrapping
+        mutable.addAttribute(.paragraphStyle, value: paragraphStyle, range: fullRange)
+
+        return mutable
+    }
+}
+
+// MARK: - SelectableChatTextView (streaming only)
+
+private struct SelectableChatTextView: UIViewRepresentable {
+    let attributedText: NSAttributedString
+    let maxWidth: CGFloat
+
+    func makeUIView(context: Context) -> UITextView {
+        let textView = UITextView()
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.isScrollEnabled = false
+        textView.isUserInteractionEnabled = true
+        textView.backgroundColor = .clear
+        textView.textContainerInset = .zero
+        textView.textContainer.lineFragmentPadding = 0
+        textView.textContainer.maximumNumberOfLines = 0
+        textView.textContainer.lineBreakMode = .byWordWrapping
+        textView.adjustsFontForContentSizeCategory = true
+        textView.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        textView.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
+        textView.setContentHuggingPriority(.required, for: .vertical)
+        textView.setContentCompressionResistancePriority(.required, for: .vertical)
+        textView.showsVerticalScrollIndicator = false
+        textView.showsHorizontalScrollIndicator = false
+        textView.tintColor = .systemBlue
+        textView.textDragInteraction?.isEnabled = false
+        textView.linkTextAttributes = [
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        textView.attributedText = attributedText
+        return textView
+    }
+
+    func updateUIView(_ uiView: UITextView, context: Context) {
+        guard !uiView.attributedText.isEqual(to: attributedText) else {
+            return
+        }
+
+        let selectedRange = uiView.selectedRange
+        uiView.attributedText = attributedText
+        uiView.textContainer.size = CGSize(width: maxWidth, height: .greatestFiniteMagnitude)
+        uiView.invalidateIntrinsicContentSize()
+        uiView.setNeedsLayout()
+
+        guard selectedRange.location != NSNotFound else {
+            return
+        }
+
+        let safeLocation = min(selectedRange.location, attributedText.length)
+        let safeLength = min(selectedRange.length, max(0, attributedText.length - safeLocation))
+        uiView.selectedRange = NSRange(location: safeLocation, length: safeLength)
+    }
+
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+        let targetWidth = max(maxWidth, 1)
+
+        let fittingSize = CGSize(width: targetWidth, height: .greatestFiniteMagnitude)
+        uiView.textContainer.size = fittingSize
+        uiView.layoutManager.ensureLayout(for: uiView.textContainer)
+
+        let measured = uiView.sizeThatFits(fittingSize)
+        let measuredWidth = ChatBubbleTextRenderer.measuredWidth(for: attributedText, maxWidth: targetWidth)
+
+        return CGSize(width: measuredWidth, height: ceil(measured.height))
+    }
+}
+
 #Preview("Chat Bubble") {
     ZStack {
         Color.zdAccentDeep.opacity(0.1).ignoresSafeArea()
         ScrollView {
             VStack(spacing: 16) {
                 ChatBubbleView(message: ChatMessage(content: "知识图谱应该怎么用？有什么帮助吗", type: .user))
-                ChatBubbleView(message: ChatMessage(content: "知识图谱可以帮你将松散的知识卡片按照双向链接关联起来，你可以从任意一张卡片出发，探索整个知识网络的脉络。目前功能开发中，敬请期待。", type: .ai))
+                ChatBubbleView(message: ChatMessage(
+                    content: "生日悖论的核心推导：\n$$P(\\text{不同}) = \\frac{365}{365} \\times \\frac{364}{365} \\approx 0.4927$$\n\n常见例子：\n* 23人同生日概率超50%\n* 70人同生日概率超99%\n\n> 这是一个概率上的直觉偏差现象",
+                    type: .ai,
+                    isTyping: false
+                ))
             }
             .padding(.vertical, 20)
         }
+    }
 }
-}
-
-

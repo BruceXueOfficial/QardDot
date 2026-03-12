@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Page And Surface Containers
 
@@ -73,6 +76,70 @@ extension ZDPageScaffold where TitleTrailing == EmptyView {
             titleTrailing: { EmptyView() },
             content: content
         )
+    }
+}
+
+struct ZDFixedHeaderPageScaffold<Header: View, Content: View>: View {
+    let bottomPadding: CGFloat
+    let topInset: CGFloat
+    let horizontalPadding: CGFloat
+    let headerSpacing: CGFloat
+    let contentSpacing: CGFloat
+    let contentTopPadding: CGFloat
+    let showsIndicators: Bool
+    let header: () -> Header
+    let content: () -> Content
+
+    init(
+        bottomPadding: CGFloat = 12,
+        topInset: CGFloat = ZDMainPageLayout.contentTopInset,
+        horizontalPadding: CGFloat = ZDSpacingScale.default.pageHorizontal,
+        headerSpacing: CGFloat = ZDSpacingScale.default.section,
+        contentSpacing: CGFloat = ZDSpacingScale.default.section,
+        contentTopPadding: CGFloat = 14,
+        showsIndicators: Bool = true,
+        @ViewBuilder header: @escaping () -> Header,
+        @ViewBuilder content: @escaping () -> Content
+    ) {
+        self.bottomPadding = bottomPadding
+        self.topInset = topInset
+        self.horizontalPadding = horizontalPadding
+        self.headerSpacing = headerSpacing
+        self.contentSpacing = contentSpacing
+        self.contentTopPadding = contentTopPadding
+        self.showsIndicators = showsIndicators
+        self.header = header
+        self.content = content
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            VStack(alignment: .leading, spacing: headerSpacing) {
+                header()
+            }
+            .padding(.top, topInset)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.bottom, 14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(ZDFixedHeaderContainerBackground())
+
+            ScrollView(showsIndicators: showsIndicators) {
+                VStack(alignment: .leading, spacing: contentSpacing) {
+                    content()
+                }
+                .padding(.top, contentTopPadding)
+                .padding(.horizontal, horizontalPadding)
+                .padding(.bottom, bottomPadding)
+            }
+        }
+        .zdPageBackground()
+        .toolbar(.hidden, for: .navigationBar)
+    }
+}
+
+private struct ZDFixedHeaderContainerBackground: View {
+    var body: some View {
+        Color.clear
     }
 }
 
@@ -240,6 +307,40 @@ struct ZDIconButton: View {
     }
 }
 
+struct ZDDestructiveMenuLabel: View {
+    let title: String
+    var systemName: String = "trash"
+
+    var body: some View {
+        HStack(spacing: 8) {
+            destructiveIcon
+            Text(title)
+                .foregroundStyle(.red)
+        }
+    }
+
+    @ViewBuilder
+    private var destructiveIcon: some View {
+#if canImport(UIKit)
+        if let symbol = UIImage(systemName: systemName)?
+            .withTintColor(.systemRed, renderingMode: .alwaysOriginal) {
+            Image(uiImage: symbol)
+                .renderingMode(.original)
+        } else {
+            fallbackIcon
+        }
+#else
+        fallbackIcon
+#endif
+    }
+
+    private var fallbackIcon: some View {
+        Image(systemName: systemName)
+            .symbolRenderingMode(.monochrome)
+            .foregroundStyle(.red)
+    }
+}
+
 struct ZDProfileEntryButton: View {
     let action: () -> Void
 
@@ -336,6 +437,15 @@ struct ZDTagChip: View {
     }
 }
 
+private enum ZDActionBarMetrics {
+    static let width: CGFloat = 320
+    static let height: CGFloat = 68
+    static let cornerRadius: CGFloat = 34
+    static let buttonMinWidth: CGFloat = 88
+    static let buttonHeight: CGFloat = 40
+    static let contentHorizontalPadding: CGFloat = 14
+}
+
 struct ZDFloatingActionBar<Content: View>: View {
     let content: () -> Content
 
@@ -347,10 +457,85 @@ struct ZDFloatingActionBar<Content: View>: View {
         HStack(spacing: 8) {
             content()
         }
-        .padding(.horizontal, 14)
-        .frame(width: 320, height: 64)
+        .padding(.horizontal, ZDActionBarMetrics.contentHorizontalPadding)
+        .frame(width: ZDActionBarMetrics.width, height: ZDActionBarMetrics.height)
         .background(Color.white.opacity(0.1))
-        .zdGlassSurface(cornerRadius: 32, lineWidth: 1.2)
+        .zdGlassSurface(cornerRadius: ZDActionBarMetrics.cornerRadius, lineWidth: 1.2)
+    }
+}
+
+enum ZDActionBarButtonTone {
+    case primary
+    case destructive
+}
+
+struct ZDActionBarButtonLabel: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let title: String
+    var tone: ZDActionBarButtonTone = .primary
+    var isEnabled: Bool = true
+    var minWidth: CGFloat = ZDActionBarMetrics.buttonMinWidth
+
+    var body: some View {
+        Text(title)
+            .font(.system(size: 14, weight: .semibold))
+            .lineLimit(1)
+            .foregroundStyle(foregroundColor)
+            .padding(.horizontal, 18)
+            .frame(minWidth: minWidth)
+            .frame(height: ZDActionBarMetrics.buttonHeight)
+            .background(backgroundColor)
+            .clipShape(Capsule())
+    }
+
+    private var foregroundColor: Color {
+        isEnabled ? .white : Color.primary.opacity(0.38)
+    }
+
+    private var backgroundColor: Color {
+        guard isEnabled else {
+            return Color.secondary.opacity(colorScheme == .dark ? 0.22 : 0.13)
+        }
+
+        switch tone {
+        case .primary:
+            return Color.zdAccentDeep
+        case .destructive:
+            return Color.red.opacity(0.92)
+        }
+    }
+}
+
+struct ZDSelectionActionBar<Leading: View, Trailing: View>: View {
+    let selectionText: String
+    let leading: () -> Leading
+    let trailing: () -> Trailing
+
+    init(
+        selectionText: String,
+        @ViewBuilder leading: @escaping () -> Leading,
+        @ViewBuilder trailing: @escaping () -> Trailing
+    ) {
+        self.selectionText = selectionText
+        self.leading = leading
+        self.trailing = trailing
+    }
+
+    var body: some View {
+        ZDFloatingActionBar {
+            leading()
+
+            Spacer(minLength: 8)
+
+            Text(selectionText)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+
+            Spacer(minLength: 8)
+
+            trailing()
+        }
     }
 }
 
@@ -419,11 +604,13 @@ private struct ZDCoreComponentsPreview: View {
                 ZDPrimaryButton(text: "创建卡片", icon: "plus") { }
 
                 ZDFloatingActionBar {
-                    Text("浮动操作栏")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(.primary.opacity(0.9))
+                    ZDActionBarButtonLabel(title: "全选")
                     Spacer()
-                    ZDTagChip(text: "示例", emphasized: true)
+                    Text("已选 3")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    ZDActionBarButtonLabel(title: "取消", tone: .destructive)
                 }
 
                 ZDSectionHeader("统计模块")

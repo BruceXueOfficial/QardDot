@@ -12,7 +12,7 @@ class AiChatService: ObservableObject {
     // 替换原有的 currentTask 为 streamTask
     private var streamTask: Task<Void, Never>?
     
-    func sendMessageStream(messages: [[String: String]], onUpdate: @escaping (String) -> Void, completion: @escaping (String?) -> Void) {
+    func sendMessageStream(prompt: String, sessionId: String, onUpdate: @escaping (String) -> Void, completion: @escaping (String?) -> Void) {
         guard let url = URL(string: apiUrl) else { return }
         
         DispatchQueue.main.async { self.isThinking = true }
@@ -27,7 +27,8 @@ class AiChatService: ObservableObject {
         
         let body: [String: Any] = [
             "input": [
-                "messages": messages
+                "prompt": prompt,
+                "session_id": sessionId
             ],
             "parameters": [
                 "incremental_output": true,
@@ -105,8 +106,8 @@ class AiChatService: ObservableObject {
     }
     
     // 兼容原有的协议
-    func sendMessage(messages: [[String: String]], completion: @escaping (String?) -> Void) {
-        sendMessageStream(messages: messages, onUpdate: { _ in }) { result in
+    func sendMessage(prompt: String, sessionId: String, completion: @escaping (String?) -> Void) {
+        sendMessageStream(prompt: prompt, sessionId: sessionId, onUpdate: { _ in }) { result in
             completion(result)
         }
     }
