@@ -241,6 +241,32 @@ enum ImportPayloadNormalizer {
     }
 }
 
+enum ImportKnowledgeCardDecoder {
+    nonisolated static func materializedPayload(from rawInput: String) throws -> [String: Any] {
+        let extracted = ImportPayloadNormalizer.extractJSONObject(from: rawInput)
+        let decoded = ImportPayloadNormalizer.decodeJSONStringIfNeeded(extracted)
+        let parsedDict = try ImportPayloadNormalizer.parseJSONObject(decoded)
+        return try materializedPayload(fromJSONObject: parsedDict)
+    }
+
+    nonisolated static func materializedPayload(fromJSONObject dict: [String: Any]) throws -> [String: Any] {
+        let normalizedDict = ImportPayloadNormalizer.normalizeCardPayload(dict)
+        return try ImportImageSourceResolver.materializeImageSources(in: normalizedDict)
+    }
+
+    static func decodeCard(from rawInput: String) throws -> KnowledgeCard {
+        let payload = try materializedPayload(from: rawInput)
+        return try decodeCard(fromMaterializedPayload: payload)
+    }
+
+    static func decodeCard(fromMaterializedPayload payload: [String: Any]) throws -> KnowledgeCard {
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let rebuiltData = try JSONSerialization.data(withJSONObject: payload)
+        return try decoder.decode(KnowledgeCard.self, from: rebuiltData)
+    }
+}
+
 private extension ImportPayloadNormalizer {
     nonisolated static func parseJSONRoot(from text: String) throws -> Any {
         guard let data = text.data(using: .utf8) else {

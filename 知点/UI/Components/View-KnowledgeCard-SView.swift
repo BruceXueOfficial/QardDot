@@ -10,7 +10,7 @@ enum KnowledgeCardSViewTokens {
         topRatio: 0.675,
         contentPaddingTop: EdgeInsets(top: 10, leading: 10, bottom: 8, trailing: 14),
         contentPaddingBottom: EdgeInsets(top: 5, leading: 10, bottom: 8, trailing: 10),
-        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 18, holeScale: 0.98),
+        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 18, holeScale: 1.02),
         footerTopSpacerMin: 0
     )
 
@@ -34,6 +34,7 @@ struct KnowledgeCardSView: View {
     @Environment(\.zdListRenderProfile) private var renderProfile
 
     let card: KnowledgeCard
+    var hidesTrailingMeta: Bool = false
 
     private var theme: CardThemeColor {
         card.themeColor ?? .defaultTheme
@@ -97,11 +98,13 @@ struct KnowledgeCardSView: View {
 
                 Spacer(minLength: 4)
 
-                Text(renderedDate)
-                    .font(.system(size: 10, weight: .semibold))
-                    .foregroundStyle(metaTextColor)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                if !hidesTrailingMeta {
+                    Text(renderedDate)
+                        .font(.system(size: 10, weight: .semibold))
+                        .foregroundStyle(metaTextColor)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                }
             }
         }
         .frame(height: KnowledgeCardSViewTokens.surfaceHeight)

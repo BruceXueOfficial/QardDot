@@ -11,6 +11,8 @@ struct KnowledgeCardView: View {
     @Binding var selectedModuleID: UUID?
     @Binding var pendingImagePickerModuleID: UUID?
     @Binding var pendingLinkedCardPickerModuleID: UUID?
+    @Binding var pendingLinkComposerModuleID: UUID?
+    @Binding var pendingTextFocusModuleID: UUID?
     let onDeleteModule: ((UUID) -> Void)?
     let onRegisterUndoAction: ((EditorUndoAction) -> Void)?
     var hideTitle: Bool = false
@@ -53,6 +55,8 @@ struct KnowledgeCardView: View {
         selectedModuleID: Binding<UUID?> = .constant(nil),
         pendingImagePickerModuleID: Binding<UUID?> = .constant(nil),
         pendingLinkedCardPickerModuleID: Binding<UUID?> = .constant(nil),
+        pendingLinkComposerModuleID: Binding<UUID?> = .constant(nil),
+        pendingTextFocusModuleID: Binding<UUID?> = .constant(nil),
         hideTitle: Bool = false,
         hideOuterPadding: Bool = false,
         onDeleteModule: ((UUID) -> Void)? = nil,
@@ -62,6 +66,8 @@ struct KnowledgeCardView: View {
         self._selectedModuleID = selectedModuleID
         self._pendingImagePickerModuleID = pendingImagePickerModuleID
         self._pendingLinkedCardPickerModuleID = pendingLinkedCardPickerModuleID
+        self._pendingLinkComposerModuleID = pendingLinkComposerModuleID
+        self._pendingTextFocusModuleID = pendingTextFocusModuleID
         self.hideTitle = hideTitle
         self.hideOuterPadding = hideOuterPadding
         self.onDeleteModule = onDeleteModule
@@ -117,6 +123,11 @@ struct KnowledgeCardView: View {
                 showLinkedCardPicker = true
                 pendingLinkedCardPickerModuleID = nil
             }
+        }
+        .onChange(of: pendingLinkComposerModuleID) { _, newValue in
+            guard let moduleID = newValue else { return }
+            presentLinkComposer(for: moduleID)
+            pendingLinkComposerModuleID = nil
         }
         .sheet(isPresented: $isShowingSystemImagePicker) {
             if let source = systemImagePickerSource {
@@ -425,6 +436,9 @@ struct NotionLikeTextEditor: UIViewRepresentable {
     @Binding var text: String
     var isEditable: Bool = true
     var minimumHeight: CGFloat = 100
+    var focusRequestID: UUID? = nil
+    var onFocusRequestHandled: (() -> Void)? = nil
+    var onBeginEditing: (() -> Void)? = nil
 
     fileprivate static let baseFontSize: CGFloat = 16
     fileprivate static let caretTopInset: CGFloat = 2
@@ -720,10 +734,13 @@ struct NotionLikeTextEditor: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UITextView, context: Context) {
+        context.coordinator.parent = self
         uiView.isEditable = isEditable
         uiView.isSelectable = isEditable
         uiView.isUserInteractionEnabled = isEditable
         uiView.keyboardDismissMode = isEditable ? .interactive : .none
+
+        context.coordinator.handleFocusRequestIfNeeded(focusRequestID, in: uiView)
 
         guard !context.coordinator.isEditing else {
             return
@@ -1369,7 +1386,10 @@ struct NotionLikeTextEditor: UIViewRepresentable {
         var isEditing = false
         var isApplyingProgrammaticChange = false
         var lastSyncedMarkdown = ""
+        var lastHandledFocusRequestID: UUID?
         weak var textView: UITextView?
+        private var pendingFocusRequestID: UUID?
+        private var focusRetryWorkItem: DispatchWorkItem?
 
         private var pendingTypingAttributes: [NSAttributedString.Key: Any]?
         private var pendingTypingLineLocation: Int?
@@ -1388,6 +1408,7 @@ struct NotionLikeTextEditor: UIViewRepresentable {
 
         func textViewDidBeginEditing(_ textView: UITextView) {
             isEditing = true
+            parent.onBeginEditing?()
             updateTypingAttributes(for: textView)
             keepCaretAtTopIfNeeded(textView)
         }
@@ -1510,6 +1531,85 @@ struct NotionLikeTextEditor: UIViewRepresentable {
 
             lastSyncedMarkdown = markdown
             parent.text = markdown
+        }
+
+        func handleFocusRequestIfNeeded(_ requestID: UUID?, in textView: UITextView) {
+            guard let requestID else {
+                cancelPendingFocusRequest()
+                lastHandledFocusRequestID = nil
+                return
+            }
+
+            guard requestID != lastHandledFocusRequestID else {
+                return
+            }
+
+            if pendingFocusRequestID != requestID {
+                cancelPendingFocusRequest()
+                pendingFocusRequestID = requestID
+            }
+
+            scheduleFocusAttempt(for: requestID, in: textView, remainingRetries: 12, delay: 0)
+        }
+
+        private func scheduleFocusAttempt(
+            for requestID: UUID,
+            in textView: UITextView,
+            remainingRetries: Int,
+            delay: TimeInterval
+        ) {
+            focusRetryWorkItem?.cancel()
+
+            let workItem = DispatchWorkItem { [weak self, weak textView] in
+                guard let self, let textView else { return }
+                guard self.pendingFocusRequestID == requestID,
+                      self.lastHandledFocusRequestID != requestID else {
+                    return
+                }
+
+                textView.layoutIfNeeded()
+
+                if textView.window != nil,
+                   textView.isEditable,
+                   textView.isUserInteractionEnabled {
+                    if !textView.isFirstResponder {
+                        _ = textView.becomeFirstResponder()
+                    }
+
+                    if textView.isFirstResponder {
+                        self.lastHandledFocusRequestID = requestID
+                        self.pendingFocusRequestID = nil
+                        self.focusRetryWorkItem = nil
+                        self.parent.onFocusRequestHandled?()
+                        return
+                    }
+                }
+
+                guard remainingRetries > 0 else {
+                    self.focusRetryWorkItem = nil
+                    return
+                }
+
+                self.scheduleFocusAttempt(
+                    for: requestID,
+                    in: textView,
+                    remainingRetries: remainingRetries - 1,
+                    delay: 0.08
+                )
+            }
+
+            focusRetryWorkItem = workItem
+            if delay == 0 {
+                DispatchQueue.main.async(execute: workItem)
+            } else {
+                DispatchQueue.main.asyncAfter(deadline: .now() + delay, execute: workItem)
+            }
+        }
+
+        private func cancelPendingFocusRequest() {
+            pendingFocusRequestID = nil
+            focusRetryWorkItem?.cancel()
+            focusRetryWorkItem = nil
         }
 
         // 空文本时将光标固定在顶部，避免落在中线。
@@ -3558,6 +3658,12 @@ private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate
     var wrapLines: Bool = true
     private weak var prioritisedAncestorScrollView: UIScrollView?
 
+    private enum PanAxis {
+        case horizontal
+        case vertical
+        case undecided
+    }
+
     override init(frame: CGRect, textContainer: NSTextContainer?) {
         super.init(frame: frame, textContainer: textContainer)
         panGestureRecognizer.delegate = self
@@ -3576,56 +3682,47 @@ private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate
             return true
         }
 
-        // In wrap mode, text view only handles vertical drags when it can actually scroll.
-        if wrapLines {
-            let hasVerticalOverflow = contentSize.height > bounds.height + 0.5
-            if !hasVerticalOverflow { return false }
-            let velocity = panGestureRecognizer.velocity(in: self)
-            return abs(velocity.y) >= abs(velocity.x)
-        }
+        let axis = dominantPanAxis()
 
-        let velocity = panGestureRecognizer.velocity(in: self)
-        let hasHorizontalOverflow = contentSize.width > bounds.width + 0.5
-        let hasVerticalOverflow = contentSize.height > bounds.height + 0.5
-        guard hasHorizontalOverflow || hasVerticalOverflow else { return false }
-
-        // Velocity can be near-zero at pan-begin; don't reject too early.
-        if abs(velocity.x) < 1, abs(velocity.y) < 1 {
-            return true
+        switch axis {
+        case .horizontal:
+            return canScrollHorizontally
+        case .vertical:
+            return canScrollVertically
+        case .undecided:
+            return canScrollHorizontally || canScrollVertically
         }
-
-        if abs(velocity.x) > abs(velocity.y) {
-            return hasHorizontalOverflow
-        }
-        return hasVerticalOverflow
     }
 
-    // Ask UIKit to let us scroll simultaneously with the outer ScrollView
-    // only when the drag direction matches our scrollable axis.
+    // Pans inside the code editor should be handled by the editor itself.
+    // The outer SwiftUI ScrollView should only move when this text view cannot scroll.
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        // Always allow simultaneous recognition so the outer vertical
-        // ScrollView still works when the user scrolls vertically.
-        return true
+        guard gestureRecognizer == panGestureRecognizer else {
+            return false
+        }
+
+        if otherGestureRecognizer.view is UIScrollView {
+            return false
+        }
+        return false
     }
 
-    // When horizontal overflow exists, ask any ancestor scroll-view's
-    // pan gesture to wait until ours fails, so we get first shot at
-    // horizontal drags.
+    // Ask any ancestor scroll-view to wait for the code editor pan to fail first.
+    // This prevents nested vertical scrolling from moving both containers together.
     func gestureRecognizer(
         _ gestureRecognizer: UIGestureRecognizer,
         shouldBeRequiredToFailBy otherGestureRecognizer: UIGestureRecognizer
     ) -> Bool {
-        guard gestureRecognizer == panGestureRecognizer, !wrapLines else {
+        guard gestureRecognizer == panGestureRecognizer else {
             return false
         }
-        let hasHorizontalOverflow = contentSize.width > bounds.width + 0.5
-        guard hasHorizontalOverflow else { return false }
+        guard canScrollHorizontally || canScrollVertically else {
+            return false
+        }
 
-        // If the other gesture is a pan on a different scroll view
-        // (e.g. the parent SwiftUI ScrollView), require it to wait.
         if let otherPan = otherGestureRecognizer as? UIPanGestureRecognizer,
            otherPan != panGestureRecognizer,
            otherGestureRecognizer.view is UIScrollView {
@@ -3644,20 +3741,53 @@ private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate
         guard !wrapLines else {
             showsHorizontalScrollIndicator = false
             alwaysBounceHorizontal = false
+            prioritisePanAgainstAncestorScrollViewIfNeeded()
             return
         }
 
-        let hasHorizontalOverflow = contentSize.width > bounds.width + 0.5
-        showsHorizontalScrollIndicator = hasHorizontalOverflow
-        alwaysBounceHorizontal = hasHorizontalOverflow
-        if hasHorizontalOverflow {
-            prioritiseHorizontalPanAgainstAncestorScrollViewIfNeeded()
+        showsHorizontalScrollIndicator = canScrollHorizontally
+        alwaysBounceHorizontal = canScrollHorizontally
+        prioritisePanAgainstAncestorScrollViewIfNeeded()
+
+        if canScrollHorizontally {
+            // Keep the current horizontal offset when content overflows.
         } else if contentOffset.x != 0 {
             setContentOffset(CGPoint(x: 0, y: contentOffset.y), animated: false)
         }
     }
 
-    private func prioritiseHorizontalPanAgainstAncestorScrollViewIfNeeded() {
+    private var canScrollHorizontally: Bool {
+        isScrollEnabled && contentSize.width > bounds.width + 0.5
+    }
+
+    private var canScrollVertically: Bool {
+        isScrollEnabled && contentSize.height > bounds.height + 0.5
+    }
+
+    private func dominantPanAxis() -> PanAxis {
+        let velocity = panGestureRecognizer.velocity(in: self)
+        if abs(velocity.x) > 1 || abs(velocity.y) > 1 {
+            return abs(velocity.x) > abs(velocity.y) ? .horizontal : .vertical
+        }
+
+        let translation = panGestureRecognizer.translation(in: self)
+        if abs(translation.x) > 0.5 || abs(translation.y) > 0.5 {
+            return abs(translation.x) > abs(translation.y) ? .horizontal : .vertical
+        }
+
+        if wrapLines {
+            return .vertical
+        }
+        if canScrollHorizontally && !canScrollVertically {
+            return .horizontal
+        }
+        if canScrollVertically && !canScrollHorizontally {
+            return .vertical
+        }
+        return .undecided
+    }
+
+    private func prioritisePanAgainstAncestorScrollViewIfNeeded() {
         guard let ancestorScrollView = nearestAncestorScrollView() else { return }
         guard ancestorScrollView !== prioritisedAncestorScrollView else { return }
         ancestorScrollView.panGestureRecognizer.require(toFail: panGestureRecognizer)

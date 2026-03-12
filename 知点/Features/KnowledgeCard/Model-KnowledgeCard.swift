@@ -85,13 +85,17 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
     case green
     case orange
     case purple
+    case red
+    case cyan
+    case yellow
+    case pink
 
     var id: String { rawValue }
 
     nonisolated static let defaultTheme: CardThemeColor = .blue
 
     nonisolated static var allCases: [CardThemeColor] {
-        [.blue, .green, .orange, .purple]
+        [.blue, .green, .orange, .purple, .red, .cyan, .yellow, .pink]
     }
 
     init(from decoder: Decoder) throws {
@@ -114,6 +118,14 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
             self = .orange
         case "purple", "mist", "graphite":
             self = .purple
+        case "red", "rose":
+            self = .red
+        case "cyan", "teal":
+            self = .cyan
+        case "yellow", "gold":
+            self = .yellow
+        case "pink", "magenta":
+            self = .pink
         default:
             self = .defaultTheme
         }
@@ -134,6 +146,14 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
             "橙"
         case .purple:
             "紫"
+        case .red:
+            "红"
+        case .cyan:
+            "青"
+        case .yellow:
+            "黄"
+        case .pink:
+            "粉"
         }
     }
 
@@ -151,6 +171,14 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
             Self.dynamicColor(lightHex: 0xE65C00, darkHex: 0xCC4400)
         case .purple:
             Self.dynamicColor(lightHex: 0x6100E6, darkHex: 0x4700B3)
+        case .red:
+            Self.dynamicColor(lightHex: 0xD00000, darkHex: 0x990000)
+        case .cyan:
+            Self.dynamicColor(lightHex: 0x008A99, darkHex: 0x006673)
+        case .yellow:
+            Self.dynamicColor(lightHex: 0xD49A00, darkHex: 0x997300)
+        case .pink:
+            Self.dynamicColor(lightHex: 0xFF2D55, darkHex: 0xB31533)
         }
     }
 
@@ -164,6 +192,14 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
             Self.dynamicColor(lightHex: 0xFF9500, darkHex: 0xE67300)
         case .purple:
             Self.dynamicColor(lightHex: 0xA233FF, darkHex: 0x7A00E6)
+        case .red:
+            Self.dynamicColor(lightHex: 0xFF3B30, darkHex: 0xCC2922)
+        case .cyan:
+            Self.dynamicColor(lightHex: 0x00C7BE, darkHex: 0x009991)
+        case .yellow:
+            Self.dynamicColor(lightHex: 0xFFCC00, darkHex: 0xCC9900)
+        case .pink:
+            Self.dynamicColor(lightHex: 0xFF6B8B, darkHex: 0xCC425D)
         }
     }
 
@@ -177,6 +213,14 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
             Self.dynamicColor(lightHex: 0xFFF3EA, darkHex: 0x4C2915)
         case .purple:
             Self.dynamicColor(lightHex: 0xF5EDFF, darkHex: 0x331E54)
+        case .red:
+            Self.dynamicColor(lightHex: 0xFFEBEB, darkHex: 0x3D1A1A)
+        case .cyan:
+            Self.dynamicColor(lightHex: 0xE8F9F9, darkHex: 0x1A3638)
+        case .yellow:
+            Self.dynamicColor(lightHex: 0xFFF8E6, darkHex: 0x3D331A)
+        case .pink:
+            Self.dynamicColor(lightHex: 0xFFEAF0, darkHex: 0x3D1A25)
         }
     }
 
@@ -190,6 +234,14 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
             Self.dynamicColor(lightHex: 0xFFF7F1, darkHex: 0x59311A)
         case .purple:
             Self.dynamicColor(lightHex: 0xF9F4FF, darkHex: 0x43276B)
+        case .red:
+            Self.dynamicColor(lightHex: 0xFFF5F5, darkHex: 0x4D2020)
+        case .cyan:
+            Self.dynamicColor(lightHex: 0xF0FCFC, darkHex: 0x204547)
+        case .yellow:
+            Self.dynamicColor(lightHex: 0xFFFBF0, darkHex: 0x4D4020)
+        case .pink:
+            Self.dynamicColor(lightHex: 0xFFF3F7, darkHex: 0x4D202E)
         }
     }
 
@@ -204,6 +256,14 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
             Color(uiColor: UIColor(hex: 0x6A411E))
         case .purple:
             Color(uiColor: UIColor(hex: 0x31276E))
+        case .red:
+            Color(uiColor: UIColor(hex: 0x661A1A))
+        case .cyan:
+            Color(uiColor: UIColor(hex: 0x1A4C4C))
+        case .yellow:
+            Color(uiColor: UIColor(hex: 0x664C1A))
+        case .pink:
+            Color(uiColor: UIColor(hex: 0x661122))
         }
     }
 
@@ -218,6 +278,14 @@ enum CardThemeColor: String, Codable, CaseIterable, Identifiable {
             Color(uiColor: UIColor(hex: 0x8B5428))
         case .purple:
             Color(uiColor: UIColor(hex: 0x493A96))
+        case .red:
+            Color(uiColor: UIColor(hex: 0x8A2B2B))
+        case .cyan:
+            Color(uiColor: UIColor(hex: 0x2B6B6B))
+        case .yellow:
+            Color(uiColor: UIColor(hex: 0x8A6B2B))
+        case .pink:
+            Color(uiColor: UIColor(hex: 0x8A172E))
         }
     }
 

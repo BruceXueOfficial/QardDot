@@ -7,7 +7,6 @@ struct TagFolderThemeColorPicker: View {
     let onThemeSelected: (CardThemeColor) -> Void
 
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
 
     private let columns = [
         GridItem(.flexible(), spacing: 14),
@@ -19,7 +18,7 @@ struct TagFolderThemeColorPicker: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
+                VStack(spacing: 20) {
                     // Preview Folder
                     previewFolderCard
                         .padding(.top, 16)
@@ -38,7 +37,7 @@ struct TagFolderThemeColorPicker: View {
                         }
                     }
                     .padding(.horizontal, 28)
-                    .padding(.bottom, 18)
+                    .padding(.bottom, 8)
                 }
                 .padding(.top, 16)
             }
@@ -54,18 +53,25 @@ struct TagFolderThemeColorPicker: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.height(ZDThemePickerLayout.compactSheetHeight), .large])
     }
 
     private var previewFolderCard: some View {
-        HStack {
-            Spacer()
-            ZDTagCollectionFolderStyleCard(
-                model: tagFolderModel,
-                theme: currentTheme
-            )
-            Spacer()
+        GeometryReader { proxy in
+            let previewWidth = ZDThemePickerLayout.tagFolderPreviewWidth(for: proxy.size.width)
+
+            HStack {
+                Spacer()
+                ZDTagCollectionFolderSView(
+                    model: tagFolderModel,
+                    theme: currentTheme
+                )
+                .frame(width: previewWidth)
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
+        .frame(height: KnowledgeCardSViewTokens.surfaceHeight)
     }
 
     @ViewBuilder
@@ -73,27 +79,10 @@ struct TagFolderThemeColorPicker: View {
         let isSelected = currentTheme == color
         VStack(spacing: 6) {
             ZStack {
-                Circle()
-                    .fill(
-                        LinearGradient(
-                            colors: [
-                                color.tagFolderTopDeepColor.opacity(colorScheme == .dark ? 0.90 : 0.82),
-                                color.tagFolderTopDeepColor,
-                                color.tagFolderTopDeepColor.opacity(colorScheme == .dark ? 0.96 : 0.88)
-                            ],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: 48, height: 48)
-                    .overlay(
-                        Circle()
-                            .stroke(
-                                color.tagFolderTopLightColor.opacity(0.8),
-                                lineWidth: isSelected ? 3 : 1.2
-                            )
-                    )
-                    .shadow(color: color.primaryColor.opacity(0.35), radius: 6, x: 0, y: 3)
+                ZDTagFolderThemeSurfaceSwatch(
+                    theme: color,
+                    isSelected: isSelected
+                )
 
                 if isSelected {
                     Image(systemName: "checkmark")

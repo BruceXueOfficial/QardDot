@@ -14,6 +14,7 @@ final class KnowledgeCardLibraryStore: ObservableObject {
     private static let lastViewedFileName = "last_viewed.json"
     private static let bundledSeedVersionKey = "knowledge_card_bundled_seed_version"
     private static let bundledSeedVersion = "2026-02-formula-structured-v5"
+    private static let uncategorizedTagName = "未分类"
 
     static func bundledSeedCardsForPreview() -> [KnowledgeCard] {
         KnowledgeCardLibrarySeed.makeCards()
@@ -67,14 +68,96 @@ final class KnowledgeCardLibraryStore: ObservableObject {
     }
 
     func updateTagColor(tag: String, color: CardThemeColor) {
-        let key = tag.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let key = normalizedTagKey(tag)
+        guard !key.isEmpty else {
+            return
+        }
         tagColors[key] = color
         saveToDisk()
     }
+
+    func updateTagColors(tags: Set<String>, color: CardThemeColor) {
+        let keys = normalizedTagKeys(tags)
+        guard !keys.isEmpty else {
+            return
+        }
+
+        var didUpdate = false
+        for key in keys {
+            guard tagColors[key] != color else {
+                continue
+            }
+            tagColors[key] = color
+            didUpdate = true
+        }
+
+        if didUpdate {
+            saveToDisk()
+        }
+    }
     
     func tagColor(for tag: String) -> CardThemeColor {
-        let key = tag.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        let key = normalizedTagKey(tag)
         return tagColors[key] ?? .defaultTheme
+    }
+
+    func removeTagsFromCards(tags: Set<String>) {
+        let normalizedTags = normalizedTagKeys(tags)
+        guard !normalizedTags.isEmpty else {
+            return
+        }
+
+        var didMutateCards = false
+        for index in cards.indices {
+            let currentTags = cards[index].tags ?? []
+            let filteredTags = currentTags.filter { !normalizedTags.contains(normalizedTagKey($0)) }
+            guard filteredTags.count != currentTags.count else {
+                continue
+            }
+
+            cards[index].tags = filteredTags.isEmpty ? nil : filteredTags
+            cards[index].touchUpdatedAt()
+            didMutateCards = true
+        }
+
+        let didRemoveTagColors = removeTagColors(matching: normalizedTags)
+        if didMutateCards || didRemoveTagColors {
+            saveToDisk()
+        }
+    }
+
+    func deleteCardsMatchingAnyTags(_ tags: Set<String>) {
+        let normalizedTags = normalizedTagKeys(tags)
+        guard !normalizedTags.isEmpty else {
+            return
+        }
+
+        let includesUncategorized = normalizedTags.contains(Self.uncategorizedTagName)
+        let idsToDelete = Set(cards.compactMap { card -> UUID? in
+            let cardTagKeys = normalizedTagKeys(Set(card.tags ?? []))
+            if !cardTagKeys.isDisjoint(with: normalizedTags) {
+                return card.id
+            }
+            if includesUncategorized && cardTagKeys.isEmpty {
+                return card.id
+            }
+            return nil
+        })
+
+        var didMutate = false
+        if !idsToDelete.isEmpty {
+            cards.removeAll { idsToDelete.contains($0.id) }
+            idsToDelete.forEach { id in
+                viewCounts.removeValue(forKey: id)
+                lastViewedAt.removeValue(forKey: id)
+            }
+            didMutate = true
+        }
+
+        let didRemoveTagColors = removeTagColors(matching: normalizedTags)
+        if didMutate || didRemoveTagColors {
+            saveToDisk()
+        }
     }
 
     func recordView(forCardID id: UUID) {
@@ -96,6 +179,27 @@ final class KnowledgeCardLibraryStore: ObservableObject {
         }
         cards[index] = card
         saveToDisk()
+    }
+
+    func updateCardsThemeColor(ids: Set<UUID>, color: CardThemeColor) {
+        guard !ids.isEmpty else {
+            return
+        }
+
+        var didUpdate = false
+        for index in cards.indices {
+            guard ids.contains(cards[index].id) else {
+                continue
+            }
+
+            cards[index].themeColor = color
+            cards[index].touchUpdatedAt()
+            didUpdate = true
+        }
+
+        if didUpdate {
+            saveToDisk()
+        }
     }
 
     func deleteCard(id: UUID) {
@@ -451,6 +555,33 @@ final class KnowledgeCardLibraryStore: ObservableObject {
             break
         }
         return title
+    }
+
+    private func normalizedTagKey(_ tag: String) -> String {
+        tag
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+    }
+
+    private func normalizedTagKeys(_ tags: Set<String>) -> Set<String> {
+        Set(
+            tags.map(normalizedTagKey)
+                .filter { !$0.isEmpty }
+        )
+    }
+
+    private func removeTagColors(matching normalizedTags: Set<String>) -> Bool {
+        guard !normalizedTags.isEmpty else {
+            return false
+        }
+
+        var didRemove = false
+        for key in normalizedTags {
+            if tagColors.removeValue(forKey: key) != nil {
+                didRemove = true
+            }
+        }
+        return didRemove
     }
 
     private static var documentsDirectory: URL {

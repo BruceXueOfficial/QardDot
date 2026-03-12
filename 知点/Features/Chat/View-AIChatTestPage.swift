@@ -2,6 +2,9 @@ import SwiftUI
 
 struct AiChatTestView: View {
     @StateObject private var viewModel = AiChatViewModel()
+    @StateObject private var library = KnowledgeCardLibraryStore(
+        cards: KnowledgeCardLibraryStore.bundledSeedCardsForPreview()
+    )
 
     let fakeMessages: [ChatMessage] = [
         ChatMessage(
@@ -40,6 +43,7 @@ struct AiChatTestView: View {
         NavigationStack {
             AiChatPage()
                 .environmentObject(viewModel)
+                .environmentObject(library)
                 .onAppear {
                     // 覆盖假数据以供 UI 预览
                     viewModel.messages = fakeMessages

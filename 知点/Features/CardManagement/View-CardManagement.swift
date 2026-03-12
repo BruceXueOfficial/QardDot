@@ -1,4 +1,7 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 // MARK: - Sort Mode
 
@@ -53,7 +56,12 @@ struct CardManagementView: View {
 
     @State private var isSelectionMode = false
     @State private var selectedIDs: Set<UUID> = []
+    @State private var selectedFolderTags: Set<String> = []
     @State private var deleteRequest: DeleteRequest?
+    @State private var tagFolderDeleteRequest: TagFolderDeleteRequest?
+    @State private var showBatchTagEditor = false
+    @State private var showBatchColorEditor = false
+    @State private var showBatchTagFolderColorEditor = false
 
     @AppStorage("CardManagement.SortMode") private var sortMode: CardSortMode = .defaultSort
     @AppStorage("CardManagement.WarehouseMode") private var warehouseMode: WarehouseMode = .cards
@@ -75,7 +83,9 @@ struct CardManagementView: View {
             if mode == .graphs {
                 isSelectionMode = false
                 selectedIDs.removeAll()
+                selectedFolderTags.removeAll()
                 deleteRequest = nil
+                tagFolderDeleteRequest = nil
             }
         }
         .sheet(isPresented: $showProfileSheet) {
@@ -103,16 +113,59 @@ struct CardManagementView: View {
         } message: { request in
             Text(request.message)
         }
+        .sheet(isPresented: $showBatchTagEditor) {
+            let selectedCards = displayCards.filter { selectedIDs.contains($0.id) }
+            CardManagementBatchTagEditorScreen(
+                cards: selectedCards,
+                existingTags: library.allUniqueTags()
+            ) { finalSelectedIDs, updatedTags in
+                // Find all cards whose selection was preserved
+                let remainingCards = displayCards.filter { finalSelectedIDs.contains($0.id) }
+                for card in remainingCards {
+                    var modifiedCard = card
+                    modifiedCard.tags = updatedTags.isEmpty ? nil : updatedTags
+                    modifiedCard.touchUpdatedAt()
+                    library.updateCard(modifiedCard)
+                }
+                
+                // Clear selection after batch action
+                selectedIDs.removeAll()
+            }
+            .environmentObject(library)
+        }
+        .sheet(isPresented: $showBatchColorEditor) {
+            let selectedCards = displayCards.filter { selectedIDs.contains($0.id) }
+            CardManagementBatchColorEditorScreen(cards: selectedCards) { finalSelectedIDs, color in
+                library.updateCardsThemeColor(ids: finalSelectedIDs, color: color)
+                selectedIDs.removeAll()
+            }
+        }
+        .sheet(isPresented: $showBatchTagFolderColorEditor) {
+            let selectedFolders = tagFolderGroups
+                .filter { selectedFolderTags.contains($0.tag) }
+                .map {
+                    CardManagementBatchTagFolderItem(
+                        tag: $0.tag,
+                        model: $0.model,
+                        currentTheme: $0.theme
+                    )
+                }
+            CardManagementBatchTagFolderColorEditorScreen(folders: selectedFolders) { finalSelectedTags, color in
+                library.updateTagColors(tags: finalSelectedTags, color: color)
+                selectedFolderTags.removeAll()
+            }
+        }
     }
 
     private var cardsWarehousePage: some View {
-        ZDPageScaffold(
-            title: nil,
+        ZDFixedHeaderPageScaffold(
             bottomPadding: isSelectionMode ? 98 : 12,
+            headerSpacing: 14,
             contentSpacing: 14
         ) {
             headerRow
             searchBar
+        } content: {
 
             switch sortMode {
             case .defaultSort:
@@ -129,22 +182,82 @@ struct CardManagementView: View {
         }
         .overlay(alignment: .bottom) {
             if isSelectionMode {
-                selectionToolbar
+                if sortMode == .byTagFolder {
+                    tagFolderSelectionToolbar
+                } else {
+                    selectionToolbar
+                }
             }
         }
         .environment(\.zdListRenderScope, .warehouse)
         .onChange(of: displayCards.map(\.id)) { _, ids in
             selectedIDs.formIntersection(Set(ids))
         }
+        .onChange(of: tagFolderGroups.map(\.tag)) { _, tags in
+            selectedFolderTags.formIntersection(Set(tags))
+        }
+        .onChange(of: sortMode) { oldMode, newMode in
+            let oldIsFolderMode: Bool
+            if case .byTagFolder = oldMode {
+                oldIsFolderMode = true
+            } else {
+                oldIsFolderMode = false
+            }
+
+            let newIsFolderMode: Bool
+            if case .byTagFolder = newMode {
+                newIsFolderMode = true
+            } else {
+                newIsFolderMode = false
+            }
+
+            guard oldIsFolderMode != newIsFolderMode else {
+                return
+            }
+
+            selectedIDs.removeAll()
+            selectedFolderTags.removeAll()
+            deleteRequest = nil
+            tagFolderDeleteRequest = nil
+        }
+        .background {
+            ZDKeyboardDismissOnOutsideTap()
+        }
+        .confirmationDialog(
+            "删除标签文件夹",
+            isPresented: showTagFolderDeleteDialog,
+            titleVisibility: .visible
+        ) {
+            if let request = tagFolderDeleteRequest {
+                Button("仅删除卡片标签") {
+                    library.removeTagsFromCards(tags: request.tags)
+                    selectedFolderTags.removeAll()
+                }
+
+                Button("删除标签和卡片", role: .destructive) {
+                    library.deleteCardsMatchingAnyTags(request.tags)
+                    selectedFolderTags.removeAll()
+                }
+            }
+
+            Button("取消", role: .cancel) {
+                tagFolderDeleteRequest = nil
+            }
+        } message: {
+            if let request = tagFolderDeleteRequest {
+                Text(request.message)
+            }
+        }
     }
 
     private var graphWarehousePage: some View {
-        ZDPageScaffold(
-            title: nil,
+        ZDFixedHeaderPageScaffold(
             bottomPadding: 16,
+            headerSpacing: 14,
             contentSpacing: 14
         ) {
             headerRow
+        } content: {
             GraphWarehouseView()
                 .environmentObject(graphStore)
                 .environmentObject(library)
@@ -305,6 +418,7 @@ struct CardManagementView: View {
                 isSelectionMode.toggle()
                 if !isSelectionMode {
                     selectedIDs.removeAll()
+                    selectedFolderTags.removeAll()
                 }
             }
         }
@@ -353,22 +467,48 @@ struct CardManagementView: View {
     // MARK: - Tag Folder Grouped View
 
     private var tagFolderGroupedView: some View {
-        let groups = cardsByTag
+        let groups = tagFolderGroups
         return LazyVGrid(columns: columns, spacing: 12) {
-            ForEach(groups, id: \.tag) { group in
-                let model = convertToTagFolderModel(tag: group.tag, cards: group.cards)
-                NavigationLink {
-                    TagFolderDetailCardsView(title: group.tag, originalCards: group.cards, folderModel: model)
+            ForEach(groups) { group in
+                if isSelectionMode {
+                    TagFolderManagementSViewTile(
+                        group: group,
+                        isSelectionMode: true,
+                        isSelected: selectedFolderTags.contains(group.tag)
+                    )
+                    .onTapGesture {
+                        handleTagFolderTap(group)
+                    }
+                } else {
+                    NavigationLink {
+                        TagFolderDetailCardsView(
+                            title: group.tag,
+                            originalCards: group.cards,
+                            folderModel: group.model
+                        )
                         .environmentObject(library)
                         .environmentObject(graphStore)
-                } label: {
-                    ZDTagCollectionFolderSView(
-                        model: model,
-                        theme: library.tagColor(for: group.tag)
-                    )
+                    } label: {
+                        TagFolderManagementSViewTile(
+                            group: group,
+                            isSelectionMode: false,
+                            isSelected: false
+                        )
+                    }
+                    .buttonStyle(.plain)
                 }
-                .buttonStyle(.plain)
             }
+        }
+    }
+
+    private var tagFolderGroups: [TagFolderGroup] {
+        cardsByTag.map { group in
+            TagFolderGroup(
+                tag: group.tag,
+                cards: group.cards,
+                model: convertToTagFolderModel(tag: group.tag, cards: group.cards),
+                theme: library.tagColor(for: group.tag)
+            )
         }
     }
 
@@ -461,10 +601,10 @@ struct CardManagementView: View {
     // MARK: - Selection Toolbar
 
     private var selectionToolbar: some View {
-        let actionButtonWidth: CGFloat = 86
         let allSelected = !displayCards.isEmpty && selectedIDs.count == displayCards.count
+        let hasSelection = !selectedIDs.isEmpty
 
-        return ZDFloatingActionBar {
+        return ZDSelectionActionBar(selectionText: "已选 \(selectedIDs.count)") {
             Button {
                 let visibleIDs = Set(displayCards.map(\.id))
                 if !visibleIDs.isEmpty && selectedIDs == visibleIDs {
@@ -473,38 +613,78 @@ struct CardManagementView: View {
                     selectedIDs = visibleIDs
                 }
             } label: {
-                Text(allSelected ? "取消全选" : "全选")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(allSelected ? Color.white : Color.zdAccentDeep)
-                    .frame(width: actionButtonWidth, height: 40)
-                    .background(
-                        allSelected ? Color.zdAccentDeep : Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16)
-                    )
-                    .clipShape(Capsule())
+                ZDActionBarButtonLabel(
+                    title: allSelected ? "取消" : "全选",
+                    tone: allSelected ? .destructive : .primary
+                )
             }
             .buttonStyle(.plain)
-            
-            Spacer()
+        } trailing: {
+            Menu {
+                Button(role: .destructive) {
+                    requestDelete(ids: selectedIDs, title: nil)
+                } label: {
+                    ZDDestructiveMenuLabel(title: "删除卡片")
+                }
 
-            Text("已选 \(selectedIDs.count)")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-            
-            Spacer()
+                Button {
+                    showBatchTagEditor = true
+                } label: {
+                    Label("编辑标签", systemImage: "tag")
+                }
 
-            Button {
-                requestDelete(ids: selectedIDs, title: nil)
+                Button {
+                    showBatchColorEditor = true
+                } label: {
+                    Label("编辑颜色", systemImage: "paintpalette")
+                }
             } label: {
-                Text("删除")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.red)
-                    .frame(width: actionButtonWidth, height: 40)
-                    .background(Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16))
-                    .clipShape(Capsule())
+                ZDActionBarButtonLabel(title: "编辑", isEnabled: hasSelection)
             }
             .buttonStyle(.plain)
-            .disabled(selectedIDs.isEmpty)
-            .opacity(selectedIDs.isEmpty ? 0.4 : 1.0)
+            .disabled(!hasSelection)
+        }
+        .padding(.horizontal, 16)
+        .padding(.bottom, 12)
+    }
+
+    private var tagFolderSelectionToolbar: some View {
+        let visibleTags = Set(tagFolderGroups.map(\.tag))
+        let allSelected = !visibleTags.isEmpty && selectedFolderTags == visibleTags
+        let hasSelection = !selectedFolderTags.isEmpty
+
+        return ZDSelectionActionBar(selectionText: "已选 \(selectedFolderTags.count)") {
+            Button {
+                if !visibleTags.isEmpty && selectedFolderTags == visibleTags {
+                    selectedFolderTags.removeAll()
+                } else {
+                    selectedFolderTags = visibleTags
+                }
+            } label: {
+                ZDActionBarButtonLabel(
+                    title: allSelected ? "取消" : "全选",
+                    tone: allSelected ? .destructive : .primary
+                )
+            }
+            .buttonStyle(.plain)
+        } trailing: {
+            Menu {
+                Button(role: .destructive) {
+                    requestTagFolderDelete(tags: selectedFolderTags)
+                } label: {
+                    ZDDestructiveMenuLabel(title: "删除文件夹")
+                }
+
+                Button {
+                    showBatchTagFolderColorEditor = true
+                } label: {
+                    Label("编辑颜色", systemImage: "paintpalette")
+                }
+            } label: {
+                ZDActionBarButtonLabel(title: "编辑", isEnabled: hasSelection)
+            }
+            .buttonStyle(.plain)
+            .disabled(!hasSelection)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
@@ -628,6 +808,18 @@ struct CardManagementView: View {
         }
     }
 
+    private func handleTagFolderTap(_ group: TagFolderGroup) {
+        guard isSelectionMode else {
+            return
+        }
+
+        if selectedFolderTags.contains(group.tag) {
+            selectedFolderTags.remove(group.tag)
+        } else {
+            selectedFolderTags.insert(group.tag)
+        }
+    }
+
     private func requestDelete(ids: Set<UUID>, title: String?) {
         guard !ids.isEmpty else {
             return
@@ -642,6 +834,32 @@ struct CardManagementView: View {
 
         deleteRequest = DeleteRequest(ids: ids, message: message)
     }
+
+    private func requestTagFolderDelete(tags: Set<String>) {
+        guard !tags.isEmpty else {
+            return
+        }
+
+        let message: String
+        if tags.count == 1, let tag = tags.first {
+            message = "你可以仅删除「\(tag)」这个标签在卡片上的绑定关系，或直接删除该标签以及其下的所有卡片。"
+        } else {
+            message = "已选择 \(tags.count) 个标签文件夹。你可以仅删除这些标签在卡片上的绑定关系，或直接删除这些标签以及其下的所有卡片。"
+        }
+
+        tagFolderDeleteRequest = TagFolderDeleteRequest(tags: tags, message: message)
+    }
+
+    private var showTagFolderDeleteDialog: Binding<Bool> {
+        Binding(
+            get: { tagFolderDeleteRequest != nil },
+            set: { presented in
+                if !presented {
+                    tagFolderDeleteRequest = nil
+                }
+            }
+        )
+    }
 }
 
 // MARK: - Delete Request
@@ -652,44 +870,121 @@ private struct DeleteRequest: Identifiable {
     let message: String
 }
 
+private struct TagFolderDeleteRequest: Identifiable {
+    let id = UUID()
+    let tags: Set<String>
+    let message: String
+}
+
+private struct TagFolderGroup: Identifiable {
+    let tag: String
+    let cards: [KnowledgeCard]
+    let model: ZDTagCollectionFolderModel
+    let theme: CardThemeColor
+
+    var id: String { tag }
+}
+
 // MARK: - SView Tile Wrapper
 
 private struct CardManagementSViewTile: View {
-    @Environment(\.colorScheme) private var colorScheme
-
     let card: KnowledgeCard
     let isSelectionMode: Bool
     let isSelected: Bool
 
     var body: some View {
-        ZStack(alignment: .bottomTrailing) {
-            KnowledgeCardSView(card: card)
-                .frame(maxWidth: .infinity, alignment: .leading)
+        KnowledgeCardSView(card: card, hidesTrailingMeta: isSelectionMode)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .bottomTrailing) {
+                if isSelectionMode {
+                    selectionIndicator
+                        .padding(.bottom, 8)
+                        .padding(.trailing, 8)
+                }
+            }
+            .overlay {
+                if isSelectionMode {
+                    RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        .strokeBorder(
+                            isSelected
+                                ? Color.red.opacity(0.9)
+                                : Color.primary.opacity(0.1),
+                            lineWidth: isSelected ? 2 : 1
+                        )
+                }
+            }
+            .scaleEffect(isSelectionMode && isSelected ? 0.98 : 1.0)
+            .animation(.spring(response: 0.24, dampingFraction: 0.85), value: isSelected)
+    }
 
-            if isSelectionMode {
+    private var selectionIndicator: some View {
+        Circle()
+            .fill(Color(uiColor: .systemBackground))
+            .frame(width: 24, height: 24)
+            .overlay(
                 Circle()
-                    .fill(
-                        isSelected
-                            ? Color.zdAccentDeep
-                            : Color.white.opacity(colorScheme == .dark ? 0.12 : 0.75)
-                    )
-                    .overlay {
-                        Circle()
-                            .stroke(Color.zdAccentDeep.opacity(0.8), lineWidth: 1.1)
-                    }
-                    .overlay {
-                        if isSelected {
-                            Image(systemName: "checkmark")
-                                .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(.white)
-                        }
-                    }
-                    .frame(width: 18, height: 18)
-                    .padding(.trailing, 8)
+                    .strokeBorder(isSelected ? Color.red : Color.secondary.opacity(0.45), lineWidth: 1.2)
+            )
+            .overlay {
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.red)
+                }
+            }
+            .shadow(color: Color.black.opacity(0.14), radius: 4, x: 0, y: 2)
+    }
+}
+
+private struct TagFolderManagementSViewTile: View {
+    let group: TagFolderGroup
+    let isSelectionMode: Bool
+    let isSelected: Bool
+
+    var body: some View {
+        ZDTagCollectionFolderSView(
+            model: group.model,
+            theme: group.theme
+        )
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .bottomTrailing) {
+            if isSelectionMode {
+                selectionIndicator
                     .padding(.bottom, 8)
+                    .padding(.trailing, 8)
             }
         }
-        .opacity(isSelectionMode && !isSelected ? 0.92 : 1)
+        .overlay {
+            if isSelectionMode {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(
+                        isSelected
+                            ? Color.red.opacity(0.9)
+                            : Color.primary.opacity(0.1),
+                        lineWidth: isSelected ? 2 : 1
+                    )
+            }
+        }
+        .scaleEffect(isSelectionMode && isSelected ? 0.98 : 1.0)
+        .animation(.spring(response: 0.24, dampingFraction: 0.85), value: isSelected)
+    }
+
+    private var selectionIndicator: some View {
+        Circle()
+            .fill(Color(uiColor: .systemBackground))
+            .frame(width: 24, height: 24)
+            .overlay(
+                Circle()
+                    .strokeBorder(isSelected ? Color.red : Color.secondary.opacity(0.45), lineWidth: 1.2)
+            )
+            .overlay {
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.red)
+                }
+            }
+            .shadow(color: Color.black.opacity(0.14), radius: 4, x: 0, y: 2)
     }
 }
 
@@ -774,6 +1069,8 @@ struct FilteredCardsView: View {
     @State private var isSelectionMode = false
     @State private var selectedIDs: Set<UUID> = []
     @State private var deleteRequest: DeleteRequest?
+    @State private var showBatchTagEditor = false
+    @State private var showBatchColorEditor = false
 
     private let columns = [
         GridItem(.flexible(), spacing: 12),
@@ -781,12 +1078,13 @@ struct FilteredCardsView: View {
     ]
 
     var body: some View {
-        ZDPageScaffold(
-            title: nil,
+        ZDFixedHeaderPageScaffold(
             bottomPadding: isSelectionMode ? 98 : 12,
+            headerSpacing: 14,
             contentSpacing: 14
         ) {
             headerRow
+        } content: {
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(cards) { card in
                     CardManagementSViewTile(
@@ -823,6 +1121,33 @@ struct FilteredCardsView: View {
             }
         } message: { request in
             Text(request.message)
+        }
+        .sheet(isPresented: $showBatchTagEditor) {
+            let selectedCards = cards.filter { selectedIDs.contains($0.id) }
+            CardManagementBatchTagEditorScreen(
+                cards: selectedCards,
+                existingTags: library.allUniqueTags()
+            ) { finalSelectedIDs, updatedTags in
+                // Find all cards whose selection was preserved
+                let remainingCards = cards.filter { finalSelectedIDs.contains($0.id) }
+                for card in remainingCards {
+                    var modifiedCard = card
+                    modifiedCard.tags = updatedTags.isEmpty ? nil : updatedTags
+                    modifiedCard.touchUpdatedAt()
+                    library.updateCard(modifiedCard)
+                }
+                
+                // Clear selection after batch action
+                selectedIDs.removeAll()
+            }
+            .environmentObject(library)
+        }
+        .sheet(isPresented: $showBatchColorEditor) {
+            let selectedCards = cards.filter { selectedIDs.contains($0.id) }
+            CardManagementBatchColorEditorScreen(cards: selectedCards) { finalSelectedIDs, color in
+                library.updateCardsThemeColor(ids: finalSelectedIDs, color: color)
+                selectedIDs.removeAll()
+            }
         }
     }
 
@@ -867,10 +1192,10 @@ struct FilteredCardsView: View {
     }
 
     private var selectionToolbar: some View {
-        let actionButtonWidth: CGFloat = 86
         let allSelected = !cards.isEmpty && selectedIDs.count == cards.count
+        let hasSelection = !selectedIDs.isEmpty
 
-        return ZDFloatingActionBar {
+        return ZDSelectionActionBar(selectionText: "已选 \(selectedIDs.count)") {
             Button {
                 let visibleIDs = Set(cards.map(\.id))
                 if !visibleIDs.isEmpty && selectedIDs == visibleIDs {
@@ -879,38 +1204,36 @@ struct FilteredCardsView: View {
                     selectedIDs = visibleIDs
                 }
             } label: {
-                Text(allSelected ? "取消全选" : "全选")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(allSelected ? Color.white : Color.zdAccentDeep)
-                    .frame(width: actionButtonWidth, height: 40)
-                    .background(
-                        allSelected ? Color.zdAccentDeep : Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16)
-                    )
-                    .clipShape(Capsule())
+                ZDActionBarButtonLabel(
+                    title: allSelected ? "取消全选" : "全选",
+                    tone: allSelected ? .destructive : .primary
+                )
             }
             .buttonStyle(.plain)
+        } trailing: {
+            Menu {
+                Button(role: .destructive) {
+                    requestDelete(ids: selectedIDs)
+                } label: {
+                    ZDDestructiveMenuLabel(title: "删除卡片")
+                }
 
-            Spacer()
+                Button {
+                    showBatchTagEditor = true
+                } label: {
+                    Label("编辑标签", systemImage: "tag")
+                }
 
-            Text("已选 \(selectedIDs.count)")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-            
-            Spacer()
-
-            Button {
-                requestDelete(ids: selectedIDs)
+                Button {
+                    showBatchColorEditor = true
+                } label: {
+                    Label("编辑颜色", systemImage: "paintpalette")
+                }
             } label: {
-                Text("删除")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.red)
-                    .frame(width: actionButtonWidth, height: 40)
-                    .background(Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16))
-                    .clipShape(Capsule())
+                ZDActionBarButtonLabel(title: "编辑", isEnabled: hasSelection)
             }
             .buttonStyle(.plain)
-            .disabled(selectedIDs.isEmpty)
-            .opacity(selectedIDs.isEmpty ? 0.4 : 1.0)
+            .disabled(!hasSelection)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
@@ -1072,6 +1395,8 @@ struct TagFolderDetailCardsView: View {
     @State private var isSelectionMode = false
     @State private var selectedIDs: Set<UUID> = []
     @State private var deleteRequest: DeleteRequest?
+    @State private var showBatchTagEditor = false
+    @State private var showBatchColorEditor = false
     @State private var showThemePicker = false
 
     enum LocalSortMode: Equatable {
@@ -1087,12 +1412,13 @@ struct TagFolderDetailCardsView: View {
     ]
 
     var body: some View {
-        ZDPageScaffold(
-            title: nil,
+        ZDFixedHeaderPageScaffold(
             bottomPadding: isSelectionMode ? 98 : 12,
+            headerSpacing: 14,
             contentSpacing: 14
         ) {
             headerRow
+        } content: {
             LazyVGrid(columns: columns, spacing: 12) {
                 ForEach(displayCards) { card in
                     CardManagementSViewTile(
@@ -1120,10 +1446,11 @@ struct TagFolderDetailCardsView: View {
         .sheet(isPresented: $showThemePicker) {
             TagFolderThemeColorPicker(
                 tagFolderModel: folderModel,
-                currentTheme: library.tagColor(for: title)
-            ) { color in
-                library.updateTagColor(tag: title, color: color)
-            }
+                currentTheme: library.tagColor(for: title),
+                onThemeSelected: { color in
+                    library.updateTagColor(tag: title, color: color)
+                }
+            )
         }
         .alert(
             "确认删除",
@@ -1137,6 +1464,33 @@ struct TagFolderDetailCardsView: View {
             }
         } message: { request in
             Text(request.message)
+        }
+        .sheet(isPresented: $showBatchTagEditor) {
+            let selectedCards = displayCards.filter { selectedIDs.contains($0.id) }
+            CardManagementBatchTagEditorScreen(
+                cards: selectedCards,
+                existingTags: library.allUniqueTags()
+            ) { finalSelectedIDs, updatedTags in
+                // Find all cards whose selection was preserved
+                let remainingCards = displayCards.filter { finalSelectedIDs.contains($0.id) }
+                for card in remainingCards {
+                    var modifiedCard = card
+                    modifiedCard.tags = updatedTags.isEmpty ? nil : updatedTags
+                    modifiedCard.touchUpdatedAt()
+                    library.updateCard(modifiedCard)
+                }
+                
+                // Clear selection after batch action
+                selectedIDs.removeAll()
+            }
+            .environmentObject(library)
+        }
+        .sheet(isPresented: $showBatchColorEditor) {
+            let selectedCards = displayCards.filter { selectedIDs.contains($0.id) }
+            CardManagementBatchColorEditorScreen(cards: selectedCards) { finalSelectedIDs, color in
+                library.updateCardsThemeColor(ids: finalSelectedIDs, color: color)
+                selectedIDs.removeAll()
+            }
         }
     }
 
@@ -1257,10 +1611,10 @@ struct TagFolderDetailCardsView: View {
     }
 
     private var selectionToolbar: some View {
-        let actionButtonWidth: CGFloat = 86
         let allSelected = !displayCards.isEmpty && selectedIDs.count == displayCards.count
+        let hasSelection = !selectedIDs.isEmpty
 
-        return ZDFloatingActionBar {
+        return ZDSelectionActionBar(selectionText: "已选 \(selectedIDs.count)") {
             Button {
                 let visibleIDs = Set(displayCards.map(\.id))
                 if !visibleIDs.isEmpty && selectedIDs == visibleIDs {
@@ -1269,38 +1623,36 @@ struct TagFolderDetailCardsView: View {
                     selectedIDs = visibleIDs
                 }
             } label: {
-                Text(allSelected ? "取消全选" : "全选")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(allSelected ? Color.white : Color.zdAccentDeep)
-                    .frame(width: actionButtonWidth, height: 40)
-                    .background(
-                        allSelected ? Color.zdAccentDeep : Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16)
-                    )
-                    .clipShape(Capsule())
+                ZDActionBarButtonLabel(
+                    title: allSelected ? "取消全选" : "全选",
+                    tone: allSelected ? .destructive : .primary
+                )
             }
             .buttonStyle(.plain)
+        } trailing: {
+            Menu {
+                Button(role: .destructive) {
+                    requestDelete(ids: selectedIDs)
+                } label: {
+                    ZDDestructiveMenuLabel(title: "删除卡片")
+                }
 
-            Spacer()
+                Button {
+                    showBatchTagEditor = true
+                } label: {
+                    Label("编辑标签", systemImage: "tag")
+                }
 
-            Text("已选 \(selectedIDs.count)")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-            
-            Spacer()
-
-            Button {
-                requestDelete(ids: selectedIDs)
+                Button {
+                    showBatchColorEditor = true
+                } label: {
+                    Label("编辑颜色", systemImage: "paintpalette")
+                }
             } label: {
-                Text("删除")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(.red)
-                    .frame(width: actionButtonWidth, height: 40)
-                    .background(Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.2 : 0.16))
-                    .clipShape(Capsule())
+                ZDActionBarButtonLabel(title: "编辑", isEnabled: hasSelection)
             }
             .buttonStyle(.plain)
-            .disabled(selectedIDs.isEmpty)
-            .opacity(selectedIDs.isEmpty ? 0.4 : 1.0)
+            .disabled(!hasSelection)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)
@@ -1333,3 +1685,84 @@ struct TagFolderDetailCardsView: View {
         .environmentObject(KnowledgeCardLibraryStore())
         .environmentObject(KnowledgeGraphStore())
 }
+
+#if canImport(UIKit)
+private struct ZDKeyboardDismissOnOutsideTap: UIViewRepresentable {
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView(frame: .zero)
+        view.isUserInteractionEnabled = false
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        DispatchQueue.main.async {
+            context.coordinator.attachIfNeeded(to: uiView)
+        }
+    }
+
+    static func dismantleUIView(_ uiView: UIView, coordinator: Coordinator) {
+        coordinator.detach()
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        private weak var hostView: UIView?
+
+        private lazy var tapRecognizer: UITapGestureRecognizer = {
+            let recognizer = UITapGestureRecognizer(target: self, action: #selector(handleTap))
+            recognizer.cancelsTouchesInView = false
+            recognizer.delegate = self
+            return recognizer
+        }()
+
+        func attachIfNeeded(to anchorView: UIView) {
+            let targetView = rootContainer(for: anchorView)
+            guard hostView !== targetView else { return }
+            detach()
+            hostView = targetView
+            targetView.addGestureRecognizer(tapRecognizer)
+        }
+
+        func detach() {
+            hostView?.removeGestureRecognizer(tapRecognizer)
+            hostView = nil
+        }
+
+        @objc
+        private func handleTap() {
+            UIApplication.shared.sendAction(
+                #selector(UIResponder.resignFirstResponder),
+                to: nil,
+                from: nil,
+                for: nil
+            )
+        }
+
+        func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+            !isTextInputView(touch.view)
+        }
+
+        private func rootContainer(for view: UIView) -> UIView {
+            var current = view
+            while let superview = current.superview, !(superview is UIWindow) {
+                current = superview
+            }
+            return current
+        }
+
+        private func isTextInputView(_ view: UIView?) -> Bool {
+            var current = view
+            while let candidate = current {
+                if candidate is UITextField || candidate is UITextView || candidate is UISearchBar {
+                    return true
+                }
+                current = candidate.superview
+            }
+            return false
+        }
+    }
+}
+#endif

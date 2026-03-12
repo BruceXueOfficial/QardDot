@@ -4,7 +4,6 @@ import SwiftUI
 struct CardThemeColorPicker: View {
     @ObservedObject var viewModel: KnowledgeCardViewModel
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.colorScheme) private var colorScheme
 
     private let columns = [
         GridItem(.flexible(), spacing: 14),
@@ -16,12 +15,10 @@ struct CardThemeColorPicker: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
-                    // Preview card
+                VStack(spacing: 20) {
                     previewMiniCard
                         .padding(.top, 8)
 
-                    // Color grid
                     LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(CardThemeColor.allCases) { color in
                             Button {
@@ -35,7 +32,7 @@ struct CardThemeColorPicker: View {
                         }
                     }
                     .padding(.horizontal, 28)
-                    .padding(.bottom, 18)
+                    .padding(.bottom, 8)
                 }
                 .padding(.top, 16)
             }
@@ -51,14 +48,14 @@ struct CardThemeColorPicker: View {
                 }
             }
         }
-        .presentationDetents([.medium, .large])
+        .presentationDetents([.height(ZDThemePickerLayout.compactSheetHeight), .large])
     }
 
     private var previewMiniCard: some View {
         HStack {
             Spacer()
             KnowledgeCardSView(card: viewModel.card)
-                .frame(width: 170)
+                .frame(width: ZDThemePickerLayout.cardPreviewWidth)
             Spacer()
         }
     }
@@ -68,14 +65,10 @@ struct CardThemeColorPicker: View {
         let isSelected = (viewModel.card.themeColor ?? .defaultTheme) == color
         VStack(spacing: 6) {
             ZStack {
-                Circle()
-                    .fill(color.cardBackgroundStyle)
-                    .frame(width: 48, height: 48)
-                    .overlay(
-                        Circle()
-                            .stroke(color.cardBorderGradient, lineWidth: isSelected ? 3 : 1.2)
-                    )
-                    .shadow(color: color.primaryColor.opacity(0.35), radius: 6, x: 0, y: 3)
+                ZDCardThemeSurfaceSwatch(
+                    theme: color,
+                    isSelected: isSelected
+                )
 
                 if isSelected {
                     Image(systemName: "checkmark")
@@ -90,6 +83,7 @@ struct CardThemeColorPicker: View {
         }
     }
 }
+
 
 #Preview("KnowledgeCard Detail Screen - Theme Entry") {
     let previewCard = KnowledgeCard.previewShort

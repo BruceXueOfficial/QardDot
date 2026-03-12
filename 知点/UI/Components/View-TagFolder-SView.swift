@@ -1,3 +1,4 @@
+import Foundation
 import SwiftUI
 
 // MARK: - Tokens
@@ -5,7 +6,7 @@ import SwiftUI
 private enum ZDTagCollectionFolderSViewTokens {
     static let surfaceHeight = KnowledgeCardSViewTokens.surfaceHeight
     static let foldWidthRatio: CGFloat = 0.775
-    static let titleTopPadding: CGFloat = 7
+    static let titleTopPadding: CGFloat = 10
     static let titleLeadingPadding: CGFloat = 14
     static let titleFontSize: CGFloat = 16.5
     static let titleDividerHeight: CGFloat = 0.7
@@ -16,7 +17,7 @@ private enum ZDTagCollectionFolderSViewTokens {
         let base = KnowledgeCardSViewTokens.splitLayout
         return ZDSplitCardLayout(
             cornerRadius: base.cornerRadius,
-            topRatio: 0.28,
+            topRatio: 0.38,
             contentPaddingTop: EdgeInsets(top: 0, leading: 0, bottom: 0, trailing: 0),
             contentPaddingBottom: EdgeInsets(top: 8, leading: 0, bottom: 10, trailing: 0),
             punchedMetrics: ZDPunchedCardMetrics(
@@ -67,8 +68,32 @@ struct ZDTagCollectionFolderSView: View {
     private var topRightLayerGradient: LinearGradient {
         LinearGradient(
             colors: [
-                theme.tagFolderTopLightColor.opacity(colorScheme == .dark ? 0.98 : 0.96),
-                theme.tagFolderTopLightColor.opacity(colorScheme == .dark ? 0.90 : 0.86)
+                theme.secondaryColor.opacity(colorScheme == .dark ? 0.84 : 0.66),
+                theme.fillSecondaryColor.opacity(colorScheme == .dark ? 0.72 : 0.96)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var folderFrontGradient: LinearGradient {
+        LinearGradient(
+            colors: [
+                theme.primaryColor.opacity(colorScheme == .dark ? 0.92 : 0.86),
+                theme.secondaryColor.opacity(colorScheme == .dark ? 0.94 : 0.88),
+                theme.primaryColor.opacity(colorScheme == .dark ? 0.90 : 0.82)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+    }
+
+    private var folderFrontStroke: LinearGradient {
+        LinearGradient(
+            colors: [
+                Color.white.opacity(colorScheme == .dark ? 0.38 : 0.52),
+                Color.white.opacity(colorScheme == .dark ? 0.10 : 0.14),
+                Color.white.opacity(colorScheme == .dark ? 0.22 : 0.30)
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -100,6 +125,10 @@ struct ZDTagCollectionFolderSView: View {
 
     private var rightTopLayerCornerRadius: CGFloat {
         ZDTagCollectionFolderSViewTokens.splitLayout.cornerRadius
+    }
+
+    private var compactAddedDateText: String {
+        ZDTagCollectionFolderSViewDateFormatter.compactDateText(from: model.addedDateText)
     }
 
     var body: some View {
@@ -137,20 +166,20 @@ struct ZDTagCollectionFolderSView: View {
 
                 let innerInset = ZDTagCollectionFolderSViewTokens.innerCardInset
                 let topLayerWidth = proxy.size.width - innerInset
-                // Add an additional 20 points of height to ensure the rear card's bottom boundary 
-                // reaches past the right corner rounding, hiding any gaps completely.
-                let topLayerHeight = proxy.size.height + 20
+                let topLayerHeight = proxy.size.height + 18
                 let topLayerOffsetX: CGFloat = 0
                 let topLayerOffsetY = innerInset
 
                 ZStack(alignment: .topLeading) {
-                    ZDTagCollectionFolderTopRoundedShape(cornerRadius: rightTopLayerCornerRadius)
+                    let folderTopShape = ZDTagCollectionFolderTopRoundedShape(cornerRadius: rightTopLayerCornerRadius)
+
+                    folderTopShape
                         .fill(topRightLayerGradient)
                         .frame(width: topLayerWidth, height: topLayerHeight)
                         .offset(x: topLayerOffsetX, y: topLayerOffsetY)
                         .overlay {
-                            ZDTagCollectionFolderTopRoundedShape(cornerRadius: rightTopLayerCornerRadius)
-                                .stroke(Color.white.opacity(colorScheme == .dark ? 0.20 : 0.30), lineWidth: 0.7)
+                            folderTopShape
+                                .stroke(Color.white.opacity(colorScheme == .dark ? 0.18 : 0.26), lineWidth: 0.65)
                                 .frame(width: topLayerWidth, height: topLayerHeight)
                                 .offset(x: topLayerOffsetX, y: topLayerOffsetY)
                         }
@@ -173,37 +202,11 @@ struct ZDTagCollectionFolderSView: View {
                         }
 
                     folderMainShape
-                        // 1. Modifying Gradient of the main folder cover: 
-                        // It uses the base color with varied opacities for a vibrant, layered gradient effect.
-                        // (You can modify the opacity thresholds here for fine-tuning)
-                        .fill(
-                            LinearGradient(
-                                colors: [
-                                    theme.tagFolderTopDeepColor.opacity(colorScheme == .dark ? 0.90 : 0.82),
-                                    theme.tagFolderTopDeepColor,
-                                    theme.tagFolderTopDeepColor.opacity(colorScheme == .dark ? 0.96 : 0.88)
-                                ],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        // 4. Added external drop shadow for layered depth feel:
+                        .fill(folderFrontGradient)
                         .shadow(color: Color.black.opacity(colorScheme == .dark ? 0.25 : 0.12), radius: 6, x: -1, y: 3)
                         .overlay {
-                            // 3. New gradient border for folder front cover:
                             folderMainShape
-                                .stroke(
-                                    LinearGradient(
-                                        colors: [
-                                            Color.white.opacity(colorScheme == .dark ? 0.5 : 0.8),
-                                            Color.white.opacity(colorScheme == .dark ? 0.1 : 0.2),
-                                            Color.white.opacity(colorScheme == .dark ? 0.3 : 0.5)
-                                        ],
-                                        startPoint: .topLeading,
-                                        endPoint: .bottomTrailing
-                                    ),
-                                    lineWidth: 2.5
-                                )
+                                .stroke(folderFrontStroke, lineWidth: 1.55)
                         }
                         .frame(
                             width: proxy.size.width,
@@ -264,7 +267,8 @@ struct ZDTagCollectionFolderSView: View {
 
                 Spacer(minLength: 8)
 
-                Text("添加时间 \(model.addedDateText)")
+                Text(compactAddedDateText)
+                    .monospacedDigit()
                     .lineLimit(1)
             }
             .padding(.horizontal, 14)
@@ -290,6 +294,46 @@ struct ZDTagCollectionFolderSView: View {
                 : ZDTagCollectionFolderSViewShadowTuning.baseLightY
             ) * forcedRenderProfile.primaryShadowStrength
         )
+    }
+}
+
+private enum ZDTagCollectionFolderSViewDateFormatter {
+    private static let inputFormatters: [DateFormatter] = {
+        let patterns = [
+            "MMM d, yyyy",
+            "MMM d yyyy",
+            "yyyy-MM-dd",
+            "d MMM yyyy"
+        ]
+
+        return patterns.map { pattern in
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "en_US_POSIX")
+            formatter.dateFormat = pattern
+            return formatter
+        }
+    }()
+
+    private static let outputFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "d MMM"
+        return formatter
+    }()
+
+    static func compactDateText(from raw: String) -> String {
+        let trimmed = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, trimmed != "无" else {
+            return trimmed
+        }
+
+        for formatter in inputFormatters {
+            if let date = formatter.date(from: trimmed) {
+                return outputFormatter.string(from: date)
+            }
+        }
+
+        return trimmed
     }
 }
 

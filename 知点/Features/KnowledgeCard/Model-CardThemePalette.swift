@@ -27,6 +27,14 @@ extension CardThemeColor {
             return "Questionmark-Orange"
         case .purple:
             return "Questionmark-Pink"
+        case .red:
+            return "Questionmark-Pink"
+        case .cyan:
+            return "Questionmark-Blue"
+        case .yellow:
+            return "Questionmark-Orange"
+        case .pink:
+            return "Questionmark-Pink"
         }
     }
 
@@ -42,10 +50,10 @@ extension CardThemeColor {
         let topPrimaryOpacity = 1.0
         let topSecondaryOpacity = 1.0
 
-        let bottomPrimaryBase = usePerformanceLightBase ? performanceLightBottomPrimaryBase : fillPrimaryColor
-        let bottomSecondaryBase = usePerformanceLightBase ? performanceLightBottomSecondaryBase : fillSecondaryColor
-        let bottomPrimaryOpacity = 1.0
-        let bottomSecondaryOpacity = 1.0
+        let bottomPrimaryBase = isDark ? fillPrimaryColor : lightThemeBottomPrimaryBase
+        let bottomSecondaryBase = isDark ? fillSecondaryColor : lightThemeBottomSecondaryBase
+        let bottomPrimaryOpacity = isDark ? 1.0 : 0.90
+        let bottomSecondaryOpacity = isDark ? 1.0 : 0.76
 
         let topFill = LinearGradient(
             colors: [
@@ -88,38 +96,126 @@ extension CardThemeColor {
         )
     }
 
-    private var performanceLightBottomPrimaryBase: Color {
-        switch self {
-        case .blue:
-            return Self.staticHexColor(0xF1FBFF)
-        case .green:
-            return Self.staticHexColor(0xF1FCF7)
-        case .orange:
-            return Self.staticHexColor(0xFFF7EB)
-        case .purple:
-            return Self.staticHexColor(0xF7F4FF)
-        }
-    }
-
-    private var performanceLightBottomSecondaryBase: Color {
-        switch self {
-        case .blue:
-            return Self.staticHexColor(0xBFE6F8)
-        case .green:
-            return Self.staticHexColor(0xC4ECD9)
-        case .orange:
-            return Self.staticHexColor(0xF9DEC0)
-        case .purple:
-            return Self.staticHexColor(0xDFD6FA)
-        }
-    }
-
-    private static func staticHexColor(_ hex: Int) -> Color {
-        Color(
-            red: Double((hex >> 16) & 0xFF) / 255.0,
-            green: Double((hex >> 8) & 0xFF) / 255.0,
-            blue: Double(hex & 0xFF) / 255.0
+    func pickerSolidGradient(in colorScheme: ColorScheme) -> LinearGradient {
+        LinearGradient(
+            colors: [
+                secondaryColor.opacity(colorScheme == .dark ? 0.90 : 0.98),
+                primaryColor.opacity(colorScheme == .dark ? 0.98 : 1.0)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
         )
+    }
+
+    func pickerStrokeColor(in colorScheme: ColorScheme, isSelected: Bool) -> Color {
+        if isSelected {
+            return colorScheme == .dark
+                ? Color.white.opacity(0.28)
+                : Color.white.opacity(0.78)
+        }
+
+        return colorScheme == .dark
+            ? Color.white.opacity(0.12)
+            : primaryColor.opacity(0.24)
+    }
+
+    private var lightThemeBottomPrimaryBase: Color {
+        let (primaryHex, _) = lightThemeBaseHexPair
+        return Self.mixWithWhite(primaryHex, whiteRatio: 0.92)
+    }
+
+    private var lightThemeBottomSecondaryBase: Color {
+        let (_, secondaryHex) = lightThemeBaseHexPair
+        return Self.mixWithWhite(secondaryHex, whiteRatio: 0.70)
+    }
+
+    private var lightThemeBaseHexPair: (primary: Int, secondary: Int) {
+        switch self {
+        case .blue:
+            return (0x0052D4, 0x0088FF)
+        case .green:
+            return (0x008A27, 0x00C23A)
+        case .orange:
+            return (0xE65C00, 0xFF9500)
+        case .purple:
+            return (0x6100E6, 0xA233FF)
+        case .red:
+            return (0xD00000, 0xFF3B30)
+        case .cyan:
+            return (0x008A99, 0x00C7BE)
+        case .yellow:
+            return (0xD49A00, 0xFFCC00)
+        case .pink:
+            return (0xFF2D55, 0xFF6B8B)
+        }
+    }
+
+    private static func mixWithWhite(_ hex: Int, whiteRatio: Double) -> Color {
+        let clampedRatio = min(max(whiteRatio, 0), 1)
+        let sourceRatio = 1 - clampedRatio
+
+        let red = Double((hex >> 16) & 0xFF)
+        let green = Double((hex >> 8) & 0xFF)
+        let blue = Double(hex & 0xFF)
+
+        return Color(
+            red: ((red * sourceRatio) + 255 * clampedRatio) / 255.0,
+            green: ((green * sourceRatio) + 255 * clampedRatio) / 255.0,
+            blue: ((blue * sourceRatio) + 255 * clampedRatio) / 255.0
+        )
+    }
+}
+
+enum ZDThemePickerLayout {
+    static let compactSheetHeight: CGFloat = 382
+    static let cardPreviewWidth: CGFloat = 170
+    static let twoColumnGridSpacing: CGFloat = 12
+    static let swatchSize: CGFloat = 48
+
+    static func tagFolderPreviewWidth(for availableWidth: CGFloat) -> CGFloat {
+        let contentWidth = max(0, availableWidth - ZDSpacingScale.default.pageHorizontal * 2)
+        let cellWidth = (contentWidth - twoColumnGridSpacing) / 2
+        return max(0, floor(cellWidth))
+    }
+}
+
+struct ZDCardThemeSurfaceSwatch: View {
+    let theme: CardThemeColor
+    var isSelected: Bool = false
+
+    var body: some View {
+        ZDThemeColorCircleSwatch(theme: theme, isSelected: isSelected)
+    }
+}
+
+struct ZDTagFolderThemeSurfaceSwatch: View {
+    let theme: CardThemeColor
+    var isSelected: Bool = false
+
+    var body: some View {
+        ZDThemeColorCircleSwatch(theme: theme, isSelected: isSelected)
+    }
+}
+
+private struct ZDThemeColorCircleSwatch: View {
+    @Environment(\.colorScheme) private var colorScheme
+
+    let theme: CardThemeColor
+    let isSelected: Bool
+
+    var body: some View {
+        Circle()
+            .fill(theme.pickerSolidGradient(in: colorScheme))
+            .overlay {
+                Circle()
+                    .strokeBorder(
+                        theme.pickerStrokeColor(in: colorScheme, isSelected: isSelected),
+                        lineWidth: isSelected ? 3 : 1.2
+                    )
+            }
+            .frame(width: ZDThemePickerLayout.swatchSize, height: ZDThemePickerLayout.swatchSize)
+            .shadow(color: theme.primaryColor.opacity(0.35), radius: 6, x: 0, y: 3)
+            .shadow(color: Color.white.opacity(colorScheme == .dark ? 0.04 : 0.18), radius: 1.2, x: 0, y: -0.5)
     }
 }
 

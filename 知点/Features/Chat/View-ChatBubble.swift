@@ -18,6 +18,7 @@ struct ChatBubbleView: View {
     }
 
     var body: some View {
+        HStack(alignment: .top, spacing: 0) {
             if message.type == .user { Spacer() }
 
             messageContent

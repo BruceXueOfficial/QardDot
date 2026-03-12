@@ -8,8 +8,8 @@ private func cardTheme(for card: KnowledgeCard) -> CardThemeColor {
 private enum KnowledgeSquareLayoutTuning {
     static let recentCardWidth: CGFloat = 164
     static let recentCardHeight: CGFloat = 146
-    static let imageTruthCardWidth: CGFloat = recentCardWidth
-    static let imageTruthCoverHeight: CGFloat = recentCardHeight
+    static let imageTruthCardWidth: CGFloat = KnowledgeCardMViewTokens.surfaceSize.width
+    static let imageTruthCoverHeight: CGFloat = KnowledgeCardMViewTokens.surfaceSize.height
 
     static let bannerCardSpacing: CGFloat = 10
     static let recentCardSpacing: CGFloat = 10
@@ -29,6 +29,119 @@ private enum KnowledgeSquareShadowTuning {
     static let miniTintLightRadius: CGFloat = 2
     static let miniTintDarkRadius: CGFloat = 3
     static let miniTintY: CGFloat = 1
+
+    static let featuredBaseLightOpacity: Double = 0.12
+    static let featuredBaseDarkOpacity: Double = 0.22
+    static let featuredBaseLightRadius: CGFloat = 14
+    static let featuredBaseDarkRadius: CGFloat = 16
+    static let featuredBaseLightY: CGFloat = 7
+    static let featuredBaseDarkY: CGFloat = 8
+
+    static let featuredTintLightOpacity: Double = 0.10
+    static let featuredTintDarkOpacity: Double = 0.16
+    static let featuredTintLightRadius: CGFloat = 5
+    static let featuredTintDarkRadius: CGFloat = 6
+    static let featuredTintY: CGFloat = 3
+
+    static let discoveryBaseLightOpacity: Double = 0.16
+    static let discoveryBaseDarkOpacity: Double = 0.26
+    static let discoveryBaseLightRadius: CGFloat = 15
+    static let discoveryBaseDarkRadius: CGFloat = 17
+    static let discoveryBaseLightY: CGFloat = 8
+    static let discoveryBaseDarkY: CGFloat = 9
+
+    static let discoveryTintLightOpacity: Double = 0.13
+    static let discoveryTintDarkOpacity: Double = 0.18
+    static let discoveryTintLightRadius: CGFloat = 6
+    static let discoveryTintDarkRadius: CGFloat = 7
+    static let discoveryTintY: CGFloat = 3
+}
+
+private struct KnowledgeSquareCardShadowRecipe {
+    let baseOpacity: Double
+    let baseRadius: CGFloat
+    let baseY: CGFloat
+    let tintOpacity: Double
+    let tintRadius: CGFloat
+    let tintY: CGFloat
+}
+
+private enum KnowledgeSquareCardShadowStyle {
+    case featured
+    case discovery
+
+    func recipe(for colorScheme: ColorScheme) -> KnowledgeSquareCardShadowRecipe {
+        switch self {
+        case .featured:
+            return KnowledgeSquareCardShadowRecipe(
+                baseOpacity: colorScheme == .dark
+                    ? KnowledgeSquareShadowTuning.featuredBaseDarkOpacity
+                    : KnowledgeSquareShadowTuning.featuredBaseLightOpacity,
+                baseRadius: colorScheme == .dark
+                    ? KnowledgeSquareShadowTuning.featuredBaseDarkRadius
+                    : KnowledgeSquareShadowTuning.featuredBaseLightRadius,
+                baseY: colorScheme == .dark
+                    ? KnowledgeSquareShadowTuning.featuredBaseDarkY
+                    : KnowledgeSquareShadowTuning.featuredBaseLightY,
+                tintOpacity: colorScheme == .dark
+                    ? KnowledgeSquareShadowTuning.featuredTintDarkOpacity
+                    : KnowledgeSquareShadowTuning.featuredTintLightOpacity,
+                tintRadius: colorScheme == .dark
+                    ? KnowledgeSquareShadowTuning.featuredTintDarkRadius
+                    : KnowledgeSquareShadowTuning.featuredTintLightRadius,
+                tintY: KnowledgeSquareShadowTuning.featuredTintY
+            )
+        case .discovery:
+            return KnowledgeSquareCardShadowRecipe(
+                baseOpacity: colorScheme == .dark
+                    ? KnowledgeSquareShadowTuning.discoveryBaseDarkOpacity
+                    : KnowledgeSquareShadowTuning.discoveryBaseLightOpacity,
+                baseRadius: colorScheme == .dark
+                    ? KnowledgeSquareShadowTuning.discoveryBaseDarkRadius
+                    : KnowledgeSquareShadowTuning.discoveryBaseLightRadius,
+                baseY: colorScheme == .dark
+                    ? KnowledgeSquareShadowTuning.discoveryBaseDarkY
+                    : KnowledgeSquareShadowTuning.discoveryBaseLightY,
+                tintOpacity: colorScheme == .dark
+                    ? KnowledgeSquareShadowTuning.discoveryTintDarkOpacity
+                    : KnowledgeSquareShadowTuning.discoveryTintLightOpacity,
+                tintRadius: colorScheme == .dark
+                    ? KnowledgeSquareShadowTuning.discoveryTintDarkRadius
+                    : KnowledgeSquareShadowTuning.discoveryTintLightRadius,
+                tintY: KnowledgeSquareShadowTuning.discoveryTintY
+            )
+        }
+    }
+}
+
+private extension View {
+    func knowledgeSquareModuleCardShadow(
+        theme: CardThemeColor,
+        style: KnowledgeSquareCardShadowStyle,
+        colorScheme: ColorScheme,
+        renderProfile: ZDListRenderProfile
+    ) -> some View {
+        let recipe = style.recipe(for: colorScheme)
+        let strength = CGFloat(renderProfile.primaryShadowStrength)
+
+        return compositingGroup()
+            .shadow(
+                color: Color.black.opacity(recipe.baseOpacity * renderProfile.primaryShadowStrength),
+                radius: recipe.baseRadius * strength,
+                x: 0,
+                y: recipe.baseY * strength
+            )
+            .shadow(
+                color: theme.primaryColor.opacity(
+                    renderProfile.showsSecondaryShadow
+                        ? recipe.tintOpacity * renderProfile.primaryShadowStrength
+                        : 0
+                ),
+                radius: renderProfile.showsSecondaryShadow ? recipe.tintRadius * strength : 0,
+                x: 0,
+                y: recipe.tintY * strength
+            )
+    }
 }
 
 struct KnowledgeSquareView: View {
@@ -48,17 +161,18 @@ struct KnowledgeSquareView: View {
     @State private var bannerViewportWidth: CGFloat = 0
     @State private var recentContentFrame: CGRect = .zero
     @State private var recentViewportWidth: CGFloat = 0
-    @State private var recentlyViewedCardMeasuredHeight: CGFloat = 110 + 38
-    @State private var recentlyViewedContentFrame: CGRect = .zero
-    @State private var recentlyViewedViewportWidth: CGFloat = 0
-    @State private var tagCollectionCardMeasuredHeight: CGFloat = KnowledgeCardMViewTokens.surfaceSize.height + 10
-    @State private var tagCollectionContentFrame: CGRect = .zero
-    @State private var tagCollectionViewportWidth: CGFloat = 0
     @State private var imageTruthContentFrame: CGRect = .zero
     @State private var imageTruthViewportWidth: CGFloat = 0
 
     private enum KnowledgeSquareSpacing {
         static let moduleHeaderToContent: CGFloat = 8
+    }
+
+    private var compactGridColumns: [GridItem] {
+        [
+            GridItem(.flexible(), spacing: KnowledgeSquareLayoutTuning.recentCardSpacing, alignment: .top),
+            GridItem(.flexible(), spacing: KnowledgeSquareLayoutTuning.recentCardSpacing, alignment: .top)
+        ]
     }
 
     private var horizontalSectionBottomInset: CGFloat {
@@ -77,13 +191,12 @@ struct KnowledgeSquareView: View {
                 titleTrailing: { profileButton }
             ) {
                 bannerSection
+                randomSection
                 recentSection
-                recentlyViewedSection
-                tagCollectionSection
                 imageTruthSection
                 popularSection
-                yesterdaySection
-                randomSection
+                recentlyViewedSection
+                tagCollectionSection
                 statsSection
             }
             .environment(\.zdListRenderScope, .knowledgeSquare)
@@ -130,6 +243,12 @@ struct KnowledgeSquareView: View {
                                     card: card,
                                     viewCount: library.viewCounts[card.id] ?? 0
                                 )
+                                .knowledgeSquareModuleCardShadow(
+                                    theme: cardTheme(for: card),
+                                    style: .featured,
+                                    colorScheme: colorScheme,
+                                    renderProfile: renderProfile
+                                )
                             }
                             .buttonStyle(.plain)
                             .background(
@@ -163,6 +282,12 @@ struct KnowledgeSquareView: View {
                                 KnowledgeCardLView(
                                     card: card,
                                     viewCount: library.viewCounts[card.id] ?? 0
+                                )
+                                .knowledgeSquareModuleCardShadow(
+                                    theme: cardTheme(for: card),
+                                    style: .featured,
+                                    colorScheme: colorScheme,
+                                    renderProfile: renderProfile
                                 )
                             }
                             .buttonStyle(.plain)
@@ -340,110 +465,22 @@ struct KnowledgeSquareView: View {
 
     @ViewBuilder
     private var recentlyViewedSection: some View {
-        let cards = library.recentlyViewed(limit: 6)
+        let cards = Array(library.recentlyViewed(limit: 4))
         if !cards.isEmpty {
-            let frameHeight = horizontalSectionFrameHeight(for: recentlyViewedCardMeasuredHeight)
-
             VStack(alignment: .leading, spacing: KnowledgeSquareSpacing.moduleHeaderToContent) {
                 ZDSectionHeader("最近查看")
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    if renderProfile.tracksEdgeFade {
-                        HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
-                            ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                                Button {
-                                    openCard(card)
-                                } label: {
-                                    KnowledgeCardSView(card: card)
-                                        .frame(width: KnowledgeSquareLayoutTuning.recentCardWidth)
-                                }
-                                .buttonStyle(.plain)
-                                .background(
-                                    Group {
-                                        if index == 0 {
-                                            GeometryReader { proxy in
-                                                Color.clear.preference(
-                                                    key: RecentlyViewedCardHeightKey.self,
-                                                    value: proxy.size.height
-                                                )
-                                            }
-                                        }
-                                    }
-                                )
-                            }
+                LazyVGrid(columns: compactGridColumns, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
+                    ForEach(cards) { card in
+                        Button {
+                            openCard(card)
+                        } label: {
+                            KnowledgeCardSView(card: card)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .background(
-                            GeometryReader { proxy in
-                                Color.clear.preference(
-                                    key: HorizontalContentFrameKey.self,
-                                    value: proxy.frame(in: .named("recentlyViewedScrollSpace"))
-                                )
-                            }
-                        )
-                    } else {
-                        HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
-                            ForEach(Array(cards.enumerated()), id: \.element.id) { index, card in
-                                Button {
-                                    openCard(card)
-                                } label: {
-                                    KnowledgeCardSView(card: card)
-                                        .frame(width: KnowledgeSquareLayoutTuning.recentCardWidth)
-                                }
-                                .buttonStyle(.plain)
-                                .background(
-                                    Group {
-                                        if index == 0 {
-                                            GeometryReader { proxy in
-                                                Color.clear.preference(
-                                                    key: RecentlyViewedCardHeightKey.self,
-                                                    value: proxy.size.height
-                                                )
-                                            }
-                                        }
-                                    }
-                                )
-                            }
-                        }
+                        .buttonStyle(.plain)
                     }
                 }
-                .padding(.bottom, horizontalSectionBottomInset)
-                .coordinateSpace(name: "recentlyViewedScrollSpace")
-                .background(
-                    Group {
-                        if renderProfile.tracksEdgeFade {
-                            GeometryReader { proxy in
-                                Color.clear.preference(key: HorizontalViewportWidthKey.self, value: proxy.size.width)
-                            }
-                        }
-                    }
-                )
-                .onPreferenceChange(HorizontalContentFrameKey.self) { frame in
-                    if renderProfile.tracksEdgeFade {
-                        recentlyViewedContentFrame = frame
-                    }
-                }
-                .onPreferenceChange(HorizontalViewportWidthKey.self) { width in
-                    if renderProfile.tracksEdgeFade {
-                        recentlyViewedViewportWidth = width
-                    }
-                }
-                .onPreferenceChange(RecentlyViewedCardHeightKey.self) { height in
-                    if height > 1 {
-                        recentlyViewedCardMeasuredHeight = height
-                    }
-                }
-                .overlay(alignment: .leading) {
-                    if renderProfile.tracksEdgeFade, recentlyViewedContentFrame.minX < -1 {
-                        edgeFadeOverlay(leading: true, style: renderProfile.edgeFadeStyle)
-                    }
-                }
-                .overlay(alignment: .trailing) {
-                    if renderProfile.tracksEdgeFade, recentlyViewedContentFrame.maxX > recentlyViewedViewportWidth + 1 {
-                        edgeFadeOverlay(leading: false, style: renderProfile.edgeFadeStyle)
-                    }
-                }
-                .scrollClipDisabled()
-                .frame(height: frameHeight)
             }
         }
     }
@@ -519,114 +556,25 @@ struct KnowledgeSquareView: View {
 
     @ViewBuilder
     private var tagCollectionSection: some View {
-        let groups = tagCollectionGroups
+        let groups = Array(tagCollectionGroups.prefix(4))
         if !groups.isEmpty {
-            let frameHeight = horizontalSectionFrameHeight(for: tagCollectionCardMeasuredHeight)
-
             VStack(alignment: .leading, spacing: KnowledgeSquareSpacing.moduleHeaderToContent) {
                 ZDSectionHeader("标签荟萃")
 
-                ScrollView(.horizontal, showsIndicators: false) {
-                    if renderProfile.tracksEdgeFade {
-                        HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
-                            ForEach(Array(groups.enumerated()), id: \.element.model.tagName) { index, group in
-                                NavigationLink {
-                                    TagFolderDetailCardsView(title: group.model.tagName, originalCards: group.cards, folderModel: group.model)
-                                } label: {
-                                    ZDTagCollectionFolderStyleCard(
-                                        model: group.model,
-                                        theme: library.tagColor(for: group.model.tagName)
-                                    )
-                                    .background(
-                                        Group {
-                                            if index == 0 {
-                                                GeometryReader { proxy in
-                                                    Color.clear.preference(
-                                                        key: TagCollectionCardHeightKey.self,
-                                                        value: proxy.size.height
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
+                LazyVGrid(columns: compactGridColumns, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
+                    ForEach(groups, id: \.model.tagName) { group in
+                        NavigationLink {
+                            TagFolderDetailCardsView(title: group.model.tagName, originalCards: group.cards, folderModel: group.model)
+                        } label: {
+                            ZDTagCollectionFolderSView(
+                                model: group.model,
+                                theme: library.tagColor(for: group.model.tagName)
+                            )
+                            .frame(maxWidth: .infinity, alignment: .leading)
                         }
-                        .background(
-                            GeometryReader { proxy in
-                                Color.clear.preference(
-                                    key: HorizontalContentFrameKey.self,
-                                    value: proxy.frame(in: .named("tagCollectionScrollSpace"))
-                                )
-                            }
-                        )
-                    } else {
-                        HStack(alignment: .top, spacing: KnowledgeSquareLayoutTuning.recentCardSpacing) {
-                            ForEach(Array(groups.enumerated()), id: \.element.model.tagName) { index, group in
-                                NavigationLink {
-                                    TagFolderDetailCardsView(title: group.model.tagName, originalCards: group.cards, folderModel: group.model)
-                                } label: {
-                                    ZDTagCollectionFolderStyleCard(
-                                        model: group.model,
-                                        theme: library.tagColor(for: group.model.tagName)
-                                    )
-                                    .background(
-                                        Group {
-                                            if index == 0 {
-                                                GeometryReader { proxy in
-                                                    Color.clear.preference(
-                                                        key: TagCollectionCardHeightKey.self,
-                                                        value: proxy.size.height
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
+                        .buttonStyle(.plain)
                     }
                 }
-                .padding(.bottom, horizontalSectionBottomInset)
-                .coordinateSpace(name: "tagCollectionScrollSpace")
-                .background(
-                    Group {
-                        if renderProfile.tracksEdgeFade {
-                            GeometryReader { proxy in
-                                Color.clear.preference(key: HorizontalViewportWidthKey.self, value: proxy.size.width)
-                            }
-                        }
-                    }
-                )
-                .onPreferenceChange(HorizontalContentFrameKey.self) { frame in
-                    if renderProfile.tracksEdgeFade {
-                        tagCollectionContentFrame = frame
-                    }
-                }
-                .onPreferenceChange(HorizontalViewportWidthKey.self) { width in
-                    if renderProfile.tracksEdgeFade {
-                        tagCollectionViewportWidth = width
-                    }
-                }
-                .onPreferenceChange(TagCollectionCardHeightKey.self) { height in
-                    if height > 1 {
-                        tagCollectionCardMeasuredHeight = height
-                    }
-                }
-                .overlay(alignment: .leading) {
-                    if renderProfile.tracksEdgeFade, tagCollectionContentFrame.minX < -1 {
-                        edgeFadeOverlay(leading: true, style: renderProfile.edgeFadeStyle)
-                    }
-                }
-                .overlay(alignment: .trailing) {
-                    if renderProfile.tracksEdgeFade, tagCollectionContentFrame.maxX > tagCollectionViewportWidth + 1 {
-                        edgeFadeOverlay(leading: false, style: renderProfile.edgeFadeStyle)
-                    }
-                }
-                .scrollClipDisabled()
-                .frame(height: frameHeight)
             }
         }
     }
@@ -824,6 +772,12 @@ struct KnowledgeSquareView: View {
                         openCard(card)
                     } label: {
                         KnowledgeCardFView(card: card)
+                            .knowledgeSquareModuleCardShadow(
+                                theme: cardTheme(for: card),
+                                style: .discovery,
+                                colorScheme: colorScheme,
+                                renderProfile: renderProfile
+                            )
                     }
                     .buttonStyle(.plain)
                 }
@@ -983,20 +937,6 @@ private struct BannerCardHeightKey: PreferenceKey {
 }
 
 private struct RecentCardHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
-private struct RecentlyViewedCardHeightKey: PreferenceKey {
-    static var defaultValue: CGFloat = 0
-    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
-        value = max(value, nextValue())
-    }
-}
-
-private struct TagCollectionCardHeightKey: PreferenceKey {
     static var defaultValue: CGFloat = 0
     static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
         value = max(value, nextValue())
@@ -1349,22 +1289,18 @@ private struct KnowledgeSquareRankRow: View {
         cardTheme(for: card)
     }
 
-    private var useLightCardText: Bool {
-        theme.prefersLightForeground(in: colorScheme)
-    }
-
     var body: some View {
         let cornerRadius: CGFloat = 10
 
         HStack(spacing: 10) {
             Text("\(rank)")
                 .font(.footnote.weight(.bold))
-                .foregroundStyle(useLightCardText ? Color.white.opacity(0.9) : theme.primaryColor.opacity(0.92))
+                .foregroundStyle(Color.white.opacity(0.95))
                 .frame(width: 20)
 
             Text(card.title)
                 .font(.subheadline.weight(.semibold))
-                .foregroundStyle(useLightCardText ? Color.white.opacity(0.94) : Color.black.opacity(0.84))
+                .foregroundStyle(Color.white.opacity(0.95))
                 .lineLimit(1)
 
             Spacer(minLength: 8)
@@ -1375,25 +1311,21 @@ private struct KnowledgeSquareRankRow: View {
                     .monospacedDigit()
             }
             .font(.caption.weight(.semibold))
-            .foregroundStyle(useLightCardText ? Color.white.opacity(0.82) : Color.black.opacity(0.54))
+            .foregroundStyle(Color.white.opacity(0.78))
             .frame(width: 72, alignment: .trailing)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 9)
         .background(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .fill(theme.cardBackgroundGradient)
+                .fill(theme.gradient)
         )
         .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                .stroke(theme.cardBorderGradient.opacity(0.58), lineWidth: 0.78)
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                 .stroke(
-                    colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.2),
-                    lineWidth: 0.4
+                    colorScheme == .dark ? Color.white.opacity(0.12) : Color.white.opacity(0.25),
+                    lineWidth: 0.5
                 )
                 .padding(1)
         )

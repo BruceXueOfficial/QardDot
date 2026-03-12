@@ -208,64 +208,75 @@ struct CardLinkPickerSheet: View {
     private func cardTile(_ card: KnowledgeCard) -> some View {
         let isSelected = selectedIDs.contains(card.id)
 
-        return ZStack(alignment: .bottomTrailing) {
-            KnowledgeCardSView(card: card)
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            Circle()
-                .fill(
-                    isSelected
-                        ? Color.zdAccentDeep
-                        : Color.white.opacity(colorScheme == .dark ? 0.12 : 0.75)
-                )
-                .overlay {
-                    Circle()
-                        .stroke(Color.zdAccentDeep.opacity(0.8), lineWidth: 1.1)
-                }
-                .overlay {
+        return KnowledgeCardSView(card: card, hidesTrailingMeta: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .overlay(alignment: .bottomTrailing) {
+                selectionIndicator(isSelected: isSelected)
+                    .padding(.bottom, 8)
+                    .padding(.trailing, 8)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                    .strokeBorder(
+                        isSelected
+                            ? Color.red.opacity(0.9)
+                            : Color.primary.opacity(0.1),
+                        lineWidth: isSelected ? 2 : 1
+                    )
+            }
+            .scaleEffect(isSelected ? 0.98 : 1.0)
+            .animation(.spring(response: 0.24, dampingFraction: 0.85), value: isSelected)
+            .onTapGesture {
+                withAnimation(.spring(response: 0.24, dampingFraction: 0.82)) {
                     if isSelected {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(.white)
+                        selectedIDs.remove(card.id)
+                    } else {
+                        selectedIDs.insert(card.id)
                     }
                 }
-                .frame(width: 18, height: 18)
-                .padding(.trailing, 8)
-                .padding(.bottom, 8)
-        }
-        .opacity(isSelected ? 1 : 0.92)
-        .onTapGesture {
-            withAnimation(.spring(response: 0.24, dampingFraction: 0.82)) {
+            }
+    }
+
+    @ViewBuilder
+    private func selectionIndicator(isSelected: Bool) -> some View {
+        Circle()
+            .fill(Color(uiColor: .systemBackground))
+            .frame(width: 24, height: 24)
+            .overlay(
+                Circle()
+                    .strokeBorder(isSelected ? Color.red : Color.secondary.opacity(0.45), lineWidth: 1.2)
+            )
+            .overlay {
                 if isSelected {
-                    selectedIDs.remove(card.id)
-                } else {
-                    selectedIDs.insert(card.id)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 11, weight: .bold))
+                        .foregroundColor(.red)
                 }
             }
-        }
+            .shadow(color: Color.black.opacity(0.14), radius: 4, x: 0, y: 2)
     }
 
     // MARK: - Bottom Bar
 
     private var bottomBar: some View {
-        let actionButtonWidth: CGFloat = 96
+        let hasSelection = !selectedIDs.isEmpty
 
-        return ZDFloatingActionBar {
-            ZDSecondaryButton(text: "取消", fullWidth: false) {
-                dismiss()
-            }
-            .frame(width: actionButtonWidth, alignment: .leading)
-
-            Text("已选卡片 \(selectedIDs.count)")
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity, alignment: .center)
-
-            ZDPrimaryButton(text: "关联", isDisabled: selectedIDs.isEmpty, fullWidth: false) {
+        return ZDSelectionActionBar(selectionText: "已选 \(selectedIDs.count)") {
+            Button {
                 onLink(selectedIDs)
                 dismiss()
+            } label: {
+                ZDActionBarButtonLabel(title: "关联", isEnabled: hasSelection)
             }
-            .frame(width: actionButtonWidth, alignment: .trailing)
+            .buttonStyle(.plain)
+            .disabled(!hasSelection)
+        } trailing: {
+            Button {
+                dismiss()
+            } label: {
+                ZDActionBarButtonLabel(title: "取消", tone: .destructive)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 12)

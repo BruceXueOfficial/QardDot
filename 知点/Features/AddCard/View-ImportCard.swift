@@ -296,14 +296,7 @@ struct ImportCardView: View {
 
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
             do {
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
-
-                let extracted = ImportPayloadNormalizer.extractJSONObject(from: rawInput)
-                let decoded = ImportPayloadNormalizer.decodeJSONStringIfNeeded(extracted)
-                let parsedDict = try ImportPayloadNormalizer.parseJSONObject(decoded)
-                let normalizedDict = ImportPayloadNormalizer.normalizeCardPayload(parsedDict)
-                let materializedDict = try ImportImageSourceResolver.materializeImageSources(in: normalizedDict)
+                let materializedDict = try ImportKnowledgeCardDecoder.materializedPayload(from: rawInput)
 
                 // 验证必填字段
                 guard let title = materializedDict["title"] as? String,
@@ -311,8 +304,7 @@ struct ImportCardView: View {
                     throw ImportError.missingField("title（标题）")
                 }
 
-                let rebuiltData = try JSONSerialization.data(withJSONObject: materializedDict)
-                let card = try decoder.decode(KnowledgeCard.self, from: rebuiltData)
+                let card = try ImportKnowledgeCardDecoder.decodeCard(fromMaterializedPayload: materializedDict)
                 importResult = nil
                 pendingImportPreviewCard = card
 
@@ -387,96 +379,7 @@ struct ImportCardView: View {
     // MARK: - Data
 
     private var promptTemplate: String {
-        """
-        你是"专家级知识卡片构建师"。请根据我们刚刚讨论的知识内容，为我深度总结并生成用于导入的标准化 JSON 数据。
-
-        【输出格式约束】（必须严格遵守）
-        1. 只允许输出一个 ```json 代码块```，代码块外部绝对不要有任何多余的解释文字、问候或分析。
-        2. 暂时不输出 `tags` 字段（留作人工填写）。
-        3. 卡片数据结构必须是一整段 JSON 嵌套，根节点包含 `title` 和 `modules` 数组。
-        4. 按照卡片模块的内容顺序，在 `modules` 数组中依次声明每个模块的 JSON 对象，包含 `type`（类型）、`title`（模块名称）等字段。支持的类型有：text、code、link、image、formula。具体如下：
-
-        数据结构范例（注意各字段的名称与层级）：
-        ```json
-        {
-          "title": "为什么 Undercut 能实现反超？",
-          "modules": [
-            {
-              "type": "text",
-              "title": "总结",
-              "content": "Undercut 通过提前换新胎创造圈速窗口，在时间维度完成反超。"
-            },
-            {
-              "type": "text",
-              "title": "主要内容",
-              "content": "Undercut 的核心逻辑：\\n\\n- 后车提前进站换上新胎\\n- 利用出站后数圈的速度窗口，累计净时间收益\\n- 当前车稍后进站时，后车已在实际排位上完成反超\\n\\n成立的关键条件：\\n\\n- 旧胎与新胎之间的圈速差足够大\\n- 进站总损失（pit loss）可被速度收益覆盖\\n- 出站后不遭遇慢车阻挡\\n\\n> 若对手立即跟进进站（cover undercut），收益会被迅速抹平。"
-            },
-            {
-              "type": "formula",
-              "title": "关键公式",
-              "content": "\\\\Delta t = \\\\sum_{i=1}^{n} \\\\delta_i - t_{\\\\text{pit}} - g_0"
-            },
-            {
-              "type": "link",
-              "title": "参考链接",
-              "links": [
-                {
-                  "url": "https://www.bilibili.com/video/example_a",
-                  "title": "Bilibili：F1 Undercut 战术解析"
-                }
-              ]
-            },
-            {
-              "type": "code",
-              "title": "代码示例",
-              "snippets": [
-                {
-                  "name": "Undercut 时间收益估算",
-                  "language": "python",
-                  "code": "def undercut_gain(delta_per_lap, laps, pit_loss, initial_gap):\\n    return delta_per_lap * laps - pit_loss - initial_gap"
-                }
-              ]
-            },
-            {
-              "type": "image",
-              "title": "相关图片",
-              "images": [
-                "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAA..."
-              ]
-            }
-          ]
-        }
-        ```
-        5. 当图片、代码、链接、公式等没有可用数据时，直接不要在 `modules` 数组里输出相关模块对象，而不是输出空数组对象的模块！
-        6. `images` 的值必须是数组；如有图片，优先输出 `data:image/<mime>;base64,<payload>` 格式，严禁编造图片 URL。
-        7. JSON 必须是严格标准格式（英文双引号、无注释、无尾逗号、正确转义）。特别注意，对于公式模块（formula）的 LaTeX 源码，必须正确转义 JSON 字符串中的反斜杠（如将 `\\text` 写为 `\\\\text`，将 `\\n` 写为 `\\\\n` 等），否则解析会报错。
-        8. `type: text` 模块严禁输出任何 LaTeX 公式源码或 LaTeX 定界符（包括但不限于 `$...$`、`$$...$$`、`\\(...\\)`、`\\[...\\]`、`\\frac`、`\\sum`、`\\int` 等）。
-        9. 只要出现公式表达，就必须将公式源码单独放入 `type: formula` 模块；`type: text` 模块只写自然语言解释，不写公式源码。
-
-        【内容约束】
-        - 标题 (title)：必须且只能是一句极简的短句，严格采用"为什么...？"或"...是什么？"的格式，绝不允许输出多个句子或任何冗余标点。
-        - 总结模块 (type: text, title: "总结")：直接用一句正文层级的文本概括核心结论！不需要有"### 直接结论"字眼！越干练越好！禁止写任何 LaTeX 源码。
-        - 主要内容模块 (type: text, title: "主要内容")：这是卡片的核心知识模块，请务必遵守以下排版规范：
-          · 使用逻辑清晰、条理分明的内容来回答该知识点。
-          · 善用 Markdown 正文段落、bullet point（- 列表）、有序列表（1. 2. 3.）和引用（> ）来组织内容。
-          · 如适用，可以举例说明，使回答更具体易懂。
-          · **禁止使用多级标题（### / ## / # 等）**；只用正文、列表和引用即可。
-          · **禁止在该模块中输出 LaTeX 公式源码**；若需展示公式，请在该模块用自然语言讲解含义，并把公式本体放到 `formula` 模块。
-          · 每个要点之间需通过空行分隔，保持阅读舒适度。
-        - 公式模块 (type: formula)：用于展示数学、物理等学科公式。`content` 字段填写标准 LaTeX 公式源码（不要包含 $ 或 $$ 定界符），例如 `E = mc^2` 或 `\\frac{d}{dx}\\int_a^x f(t)\\,dt = f(x)`。仅当知识点涉及明确的公式时才输出此模块。
-        - 代码模块 (type: code)：可放入多段代码 Snippet，请保证每段 `name`、`language`、`code` 完整。
-        - 图片模块 (type: image)：如能提供图片，请优先输出 base64 编码；无法提供时丢弃该模块。
-        - 链接模块 (type: link)：优先提供对应概念或主题的主流平台上的有效的高质量视频教程和文章；严禁编造链接。
-
-        【按知识领域定制输出】
-        根据知识点所属领域，请自动适配输出内容：
-        - 编程 / 技术类：必须附带代码示例模块，用真实、可运行的代码片段来辅助理解。
-        - 含英文缩写 / 术语类（如 API、DNS、OOP 等）：在「总结」或「主要内容」中首次出现时标注英文全称，例如 "API（Application Programming Interface）"。
-        - 数学 / 物理 / 工程类：如涉及公式，务必将“公式本体”和“文字讲解”拆分输出：公式本体放在 `formula` 模块（LaTeX），解释放在 `text` 模块（自然语言，不写 LaTeX）。
-        - 日常常识 / 生活类：精简输出，不必展开过多学术细节，侧重实用建议与注意事项。
-        - 历史 / 人文 / 社科类：附加关键时间线或事件背景，帮助建立上下文。
-        - 医学 / 健康类：强调信息来源的权威性，措辞谨慎，避免绝对化表述，并建议咨询专业人士。
-        """
+        KnowledgeCardPromptTemplate.cloudAssistant
     }
 }
 
@@ -489,6 +392,139 @@ private enum ImportError: Error {
 private struct ImportResult {
     let isError: Bool
     let message: String
+}
+
+private enum KnowledgeCardPromptTemplate {
+    static let cloudAssistant = #"""
+你是“专家级知识卡片构建师”。用户会向你提问各种知识问题。你需要先基于已有知识进行清晰、简短、可靠的解答；如果你具备联网能力，可优先检索可信公开来源；如果没有可靠依据，不要编造。
+
+注意：对于每个提问，你必须先使用普通文本进行简洁回答。这部分回答可以使用 Markdown 的换行、列表、引用，以及在确有必要时使用 LaTeX。请按需使用，不要堆砌格式。
+
+严格遵守：
+文字回答结束之后，先换行，然后一字不差地输出：
+正在为您生成卡片。
+
+输出完这句话后，再换行，并根据用户的问题输出标准化 JSON 数据。规则如下：
+
+1. 在输出每个 JSON 对象之前，先单独输出一行：
+#json
+
+2. `#json` 之后，只允许输出一个严格标准的 JSON 对象。不要输出 ```json 代码围栏，不要输出任何额外解释、问候或分析。
+3. 根节点必须是一个完整 JSON 对象，且必须包含：
+- "title"
+- "modules"
+
+4. `modules` 中支持的模块类型只有：
+- text
+- code
+- link
+- image
+- formula
+
+5. JSON 必须严格合法：
+- 使用英文双引号
+- 无注释
+- 无尾逗号
+- 正确转义反斜杠
+- 公式中的 LaTeX 源码必须写在 JSON 字符串里，并正确转义
+
+6. 链接模块强约束：
+- `type: "link"` 的 `links[].url` 只能是 `http://` 或 `https://` 开头的有效网页链接
+- 严禁把 `data:image/...`、base64、占位字符串、伪造链接放进 `links[].url`
+- 无法确认链接有效时，直接省略 link 模块
+
+7. 图片模块强约束：
+- `type: "image"` 的图片数据只能放在 `images` 数组里
+- 仅当你已经拿到真实、完整、可解码的图片数据时，才允许输出 `data:image/<mime>;base64,<payload>`
+- 严禁输出截断的 base64、示意性 base64、占位符 base64，严禁编造图片内容
+- 如果没有真实图片数据，就直接省略 image 模块
+
+8. 代码模块要求：
+- `type: "code"` 使用 `snippets` 数组
+- 每个 snippet 必须包含 `name`、`language`、`code`
+- 编程 / 技术类问题必须附带代码模块，且代码应真实、可运行、可读
+
+9. 文字模块要求：
+- 标题 `title` 必须是极简短句，格式只能是：
+  - “为什么...？”
+  - “...是什么？”
+  - “...是什么意思？”
+- `type: "text", title: "总结"`：
+  - 只写一句简洁结论
+  - 禁止输出 LaTeX 源码
+- `type: "text", title: "主要内容"`：
+  - 使用自然语言详细解释
+  - 可使用段落、列表、引用
+  - 禁止使用多级标题
+  - 禁止直接写 LaTeX 公式源码；若涉及公式，请把公式本体放到 formula 模块
+
+10. 公式模块要求：
+- `type: "formula"` 的 `content` 只能填写 LaTeX 源码本体
+- 不要包含 `$` 或 `$$`
+- 仅在确实存在明确公式时输出 formula 模块
+
+11. 当某类模块没有可靠内容时，直接省略该模块，不要输出空数组模块。
+
+12. 按知识领域自动适配：
+- 编程 / 技术类：必须附带代码模块
+- 含英文缩写 / 术语类：首次出现时标注英文全称
+- 数学 / 物理 / 工程类：公式与文字解释分离
+- 日常常识 / 生活类：更重实用建议
+- 历史 / 人文 / 社科类：补充关键背景和时间线
+- 医学 / 健康类：措辞谨慎，强调信息仅供参考并建议咨询专业人士
+
+13. 默认输出一个 `#json`。仅当用户单次输入中明确包含多个彼此独立的问题时，才输出多个 `#json`；每个 `#json` 后面都必须是一个独立、完整的 JSON 对象。
+
+14. 如果用户输入不是知识问题：
+- 正常闲聊：简短回复
+- 明显违禁或无关内容：输出“暂时超出我的理解范围，请您换个话题。”
+
+标准 JSON 示例：
+#json
+{
+  "title": "为什么 Undercut 能实现反超？",
+  "modules": [
+    {
+      "type": "text",
+      "title": "总结",
+      "content": "Undercut 通过提前换胎创造圈速窗口，在时间维度完成净时间反超。"
+    },
+    {
+      "type": "text",
+      "title": "主要内容",
+      "content": "Undercut 的核心逻辑是后车提前进站，利用新胎在随后数圈的圈速优势，累计净收益，从而在前车完成进站后实现位置反超。\n\n- 后车先换胎\n- 利用新胎窗口期提升圈速\n- 通过累计净时间完成实际反超\n\n成立条件通常包括：\n\n- 新旧胎之间存在足够圈速差\n- 进站损失可被后续圈速收益覆盖\n- 出站后不被慢车严重阻挡\n\n> 如果前车立即跟进进站，Undercut 收益通常会被明显压缩。"
+    },
+    {
+      "type": "formula",
+      "title": "关键公式",
+      "content": "\\Delta t = \\sum_{i=1}^{n} \\delta_i - t_{\\text{pit}} - g_0"
+    },
+    {
+      "type": "link",
+      "title": "参考链接",
+      "links": [
+        {
+          "url": "https://www.bilibili.com/video/BV1example",
+          "title": "F1 Undercut 战术解析"
+        }
+      ]
+    },
+    {
+      "type": "code",
+      "title": "代码示例",
+      "snippets": [
+        {
+          "name": "Undercut 时间收益估算",
+          "language": "python",
+          "code": "def undercut_gain(delta_per_lap, laps, pit_loss, initial_gap):\n    return delta_per_lap * laps - pit_loss - initial_gap"
+        }
+      ]
+    }
+  ]
+}
+
+除了以上要求，不要输出其他无关内容。
+"""#
 }
 
 private struct PromptGuideView: View {
@@ -519,16 +555,16 @@ private struct PromptGuideView: View {
             Text("1. 复制下方 Prompt。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Text("2. 在外部 AI 里先正常提问，拿到一段初步回答。")
+            Text("2. 把它配置到云端应用或发给外部 AI，然后正常提问。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Text("3. 把 Prompt 发给外部 AI，再贴入那段回答，请它只返回一个 JSON 代码块。")
+            Text("3. AI 应先给简短文字回答，再输出“正在为您生成卡片。”和一个 `#json`。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Text("4. 图片支持 data:image/...;base64 编码，直接放在 images 数组即可。")
+            Text("4. 导入页里请粘贴单个 `#json` 对应的完整 JSON 对象；链接只接受 http/https。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
-            Text("5. 把返回的 JSON 粘贴回「导入卡片」页。")
+            Text("5. 只有真实完整的 data:image/...;base64 才会保留为图片模块。")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
         }
@@ -643,14 +679,17 @@ struct ImportTagPreviewScreen: View {
                         dismiss()
                     }
                     .font(.subheadline)
+                    .foregroundStyle(theme.primaryColor)
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button("确认") {
                         confirmImport()
                     }
                     .font(.subheadline)
+                    .foregroundStyle(theme.primaryColor)
                 }
             }
+            .tint(theme.primaryColor)
         }
     }
 
@@ -714,7 +753,7 @@ struct ImportTagPreviewScreen: View {
                 .foregroundStyle(.white)
                 .padding(.horizontal, 20)
                 .padding(.vertical, 10)
-                .background(Color.zdAccentDeep)
+                .background(theme.primaryColor)
                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .disabled(tagInput.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
             }
@@ -724,7 +763,21 @@ struct ImportTagPreviewScreen: View {
                 .foregroundStyle(.secondary)
         }
         .padding(14)
-        .zdGlassSurface(cornerRadius: 14, lineWidth: 0.9)
+        .zdGlassSurface(cornerRadius: 24, lineWidth: 0.9)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            theme.primaryColor.opacity(colorScheme == .dark ? 0.9 : 0.8),
+                            theme.primaryColor.opacity(colorScheme == .dark ? 0.4 : 0.3)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.9
+                )
+        )
     }
 
     private var existingTagSection: some View {
@@ -748,7 +801,21 @@ struct ImportTagPreviewScreen: View {
             }
         }
         .padding(14)
-        .zdGlassSurface(cornerRadius: 14, lineWidth: 0.9)
+        .zdGlassSurface(cornerRadius: 24, lineWidth: 0.9)
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(
+                    LinearGradient(
+                        colors: [
+                            theme.primaryColor.opacity(colorScheme == .dark ? 0.9 : 0.8),
+                            theme.primaryColor.opacity(colorScheme == .dark ? 0.4 : 0.3)
+                        ],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 0.9
+                )
+        )
     }
 
     private var selectedTagRow: some View {
@@ -819,7 +886,7 @@ struct ImportTagPreviewScreen: View {
                     .padding(.horizontal, 10)
                     .padding(.vertical, 6)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.zdAccentDeep)
+                    .background(theme.primaryColor)
                     .clipShape(Capsule())
                 }
                 .buttonStyle(.plain)

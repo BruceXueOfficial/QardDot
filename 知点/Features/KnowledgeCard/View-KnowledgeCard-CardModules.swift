@@ -50,6 +50,7 @@ extension KnowledgeCardView {
                 ) {
                     moduleBody(module)
                 }
+                .id(module.id)
                 .transition(.moduleInsertRemove)
                 .padding(.bottom, 14)
             }
@@ -176,32 +177,62 @@ extension KnowledgeCardView {
 
     @ViewBuilder
     private func textModuleBody(_ module: CardBlock) -> some View {
-        ZStack(alignment: .topLeading) {
-            NotionLikeTextEditor(
-                text: Binding(
-                    get: { module.text ?? "" },
-                    set: { value in
-                        viewModel.updateTextModule(id: module.id, text: value)
-                    }
-                ),
-                isEditable: true,
-                minimumHeight: ModuleLayoutMetrics.compactEditorMinimumHeight
-            )
-            .frame(
-                maxWidth: .infinity,
-                minHeight: ModuleLayoutMetrics.compactEditorMinimumHeight,
-                alignment: .topLeading
-            )
+        let text = module.text ?? ""
+        let isSelected = selectedModuleID == module.id
+        let hasFormula = text.contains("$$")
+        let showRenderer = hasFormula && !isSelected && !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
 
-            if (module.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                Text("点击输入文字内容")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-                    .padding(.top, 8)
-                    .allowsHitTesting(false)
+        if showRenderer {
+            // ── Formula preview mode ──
+            // When the module is not being edited and contains $$...$$,
+            // render using MixedTextRenderer (plain text + LaTeX formulas).
+            MixedTextRenderer(text: text)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 4)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    // Tap → activate the module for editing
+                    selectedModuleID = module.id
+                }
+        } else {
+            // ── Edit / plain text mode ──
+            ZStack(alignment: .topLeading) {
+                NotionLikeTextEditor(
+                    text: Binding(
+                        get: { text },
+                        set: { value in
+                            viewModel.updateTextModule(id: module.id, text: value)
+                        }
+                    ),
+                    isEditable: true,
+                    minimumHeight: ModuleLayoutMetrics.compactEditorMinimumHeight,
+                    focusRequestID: pendingTextFocusModuleID == module.id ? module.id : nil,
+                    onFocusRequestHandled: {
+                        guard pendingTextFocusModuleID == module.id else { return }
+                        pendingTextFocusModuleID = nil
+                    },
+                    onBeginEditing: {
+                        if selectedModuleID != module.id {
+                            selectedModuleID = module.id
+                        }
+                    }
+                )
+                .frame(
+                    maxWidth: .infinity,
+                    minHeight: ModuleLayoutMetrics.compactEditorMinimumHeight,
+                    alignment: .topLeading
+                )
+
+                if text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Text("点击输入文字内容")
+                        .font(.system(size: 16))
+                        .foregroundStyle(.secondary)
+                        .padding(.top, 2)
+                        .allowsHitTesting(false)
+                }
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     @ViewBuilder
@@ -440,7 +471,7 @@ extension KnowledgeCardView {
             Button(role: .destructive) {
                 removeImageFromModule(target)
             } label: {
-                Label("删除图片", systemImage: "trash")
+                ZDDestructiveMenuLabel(title: "删除图片")
             }
         }
         .onTapGesture {
@@ -739,7 +770,7 @@ extension KnowledgeCardView {
                         Button(role: .destructive) {
                             viewModel.removeLinkEntry(moduleID: module.id, entryID: entry.id)
                         } label: {
-                            Label("删除链接", systemImage: "trash")
+                            ZDDestructiveMenuLabel(title: "删除链接")
                         }
                     }
                     .opacity(resolvedURL == nil ? 0.72 : 1)
@@ -786,9 +817,10 @@ extension KnowledgeCardView {
 
     @ViewBuilder
     private func linkedCardItemRow(card: KnowledgeCard, moduleID: UUID) -> some View {
-        let tags = card.tags ?? []
+        let tags = (card.tags ?? [])
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
         let theme = card.themeColor ?? .defaultTheme
-        let useLightCardText = theme.prefersLightForeground(in: colorScheme)
         let cornerRadius: CGFloat = 10
 
         Button {
@@ -799,41 +831,26 @@ extension KnowledgeCardView {
             HStack(spacing: 10) {
                 Text(card.title)
                     .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(useLightCardText ? Color.white.opacity(0.94) : Color.black.opacity(0.84))
+                    .foregroundStyle(Color.white.opacity(0.96))
                     .lineLimit(1)
                     .frame(maxWidth: .infinity, alignment: .leading)
+                    .layoutPriority(1)
 
-                if !tags.isEmpty {
-                    HStack(spacing: 6) {
-                        ForEach(tags.prefix(2), id: \.self) { tag in
-                            Text(tag)
-                                .font(.caption.weight(.medium))
-                                .foregroundStyle(useLightCardText ? Color.white.opacity(0.82) : Color.black.opacity(0.54))
-                        }
-                        if tags.count > 2 {
-                            Text("...")
-                                .font(.caption2.weight(.medium))
-                                .foregroundStyle(useLightCardText ? Color.white.opacity(0.82) : Color.black.opacity(0.54))
-                        }
-                    }
-                }
+                linkedCardTagChipRow(tags: tags, theme: theme)
+                    .fixedSize(horizontal: true, vertical: false)
             }
             .padding(.horizontal, 10)
             .padding(.vertical, 9)
             .background(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .fill(theme.cardBackgroundGradient)
+                    .fill(theme.gradient)
             )
             .clipShape(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
-                    .stroke(theme.cardBorderGradient.opacity(0.58), lineWidth: 0.78)
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
                     .stroke(
-                        colorScheme == .dark ? Color.white.opacity(0.08) : Color.white.opacity(0.2),
-                        lineWidth: 0.4
+                        colorScheme == .dark ? Color.white.opacity(0.12) : Color.white.opacity(0.25),
+                        lineWidth: 0.5
                     )
                     .padding(1)
             )
@@ -846,10 +863,24 @@ extension KnowledgeCardView {
                     viewModel.removeLinkedCard(card.id)
                 }
             } label: {
-                Label("删除关联卡片", systemImage: "trash")
-                    .foregroundStyle(.red)
+                ZDDestructiveMenuLabel(title: "删除关联卡片")
             }
             .tint(.red)
+        }
+    }
+
+    @ViewBuilder
+    private func linkedCardTagChipRow(tags: [String], theme: CardThemeColor) -> some View {
+        let visibleTags = tags.isEmpty ? ["未添加标签"] : Array(tags.prefix(2))
+
+        HStack(spacing: 6) {
+            ForEach(visibleTags, id: \.self) { tag in
+                ZDCardTagChip(
+                    text: tag,
+                    textColor: .white,
+                    backgroundColor: theme.primaryColor.opacity(0.9)
+                )
+            }
         }
     }
 
@@ -913,7 +944,7 @@ extension KnowledgeCardView {
         return nil
     }
 
-    private func presentLinkComposer(for moduleID: UUID) {
+    func presentLinkComposer(for moduleID: UUID) {
         linkInputTargetModuleID = moduleID
         linkInputTitleDraft = ""
         linkInputURLDraft = ""

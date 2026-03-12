@@ -10,8 +10,8 @@ enum KnowledgeCardFViewTokens {
         topRatio: 0.30,
         contentPaddingTop: EdgeInsets(top: 6, leading: 12, bottom: 6, trailing: 16),
         contentPaddingBottom: EdgeInsets(top: 6, leading: 12, bottom: 10, trailing: 6),
-        // Align punch-hole size/inset with LView while keeping FView's own corner radius.
-        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 18, holeScale: 1.312),
+        // Align punch-hole size/inset with LView.
+        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 18, holeScale: 1.02),
         footerTopSpacerMin: 6
     )
 
@@ -55,8 +55,6 @@ struct KnowledgeCardFView: View {
     private var bodyTextColor: Color {
         colorScheme == .dark ? Color.white.opacity(0.72) : Color.black.opacity(0.50)
     }
-
-
 
     private var tags: [String] {
         (card.tags ?? [])

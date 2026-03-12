@@ -5,6 +5,72 @@ import Testing
 
 struct KnowledgeCardTests {
     @Test
+    func chatBubbleRendererStripsMarkdownSyntaxFromCopiedText() {
+        let message = ChatMessage(
+            content: "### 标题\n- 第一项\n- 第二项\n[链接](https://example.com)\n`代码`",
+            type: .ai
+        )
+
+        let rendered = ChatBubbleTextRenderer
+            .renderedText(for: message, colorScheme: .light)
+            .string
+
+        #expect(rendered.contains("标题"))
+        #expect(rendered.contains("第一项"))
+        #expect(rendered.contains("第二项"))
+        #expect(rendered.contains("链接"))
+        #expect(rendered.contains("代码"))
+        #expect(!rendered.contains("###"))
+        #expect(!rendered.contains("[链接]"))
+        #expect(!rendered.contains("https://example.com"))
+        #expect(!rendered.contains("`代码`"))
+    }
+
+    @Test
+    func aiChatCompletionMessageUsesAllExpectedTemplates() {
+        let expected = [
+            "已经为您生成 3 张卡片，可点击左下角查看详情。",
+            "本轮已为您整理出 3 张卡片，可点击左下角查看详情。",
+            "已根据刚才的对话生成 3 张卡片，可点击左下角查看详情。",
+            "卡片已经生成完成，本次共为您准备了 3 张卡片，可点击左下角查看详情。",
+            "已为您提炼出 3 张卡片，可点击左下角查看详情。"
+        ]
+
+        for (index, message) in expected.enumerated() {
+            #expect(AiChatViewModel.cardGenerationCompletionMessage(cardCount: 3, randomIndex: index) == message)
+        }
+    }
+
+    @Test
+    func aiChatDisplayedCharacterCountCatchesUpUsingElapsedTime() {
+        let start = Date(timeIntervalSince1970: 1_000)
+
+        #expect(
+            AiChatViewModel.displayedCharacterCount(
+                forBufferCount: 120,
+                typingStartTime: start,
+                now: start.addingTimeInterval(-0.2)
+            ) == 0
+        )
+
+        #expect(
+            AiChatViewModel.displayedCharacterCount(
+                forBufferCount: 120,
+                typingStartTime: start,
+                now: start.addingTimeInterval(2)
+            ) == 75
+        )
+
+        #expect(
+            AiChatViewModel.displayedCharacterCount(
+                forBufferCount: 20,
+                typingStartTime: start,
+                now: start.addingTimeInterval(10)
+            ) == 20
+        )
+    }
+
+    @Test
     func defaultTypeIsShort() {
         let card = KnowledgeCard(title: "Title", content: "Content")
         #expect(card.type == .short)

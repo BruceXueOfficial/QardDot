@@ -15,7 +15,10 @@ struct KnowledgeCardDetailScreen: View {
     @State private var undoDeleteStack: [EditorUndoAction] = []
     @State private var pendingImagePickerModuleID: UUID?
     @State private var pendingLinkedCardPickerModuleID: UUID?
+    @State private var pendingLinkComposerModuleID: UUID?
+    @State private var pendingTextFocusModuleID: UUID?
     @State private var keyboardIsVisible = false
+    @State private var scrollProxy: ScrollViewProxy?
 
     init(card: KnowledgeCard, onCardUpdated: ((KnowledgeCard) -> Void)? = nil) {
         self.card = card
@@ -36,20 +39,31 @@ struct KnowledgeCardDetailScreen: View {
                 let topBarTrailingInset = controlHorizontalInset + safeTrailing
                 let contentWidth = viewportWidth
                 let floatingBottomInset: CGFloat = keyboardIsVisible ? 12 : max(12, safeBottom - 24)
+                let floatingControlHeight: CGFloat = 48
+                let baseBottomContentInset = floatingBottomInset + floatingControlHeight + 24
+                let focusedModuleScrollBuffer = max(220, proxy.size.height * 0.42)
+                let contentBottomInset = baseBottomContentInset
+                    + ((keyboardIsVisible || pendingTextFocusModuleID != nil) ? focusedModuleScrollBuffer : 0)
 
-                ScrollView {
-                    KnowledgeCardView(
-                        viewModel: viewModel,
-                        selectedModuleID: $selectedModuleID,
-                        pendingImagePickerModuleID: $pendingImagePickerModuleID,
-                        pendingLinkedCardPickerModuleID: $pendingLinkedCardPickerModuleID,
-                        onDeleteModule: handleDeleteModule,
-                        onRegisterUndoAction: handleRegisterUndoAction
-                    )
-                    .frame(width: contentWidth, alignment: .topLeading)
-                    .padding(.top, 4)
-                    .padding(.bottom, 16)
-                    .frame(maxWidth: .infinity, alignment: .top)
+                ScrollViewReader { proxy in
+                    ScrollView {
+                        KnowledgeCardView(
+                            viewModel: viewModel,
+                            selectedModuleID: $selectedModuleID,
+                            pendingImagePickerModuleID: $pendingImagePickerModuleID,
+                            pendingLinkedCardPickerModuleID: $pendingLinkedCardPickerModuleID,
+                            pendingLinkComposerModuleID: $pendingLinkComposerModuleID,
+                            pendingTextFocusModuleID: $pendingTextFocusModuleID,
+                            onDeleteModule: handleDeleteModule,
+                            onRegisterUndoAction: handleRegisterUndoAction
+                        )
+                        .frame(width: contentWidth, alignment: .topLeading)
+                        .padding(.top, 4)
+                        .padding(.bottom, contentBottomInset)
+                        .frame(maxWidth: .infinity, alignment: .top)
+                    }
+                    .scrollDismissesKeyboard(.interactively)
+                    .onAppear { scrollProxy = proxy }
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
                 .zdPageBackground()
@@ -133,9 +147,25 @@ struct KnowledgeCardDetailScreen: View {
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { _ in
             keyboardIsVisible = true
+            // Scroll the active module into view above the keyboard
+            if let id = selectedModuleID {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        scrollProxy?.scrollTo(id, anchor: .center)
+                    }
+                }
+            }
         }
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             keyboardIsVisible = false
+        }
+        .onChange(of: selectedModuleID) { _, newID in
+            guard keyboardIsVisible, let id = newID else { return }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                withAnimation(.easeOut(duration: 0.25)) {
+                    scrollProxy?.scrollTo(id, anchor: .center)
+                }
+            }
         }
         .onAppear {
             library.recordView(for: viewModel.card)
@@ -166,10 +196,23 @@ struct KnowledgeCardDetailScreen: View {
         withAnimation(.spring(response: 0.34, dampingFraction: 0.84)) {
             let insertedID = viewModel.addModule(kind, after: selectedModuleID)
             selectedModuleID = insertedID
-            if kind == .image {
+            if kind == .text {
+                pendingTextFocusModuleID = insertedID
+                scheduleScrollToModule(insertedID, delay: 0.08)
+            } else if kind == .image {
                 pendingImagePickerModuleID = insertedID
             } else if kind == .linkedCard {
                 pendingLinkedCardPickerModuleID = insertedID
+            } else if kind == .link {
+                pendingLinkComposerModuleID = insertedID
+            }
+        }
+    }
+
+    private func scheduleScrollToModule(_ moduleID: UUID, delay: TimeInterval = 0.12) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+            withAnimation(.easeOut(duration: 0.28)) {
+                scrollProxy?.scrollTo(moduleID, anchor: .center)
             }
         }
     }

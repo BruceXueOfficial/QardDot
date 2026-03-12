@@ -10,7 +10,7 @@ enum KnowledgeCardMViewTokens {
         topRatio: 0.70,
         contentPaddingTop: EdgeInsets(top: 12, leading: 14, bottom: 8, trailing: 24),
         contentPaddingBottom: EdgeInsets(top: 4, leading: 14, bottom: 18, trailing: 14),
-        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 18, holeScale: 0.75),
+        punchedMetrics: ZDPunchedCardMetrics(cornerRadius: 18, holeScale: 1.02),
         footerTopSpacerMin: 0
     )
 

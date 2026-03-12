@@ -13,6 +13,8 @@ struct ManualCardCreationView: View {
     @State private var keyboardIsVisible = false
     @State private var selectedModuleID: UUID?
     @State private var pendingImagePickerModuleID: UUID?
+    @State private var pendingLinkComposerModuleID: UUID?
+    @State private var pendingLinkedCardPickerModuleID: UUID?
     @State private var undoDeleteStack: [EditorUndoAction] = []
 
     @StateObject private var editorViewModel: KnowledgeCardViewModel = {
@@ -118,7 +120,14 @@ struct ManualCardCreationView: View {
                             editorViewModel.addModule(.code)
                         }
                         Button("添加链接", systemImage: "link") {
-                            editorViewModel.addModule(.link)
+                            let insertedID = editorViewModel.addModule(.link)
+                            selectedModuleID = insertedID
+                            pendingLinkComposerModuleID = insertedID
+                        }
+                        Button("关联卡片", systemImage: "rectangle.on.rectangle") {
+                            let insertedID = editorViewModel.addModule(.linkedCard)
+                            selectedModuleID = insertedID
+                            pendingLinkedCardPickerModuleID = insertedID
                         }
                         Button("添加公式", systemImage: "function") {
                             editorViewModel.addModule(.formula)
@@ -252,6 +261,8 @@ struct ManualCardCreationView: View {
             viewModel: editorViewModel,
             selectedModuleID: $selectedModuleID,
             pendingImagePickerModuleID: $pendingImagePickerModuleID,
+            pendingLinkedCardPickerModuleID: $pendingLinkedCardPickerModuleID,
+            pendingLinkComposerModuleID: $pendingLinkComposerModuleID,
             hideTitle: true,
             hideOuterPadding: true,
             onDeleteModule: handleDeleteModule,
