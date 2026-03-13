@@ -3367,6 +3367,7 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
     let wrapLines: Bool
     let isHeightCapped: Bool
     var clearBackground: Bool = false
+    var prefersExternalHorizontalScroll: Bool = false
     var onContentHeightChange: ((CGFloat) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator {
@@ -3383,6 +3384,7 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
 
         let textView = LayoutAwareTextView(frame: .zero, textContainer: textContainer)
         textView.wrapLines = wrapLines
+        textView.prefersExternalHorizontalScroll = prefersExternalHorizontalScroll
         textView.delegate = context.coordinator
         textView.clipsToBounds = true
         // Keep layout contiguous so long single-line code can report full width reliably.
@@ -3415,6 +3417,7 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
     func updateUIView(_ uiView: UITextView, context: Context) {
         if let customClass = uiView as? LayoutAwareTextView {
             customClass.wrapLines = wrapLines
+            customClass.prefersExternalHorizontalScroll = prefersExternalHorizontalScroll
         }
         context.coordinator.parent = self
         let wrapChanged = context.coordinator.configureWrapBehavior(for: uiView, wrapLines: wrapLines)
@@ -3438,12 +3441,23 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
 
     func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
         let targetWidth: CGFloat
-        if let proposedWidth = proposal.width, proposedWidth > 0 {
-            targetWidth = floor(proposedWidth)
-        } else if uiView.bounds.width > 0 {
-            targetWidth = floor(uiView.bounds.width)
+        if wrapLines {
+            if let proposedWidth = proposal.width, proposedWidth > 0 {
+                targetWidth = floor(proposedWidth)
+            } else if uiView.bounds.width > 0 {
+                targetWidth = floor(uiView.bounds.width)
+            } else {
+                targetWidth = 320
+            }
         } else {
-            targetWidth = 320
+            let measuredWidth = measuredUnwrappedContentWidth(for: uiView)
+            if let proposedWidth = proposal.width, proposedWidth > 0 {
+                targetWidth = max(floor(proposedWidth), measuredWidth)
+            } else if uiView.bounds.width > 0 {
+                targetWidth = max(floor(uiView.bounds.width), measuredWidth)
+            } else {
+                targetWidth = max(320, measuredWidth)
+            }
         }
         let targetHeight: CGFloat
         if wrapLines {
@@ -3460,6 +3474,13 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
         
         let finalHeight = proposal.height.map { min(targetHeight, $0) } ?? targetHeight
         return CGSize(width: targetWidth, height: finalHeight)
+    }
+
+    private func measuredUnwrappedContentWidth(for uiView: UITextView) -> CGFloat {
+        uiView.layoutManager.ensureLayout(for: uiView.textContainer)
+        let usedRect = uiView.layoutManager.usedRect(for: uiView.textContainer)
+        let horizontalInsets = uiView.textContainerInset.left + uiView.textContainerInset.right
+        return max(1, ceil(usedRect.width + horizontalInsets))
     }
 
     final class Coordinator: NSObject, UITextViewDelegate {
@@ -3527,17 +3548,20 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
                 textView.isDirectionalLockEnabled = false
                 textView.setContentOffset(CGPoint(x: 0, y: textView.contentOffset.y), animated: false)
             } else {
-                textView.isScrollEnabled = true
+                textView.isScrollEnabled = parent.isHeightCapped || !parent.prefersExternalHorizontalScroll
                 textView.textContainer.size = CGSize(
                     width: CGFloat.greatestFiniteMagnitude,
                     height: CGFloat.greatestFiniteMagnitude
                 )
                 textView.textContainer.widthTracksTextView = false
                 textView.textContainer.lineBreakMode = .byClipping
-                textView.showsHorizontalScrollIndicator = true
-                textView.alwaysBounceHorizontal = true
-                textView.isDirectionalLockEnabled = false
+                textView.showsHorizontalScrollIndicator = !parent.prefersExternalHorizontalScroll
+                textView.alwaysBounceHorizontal = !parent.prefersExternalHorizontalScroll
+                textView.isDirectionalLockEnabled = true
                 if didWrapModeChange {
+                    textView.setContentOffset(CGPoint(x: 0, y: textView.contentOffset.y), animated: false)
+                }
+                if parent.prefersExternalHorizontalScroll {
                     textView.setContentOffset(CGPoint(x: 0, y: textView.contentOffset.y), animated: false)
                 }
             }
@@ -3656,7 +3680,8 @@ struct InlineHighlightedCodeEditor: UIViewRepresentable {
 private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate {
     var onLayout: (() -> Void)?
     var wrapLines: Bool = true
-    private weak var prioritisedAncestorScrollView: UIScrollView?
+    var prefersExternalHorizontalScroll: Bool = false
+    private var prioritisedAncestorScrollViewIDs: Set<ObjectIdentifier> = []
 
     private enum PanAxis {
         case horizontal
@@ -3686,10 +3711,16 @@ private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate
 
         switch axis {
         case .horizontal:
+            if prefersExternalHorizontalScroll {
+                return false
+            }
             return canScrollHorizontally
         case .vertical:
             return canScrollVertically
         case .undecided:
+            if prefersExternalHorizontalScroll {
+                return canScrollVertically && !canScrollHorizontally
+            }
             return canScrollHorizontally || canScrollVertically
         }
     }
@@ -3745,6 +3776,17 @@ private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate
             return
         }
 
+        if prefersExternalHorizontalScroll {
+            showsHorizontalScrollIndicator = false
+            alwaysBounceHorizontal = false
+            prioritisePanAgainstAncestorScrollViewIfNeeded()
+
+            if contentOffset.x != 0 {
+                setContentOffset(CGPoint(x: 0, y: contentOffset.y), animated: false)
+            }
+            return
+        }
+
         showsHorizontalScrollIndicator = canScrollHorizontally
         alwaysBounceHorizontal = canScrollHorizontally
         prioritisePanAgainstAncestorScrollViewIfNeeded()
@@ -3788,21 +3830,24 @@ private final class LayoutAwareTextView: UITextView, UIGestureRecognizerDelegate
     }
 
     private func prioritisePanAgainstAncestorScrollViewIfNeeded() {
-        guard let ancestorScrollView = nearestAncestorScrollView() else { return }
-        guard ancestorScrollView !== prioritisedAncestorScrollView else { return }
-        ancestorScrollView.panGestureRecognizer.require(toFail: panGestureRecognizer)
-        prioritisedAncestorScrollView = ancestorScrollView
+        for ancestorScrollView in ancestorScrollViews() {
+            let identifier = ObjectIdentifier(ancestorScrollView)
+            guard !prioritisedAncestorScrollViewIDs.contains(identifier) else { continue }
+            ancestorScrollView.panGestureRecognizer.require(toFail: panGestureRecognizer)
+            prioritisedAncestorScrollViewIDs.insert(identifier)
+        }
     }
 
-    private func nearestAncestorScrollView() -> UIScrollView? {
+    private func ancestorScrollViews() -> [UIScrollView] {
+        var scrollViews: [UIScrollView] = []
         var current = superview
         while let view = current {
             if let scrollView = view as? UIScrollView, scrollView !== self {
-                return scrollView
+                scrollViews.append(scrollView)
             }
             current = view.superview
         }
-        return nil
+        return scrollViews
     }
 }
 

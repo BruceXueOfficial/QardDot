@@ -13,6 +13,18 @@ extension KnowledgeCardView {
         static let compactEditorMinimumHeight: CGFloat = 30
     }
 
+    private var embeddedModuleSurfaceFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.03)
+    }
+
+    private var embeddedModuleSurfaceBorder: Color {
+        Color.secondary.opacity(0.15)
+    }
+
+    private var embeddedModuleEmptySurfaceFill: Color {
+        colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.02)
+    }
+
     var moduleCardLayout: some View {
         VStack(alignment: .leading, spacing: 0) {
             ForEach(Array(viewModel.modules.enumerated()), id: \.element.id) { _, module in
@@ -307,14 +319,14 @@ extension KnowledgeCardView {
                 .padding(12)
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.03))
+                        .fill(embeddedModuleSurfaceFill)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
                         .stroke(
                             hasError
                                 ? Color.red.opacity(0.5)
-                                : Color.secondary.opacity(0.15),
+                                : embeddedModuleSurfaceBorder,
                             lineWidth: hasError ? 1.2 : 0.8
                         )
                 )
@@ -328,11 +340,11 @@ extension KnowledgeCardView {
                 }
                 .background(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .fill(colorScheme == .dark ? Color.white.opacity(0.06) : Color.black.opacity(0.03))
+                        .fill(embeddedModuleSurfaceFill)
                 )
                 .overlay(
                     RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        .stroke(Color.secondary.opacity(0.15), lineWidth: 0.8)
+                        .stroke(embeddedModuleSurfaceBorder, lineWidth: 0.8)
                 )
                 .contentShape(Rectangle())
                 .onTapGesture {
@@ -352,7 +364,7 @@ extension KnowledgeCardView {
                     .padding(.vertical, 20)
                     .background(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(colorScheme == .dark ? Color.white.opacity(0.04) : Color.black.opacity(0.02))
+                            .fill(embeddedModuleEmptySurfaceFill)
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -634,18 +646,37 @@ extension KnowledgeCardView {
             .zIndex(2)
 
             ZStack(alignment: .topLeading) {
-                InlineHighlightedCodeEditor(
-                    text: codeBinding,
-                    language: CodeDisplayLanguage.parse(from: languageBinding.wrappedValue),
-                    isEditing: codeEditingBinding(for: snippet.id),
-                    wrapLines: wrapBinding.wrappedValue,
-                    isHeightCapped: isHeightCapped,
-                    clearBackground: true
-                )
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .frame(height: editorHeight)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                if wrapBinding.wrappedValue {
+                    InlineHighlightedCodeEditor(
+                        text: codeBinding,
+                        language: CodeDisplayLanguage.parse(from: languageBinding.wrappedValue),
+                        isEditing: codeEditingBinding(for: snippet.id),
+                        wrapLines: true,
+                        isHeightCapped: isHeightCapped,
+                        clearBackground: true
+                    )
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(height: editorHeight)
+                    .clipped()
+                } else {
+                    GeometryReader { proxy in
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            InlineHighlightedCodeEditor(
+                                text: codeBinding,
+                                language: CodeDisplayLanguage.parse(from: languageBinding.wrappedValue),
+                                isEditing: codeEditingBinding(for: snippet.id),
+                                wrapLines: false,
+                                isHeightCapped: isHeightCapped,
+                                clearBackground: true,
+                                prefersExternalHorizontalScroll: true
+                            )
+                            .frame(minWidth: proxy.size.width, alignment: .leading)
+                            .frame(height: editorHeight)
+                        }
+                        .frame(width: proxy.size.width, height: proxy.size.height, alignment: .leading)
+                    }
+                    .frame(height: editorHeight)
+                }
 
                 if codeBinding.wrappedValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                     Text("输入代码内容")
@@ -657,6 +688,8 @@ extension KnowledgeCardView {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: editorHeight)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .zIndex(1)
 
             HStack {
@@ -684,11 +717,11 @@ extension KnowledgeCardView {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(colorScheme == .dark ? Color.white.opacity(0.08) : Color.black.opacity(0.05))
+                .fill(embeddedModuleSurfaceFill)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.black.opacity(colorScheme == .dark ? 0.1 : 0.08), lineWidth: 0.8)
+                .stroke(embeddedModuleSurfaceBorder, lineWidth: 0.8)
         )
         .offset(x: isRemoving ? -56 : 0)
         .opacity(isRemoving ? 0 : 1)
@@ -749,23 +782,16 @@ extension KnowledgeCardView {
                         .padding(.vertical, 10)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .background(
-                            Capsule(style: .continuous)
-                                .fill(
-                                    colorScheme == .dark
-                                        ? Color.white.opacity(0.08)
-                                        : Color.black.opacity(0.05)
-                                )
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .fill(embeddedModuleSurfaceFill)
                         )
                         .overlay(
-                            Capsule(style: .continuous)
-                                .stroke(
-                                    Color.zdAccentDeep.opacity(colorScheme == .dark ? 0.44 : 0.24),
-                                    lineWidth: 0.8
-                                )
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(embeddedModuleSurfaceBorder, lineWidth: 0.8)
                         )
                     }
                     .buttonStyle(.plain)
-                    .contentShape(.contextMenuPreview, Capsule())
+                    .contentShape(.contextMenuPreview, RoundedRectangle(cornerRadius: 12, style: .continuous))
                     .contextMenu {
                         Button(role: .destructive) {
                             viewModel.removeLinkEntry(moduleID: module.id, entryID: entry.id)

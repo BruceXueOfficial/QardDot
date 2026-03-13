@@ -17,6 +17,13 @@ struct ChatBubbleView: View {
         return min(screenWidth * 0.72, 320)
     }
 
+    private var shouldShowDisclaimer: Bool {
+        message.type == .ai &&
+        !message.isTyping &&
+        !message.isStatusMessage &&
+        !message.content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
     var body: some View {
         HStack(alignment: .top, spacing: 0) {
             if message.type == .user { Spacer() }
@@ -49,16 +56,25 @@ struct ChatBubbleView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .animation(.linear(duration: 0.1), value: message.content)
             } else {
-                // AI bubble: always use rich renderer (live rendering of markdown and LaTeX while sliding in)
-                RichChatContentView(
-                    text: message.content,
-                    maxWidth: bubbleTextMaxWidth,
-                    colorScheme: colorScheme
-                )
+                if message.isTyping {
+                    StreamingChatContentView(
+                        text: message.content,
+                        maxWidth: bubbleTextMaxWidth,
+                        colorScheme: colorScheme
+                    )
+                    .animation(.linear(duration: 0.08), value: message.content)
+                } else {
+                    RichChatContentView(
+                        text: message.content,
+                        maxWidth: bubbleTextMaxWidth,
+                        colorScheme: colorScheme
+                    )
+                    .transition(.opacity)
+                }
             }
 
             // Disclaimer (AI Only)
-            if message.type != .user && !message.isTyping {
+            if shouldShowDisclaimer {
                 Text("回​​答​​由​​A​​I​​生​​成​​，​​仅​​供​​参​​考")
                     .font(.caption2)
                     .foregroundColor(.secondary)
@@ -126,6 +142,29 @@ struct ChatBubbleView: View {
 }
 
 // MARK: - Rich Chat Content (LaTeX + Markdown)
+
+private struct StreamingChatContentView: View {
+    let text: String
+    let maxWidth: CGFloat
+    let colorScheme: ColorScheme
+
+    private var textColor: Color {
+        colorScheme == .dark
+            ? Color(uiColor: UIColor.label.withAlphaComponent(0.94))
+            : Color(uiColor: UIColor.label.withAlphaComponent(0.9))
+    }
+
+    var body: some View {
+        Text(verbatim: text.isEmpty ? " " : text)
+            .textSelection(.enabled)
+            .font(.system(size: 16))
+            .lineSpacing(6)
+            .kerning(0.5)
+            .foregroundColor(textColor)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: maxWidth, alignment: .leading)
+    }
+}
 
 /// Used for completed (non-streaming) AI responses.
 /// Renders using MixedTextRenderer to ensure inline LaTeX formatting mirroring the text module.

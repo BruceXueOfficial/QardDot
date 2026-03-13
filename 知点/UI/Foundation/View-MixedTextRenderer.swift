@@ -140,7 +140,7 @@ struct MixedTextRenderer: View {
             .parsingMode(.onlyEquations)
             .blockMode(.alwaysInline)
             .imageRenderingMode(.template)
-            .renderingStyle(.wait)
+            .renderingStyle(.original)
             .errorMode(.original)
             .foregroundStyle(textColor)
             .font(.system(size: fontSize))

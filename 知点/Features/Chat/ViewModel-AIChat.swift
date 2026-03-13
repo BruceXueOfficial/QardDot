@@ -51,6 +51,7 @@ class AiChatViewModel: ObservableObject {
     private static let responseTypingFrameInterval: TimeInterval = 0.08
     private static let responseTypingWarmupDelay: TimeInterval = 1.5
     private static let responseTypingCharactersPerSecond: Double = 37.5
+    private static let responseTypingCharactersPerFrame = max(1, Int(round(responseTypingFrameInterval * responseTypingCharactersPerSecond)))
 
     static func cardGenerationCompletionMessage(cardCount: Int, randomIndex: Int? = nil) -> String {
         let templates = cardGenerationCompletionTemplates
@@ -66,17 +67,6 @@ class AiChatViewModel: ObservableObject {
         }
 
         return String(format: templates[resolvedIndex], locale: Locale(identifier: "zh_CN"), cardCount)
-    }
-
-    static func displayedCharacterCount(
-        forBufferCount bufferCount: Int,
-        typingStartTime: Date,
-        now: Date = Date()
-    ) -> Int {
-        guard bufferCount > 0, now >= typingStartTime else { return 0 }
-        let elapsed = now.timeIntervalSince(typingStartTime)
-        let rawCount = Int(floor(elapsed * responseTypingCharactersPerSecond))
-        return min(bufferCount, max(0, rawCount))
     }
 
     init() {
@@ -128,6 +118,8 @@ class AiChatViewModel: ObservableObject {
     }
     
     private func triggerAI() {
+        cleanupResidualTypingMessages()
+
         let currentToken = UUID()
         abortToken = currentToken
         activeResponse = AiChatActiveResponse(
@@ -171,17 +163,8 @@ class AiChatViewModel: ObservableObject {
         cancelResponseTyping()
         cancelCardGenerationStatusTyping()
         refreshBackgroundTaskState()
-        
-        // Clean up last AI message if it was empty and interrupted
-        if let last = messages.last, last.type == .ai, last.isTyping {
-            var updated = last
-            updated.isTyping = false
-            if updated.content.isEmpty {
-                messages.removeLast()
-            } else {
-                messages[messages.count - 1] = updated
-            }
-        }
+
+        cleanupResidualTypingMessages()
 
         if isInterrupt {
             messages.append(
@@ -438,13 +421,8 @@ class AiChatViewModel: ObservableObject {
         }
 
         let hasTypingStarted = now >= response.typingStartTime
-        let targetCount = Self.displayedCharacterCount(
-            forBufferCount: response.networkBuffer.count,
-            typingStartTime: response.typingStartTime,
-            now: now
-        )
 
-        if hasTypingStarted, !response.networkBuffer.isEmpty {
+        if hasTypingStarted && !response.networkBuffer.isEmpty {
             if !response.messageAdded {
                 messages.append(ChatMessage(id: response.aiMessageID, content: "", type: .ai, isTyping: true))
                 response.messageAdded = true
@@ -457,17 +435,32 @@ class AiChatViewModel: ObservableObject {
                 return
             }
 
-            messages[index].content = String(response.networkBuffer.prefix(targetCount))
-            response.displayedCharactersCount = targetCount
-        } else {
-            response.displayedCharactersCount = 0
+            let pendingCharacterCount = response.networkBuffer.count - response.displayedCharactersCount
+            if pendingCharacterCount > 0 {
+                let nextCharacterCount = min(
+                    response.displayedCharactersCount + Self.responseTypingCharactersPerFrame,
+                    response.networkBuffer.count
+                )
+                messages[index].content.append(
+                    contentsOf: response.networkBuffer[response.displayedCharactersCount..<nextCharacterCount]
+                )
+                response.displayedCharactersCount = nextCharacterCount
+            } else if pendingCharacterCount < 0 {
+                messages[index].content = String(response.networkBuffer)
+                response.displayedCharactersCount = response.networkBuffer.count
+            }
         }
 
         let didFinishTyping = response.isStreamFinished && response.displayedCharactersCount >= response.networkBuffer.count
         if didFinishTyping {
             if response.messageAdded, let index = messages.firstIndex(where: { $0.id == response.aiMessageID }) {
-                messages[index].isTyping = false
-                messages[index].content = messages[index].content.trimmingCharacters(in: .whitespacesAndNewlines)
+                let finalizedDisplayText = String(response.networkBuffer).trimmingCharacters(in: .whitespacesAndNewlines)
+                if finalizedDisplayText.isEmpty {
+                    messages.remove(at: index)
+                } else {
+                    messages[index].isTyping = false
+                    messages[index].content = finalizedDisplayText
+                }
             }
 
             let completedFullText = response.completedFullText
@@ -483,6 +476,18 @@ class AiChatViewModel: ObservableObject {
         }
 
         activeResponse = response
+    }
+
+    private func cleanupResidualTypingMessages() {
+        for index in messages.indices.reversed() where messages[index].type == .ai && messages[index].isTyping {
+            let trimmedContent = messages[index].content.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmedContent.isEmpty {
+                messages.remove(at: index)
+            } else {
+                messages[index].content = trimmedContent
+                messages[index].isTyping = false
+            }
+        }
     }
 
     private var needsBackgroundExecution: Bool {
