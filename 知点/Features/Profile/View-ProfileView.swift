@@ -3,6 +3,7 @@ import SwiftUI
 struct ProfileView: View {
     @EnvironmentObject private var library: KnowledgeCardLibraryStore
     @AppStorage(ZDListRenderMode.storageKey) private var listRenderModeRawValue = ZDListRenderMode.defaultSelection.rawValue
+    @AppStorage(AIProvider.storageKey) private var aiProviderRawValue = AIProvider.defaultSelection.rawValue
 
     var body: some View {
         NavigationStack {
@@ -10,6 +11,7 @@ struct ProfileView: View {
                 statsCard
                 storageCard
                 performanceCard
+                aiProviderCard
                 aboutCard
             }
         }
@@ -24,6 +26,18 @@ struct ProfileView: View {
         Binding(
             get: { listRenderMode },
             set: { listRenderMode = $0 }
+        )
+    }
+
+    private var aiProvider: AIProvider {
+        get { AIProvider.resolve(rawValue: aiProviderRawValue) }
+        nonmutating set { aiProviderRawValue = newValue.rawValue }
+    }
+
+    private var aiProviderBinding: Binding<AIProvider> {
+        Binding(
+            get: { aiProvider },
+            set: { aiProvider = $0 }
         )
     }
 
@@ -142,6 +156,33 @@ struct ProfileView: View {
 //            Text("影响全页面卡片样式：广场、新建、仓库与详情展示。")
 //                .font(.caption2)
 //                .foregroundStyle(.secondary)
+        }
+    }
+
+    private var aiProviderCard: some View {
+        ZDSurfaceCard(cornerRadius: 14, style: .regular, padding: 16) {
+            ZDSectionHeader("智能助手") {
+                Image(systemName: "cpu.fill")
+                    .font(.system(size: 15, weight: .medium))
+                    .foregroundStyle(Color.zdAccentDeep)
+            }
+
+            Picker("AI 服务", selection: aiProviderBinding) {
+                ForEach(AIProvider.allCases) { provider in
+                    Text(provider.displayName).tag(provider)
+                }
+            }
+            .pickerStyle(.segmented)
+            .accessibilityIdentifier("profile.aiProvider.picker")
+
+            HStack(spacing: 6) {
+                Image(systemName: "info.circle")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Text(aiProvider.detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }
