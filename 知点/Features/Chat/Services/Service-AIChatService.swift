@@ -11,7 +11,7 @@ class AiChatService: ObservableObject {
     
     // MARK: - Dify Credentials
     private let difyBaseUrl = "https://dify-uat.mcdonalds.cn/v1"
-    private let difyApiKey = "app-jVk4umu2cPB05xR2wmGnzxDB"
+    private let difyApiKey = "app-hRh0EkMyQnYyRT9JyJJ9dfjV"
     
     // MARK: - Dify Conversation Tracking
     /// Stores the Dify-assigned conversation_id for the current session.
@@ -153,91 +153,18 @@ class AiChatService: ObservableObject {
     
     // MARK: - Dify Streaming Implementation
     
-    /// Whether the current Dify conversation has been warmed up.
-    /// The Dify chatflow has a one-turn offset: the first message always
-    /// gets a default "超出理解范围" reply, and the real answer appears on
-    /// the second turn. We counteract this by sending an invisible warmup
-    /// request before the user's first real message.
-    private var difyConversationWarmedUp: Bool = false
-    
     private func sendDifyStream(prompt: String, sessionId: String, onUpdate: @escaping (String) -> Void, completion: @escaping (String?) -> Void) {
         // Detect conversation reset: when the ViewModel generates a new sessionID
         // (e.g. after clearMessages), we discard the old Dify conversation_id
         // so the next request starts a brand-new conversation on Dify's side.
         if sessionId != lastDifySessionId {
             difyConversationId = ""
-            difyConversationWarmedUp = false
             lastDifySessionId = sessionId
         }
         
+        guard let url = URL(string: "\(difyBaseUrl)/chat-messages") else { return }
+        
         DispatchQueue.main.async { self.isThinking = true }
-        
-        // 每次发送前，取消上一次可能存在的请求
-        streamTask?.cancel()
-        
-        streamTask = Task {
-            // ── Warmup: silently consume the first offset turn ──
-            if !difyConversationWarmedUp {
-                print("🔄 Dify: Warming up new conversation...")
-                let warmupConvId = await difyBlockingRequest(query: prompt)
-                if Task.isCancelled { return }
-                if let convId = warmupConvId {
-                    self.difyConversationId = convId
-                    self.difyConversationWarmedUp = true
-                    print("✅ Dify: Warmup complete, conversation_id = \(convId)")
-                } else {
-                    print("⚠️ Dify: Warmup failed, proceeding without warmup")
-                }
-            }
-            
-            // ── Actual streaming request ──
-            await difyStreamRequest(prompt: prompt, onUpdate: onUpdate, completion: completion)
-        }
-    }
-    
-    /// Sends a silent blocking request to Dify to initialize the conversation.
-    /// Returns the conversation_id on success, nil on failure.
-    private func difyBlockingRequest(query: String) async -> String? {
-        guard let url = URL(string: "\(difyBaseUrl)/chat-messages") else { return nil }
-        
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("Bearer \(difyApiKey)", forHTTPHeaderField: "Authorization")
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
-        let body: [String: Any] = [
-            "inputs": [String: String](),
-            "query": query,
-            "response_mode": "blocking",
-            "conversation_id": "",
-            "user": AIProvider.persistentUserID
-        ]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
-        do {
-            let (data, response) = try await URLSession.shared.data(for: request)
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                return nil
-            }
-            if let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-               let convId = json["conversation_id"] as? String, !convId.isEmpty {
-                return convId
-            }
-        } catch {
-            print("❌ Dify warmup error: \(error.localizedDescription)")
-        }
-        return nil
-    }
-    
-    /// Sends the actual streaming request to Dify and processes SSE events.
-    private func difyStreamRequest(prompt: String, onUpdate: @escaping (String) -> Void, completion: @escaping (String?) -> Void) async {
-        guard let url = URL(string: "\(difyBaseUrl)/chat-messages") else {
-            DispatchQueue.main.async {
-                self.isThinking = false
-                completion(nil)
-            }
-            return
-        }
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -253,88 +180,91 @@ class AiChatService: ObservableObject {
         ]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        do {
-            let (bytes, response) = try await URLSession.shared.bytes(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
-                if let httpResponse = response as? HTTPURLResponse {
-                    print("❌ Dify: Bad status code \(httpResponse.statusCode)")
-                } else {
-                    print("❌ Dify: Invalid response")
-                }
-                DispatchQueue.main.async {
-                    self.isThinking = false
-                    completion(nil)
-                }
-                return
-            }
-            
-            var fullContent = ""
-            for try await line in bytes.lines {
-                if Task.isCancelled { break }
+        // 每次发送前，取消上一次可能存在的请求
+        streamTask?.cancel()
+        
+        streamTask = Task {
+            do {
+                let (bytes, response) = try await URLSession.shared.bytes(for: request)
                 
-                // Dify SSE format:
-                //   event: message
-                //   data: {"event":"message","answer":"...","conversation_id":"...","message_id":"..."}
-                // We only process `data:` lines; the event type is also inside the JSON payload.
-                guard line.hasPrefix("data:") else { continue }
-                
-                let jsonStr = line.dropFirst(5).trimmingCharacters(in: .whitespacesAndNewlines)
-                if jsonStr.isEmpty { continue }
-                
-                guard let data = jsonStr.data(using: .utf8),
-                      let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
-                    continue
+                guard let httpResponse = response as? HTTPURLResponse, httpResponse.statusCode == 200 else {
+                    if let httpResponse = response as? HTTPURLResponse {
+                        print("❌ Dify: Bad status code \(httpResponse.statusCode)")
+                    } else {
+                        print("❌ Dify: Invalid response")
+                    }
+                    DispatchQueue.main.async {
+                        self.isThinking = false
+                        completion(nil)
+                    }
+                    return
                 }
                 
-                let event = json["event"] as? String ?? ""
-                
-                // Capture conversation_id for memory continuity
-                if let convId = json["conversation_id"] as? String, !convId.isEmpty {
-                    self.difyConversationId = convId
-                }
-                
-                switch event {
-                case "message", "agent_message":
-                    // Dify sends incremental `answer` chunks
-                    if let answer = json["answer"] as? String, !answer.isEmpty {
-                        fullContent += answer
-                        let currentSnapshot = fullContent
-                        DispatchQueue.main.async {
-                            onUpdate(currentSnapshot)
-                        }
+                var fullContent = ""
+                for try await line in bytes.lines {
+                    if Task.isCancelled { break }
+                    
+                    // Dify SSE format:
+                    //   data: {"event":"message","answer":"...","conversation_id":"..."}
+                    guard line.hasPrefix("data:") else { continue }
+                    
+                    let jsonStr = line.dropFirst(5).trimmingCharacters(in: .whitespacesAndNewlines)
+                    if jsonStr.isEmpty { continue }
+                    
+                    guard let data = jsonStr.data(using: .utf8),
+                          let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+                        continue
                     }
                     
-                case "message_end":
-                    // Stream completed normally
-                    break
+                    let event = json["event"] as? String ?? ""
                     
-                case "error":
-                    let errorMsg = json["message"] as? String ?? "Unknown error"
-                    let errorCode = json["code"] as? String ?? ""
-                    print("❌ Dify stream error [\(errorCode)]: \(errorMsg)")
-                    break
+                    // Capture conversation_id for memory continuity
+                    if let convId = json["conversation_id"] as? String, !convId.isEmpty {
+                        self.difyConversationId = convId
+                    }
                     
-                default:
-                    // Ignore other events: workflow_started, node_started, etc.
-                    break
+                    switch event {
+                    case "message", "agent_message":
+                        // Dify sends incremental `answer` chunks
+                        if let answer = json["answer"] as? String, !answer.isEmpty {
+                            fullContent += answer
+                            let currentSnapshot = fullContent
+                            DispatchQueue.main.async {
+                                onUpdate(currentSnapshot)
+                            }
+                        }
+                        
+                    case "message_end":
+                        // Stream completed normally
+                        break
+                        
+                    case "error":
+                        let errorMsg = json["message"] as? String ?? "Unknown error"
+                        let errorCode = json["code"] as? String ?? ""
+                        print("❌ Dify stream error [\(errorCode)]: \(errorMsg)")
+                        break
+                        
+                    default:
+                        // Ignore other events: workflow_started, node_started, etc.
+                        break
+                    }
                 }
-            }
-            
-            DispatchQueue.main.async {
-                self.isThinking = false
-                if Task.isCancelled {
-                    completion(nil)
-                } else {
-                    completion(fullContent.isEmpty ? nil : fullContent)
-                }
-            }
-        } catch {
-            if !Task.isCancelled {
-                print("❌ Dify network error: \(error.localizedDescription)")
+                
                 DispatchQueue.main.async {
                     self.isThinking = false
-                    completion(nil)
+                    if Task.isCancelled {
+                        completion(nil)
+                    } else {
+                        completion(fullContent.isEmpty ? nil : fullContent)
+                    }
+                }
+            } catch {
+                if !Task.isCancelled {
+                    print("❌ Dify network error: \(error.localizedDescription)")
+                    DispatchQueue.main.async {
+                        self.isThinking = false
+                        completion(nil)
+                    }
                 }
             }
         }
